@@ -35,9 +35,19 @@ describe('Server Core, Auth & Lifecycle (Phase 2)', () => {
   const ownerUser = { id: 123456789, first_name: 'CEO', username: 'owner_virtual' };
   const nonOwnerUser = { id: 999999999, first_name: 'Intruder', username: 'stranger' };
 
+  let isMockHermesOwner = false;
   beforeAll(async () => {
     mockHermes = new MockHermesServer(8642);
-    await mockHermes.start();
+    try {
+      await mockHermes.start();
+      isMockHermesOwner = true;
+    } catch (err: unknown) {
+      const e = err as { code?: string };
+      if (e?.code !== 'EADDRINUSE') {
+        throw err;
+      }
+      // Re-use already running mock instance on 8642
+    }
 
     db = new BetterSqlite3(':memory:');
     runMigrations(db);
@@ -48,7 +58,9 @@ describe('Server Core, Auth & Lifecycle (Phase 2)', () => {
   afterAll(async () => {
     await app.close();
     db.close();
-    await mockHermes.stop();
+    if (isMockHermesOwner) {
+      await mockHermes.stop();
+    }
   });
 
   describe('Security & Telegram Auth (Section 5, Rules S1-S3)', () => {
@@ -265,6 +277,26 @@ describe('Server Core, Auth & Lifecycle (Phase 2)', () => {
       });
       expect(kpiRes.statusCode).toBe(201);
 
+      // Add agent-sourced KPI to verify unverified source labeling (REQ-078/REQ-079)
+      const agentKpiRes = await app.inject({
+        method: 'POST',
+        url: '/api/kpis',
+        headers: jsonHeaders,
+        body: JSON.stringify({
+          department: 'finance',
+          key: 'burn_rate_est',
+          label: 'Proyeksi Burn Rate',
+          value: 18500,
+          unit: 'USD',
+          period: '2026-Q3',
+          source: 'agent',
+          source_note: 'Estimasi agen finance',
+        }),
+      });
+      expect(agentKpiRes.statusCode).toBe(201);
+      const agentKpi = JSON.parse(agentKpiRes.body);
+      expect(agentKpi.source).toBe('agent');
+
       const auditRes = await app.inject({
         method: 'GET',
         url: '/api/audit',
@@ -274,6 +306,74 @@ describe('Server Core, Auth & Lifecycle (Phase 2)', () => {
       const logs = JSON.parse(auditRes.body);
       expect(logs.length).toBeGreaterThan(0);
       expect(logs[0].telegram_user_id).toBe(ownerUser.id);
+    });
+
+    it('generates anti-hallucination report from verified KPIs (Phase 5 Acceptance)', async () => {
+      const genRes = await app.inject({
+        method: 'POST',
+        url: '/api/reports/generate',
+        headers: jsonHeaders,
+        body: JSON.stringify({
+          agent_id: 'agent_finance_01',
+          template: 'monthly_finance',
+          period: '2026-Q3',
+        }),
+      });
+      expect(genRes.statusCode).toBe(201);
+      const report = JSON.parse(genRes.body);
+      expect(report.id).toBeDefined();
+      expect(report.department).toBe('finance');
+      expect(report.body_md).toContain('Ringkasan Eksekutif');
+      expect(report.body_md).toContain('Insights');
+      expect(report.body_md).toContain('Risks');
+      expect(report.body_md).toContain('Actions');
+
+      const metrics = JSON.parse(report.metrics_json);
+      expect(metrics.summary_md).toBeDefined();
+      expect(Array.isArray(metrics.insights)).toBe(true);
+      expect(Array.isArray(metrics.risks)).toBe(true);
+      expect(Array.isArray(metrics.actions)).toBe(true);
+    });
+
+    it('rejects and retries on invalid agent JSON and returns 422 if unvalidated (Phase 5 Acceptance)', async () => {
+      // Create a temporary agent that triggers simulated invalid JSON in mock-hermes
+      await app.inject({
+        method: 'POST',
+        url: '/api/agents',
+        headers: jsonHeaders,
+        body: JSON.stringify({
+          id: 'agent_corrupt_kpi',
+          name: 'SIMULATE_INVALID_JSON Agent',
+          role: 'Malfunctioning Analyst',
+          department: 'marketing',
+          avatar: '💥',
+          soul_summary: 'Agen simulasi kegagalan JSON anti-halusinasi',
+          hermes_base_url: 'http://127.0.0.1:8642',
+          api_key_env: 'HERMES_KEY_DEFAULT',
+          hermes_profile: 'marketing',
+          active: 1,
+          hired_at: Date.now(),
+          created_at: Date.now(),
+        }),
+      });
+
+      const failedGenRes = await app.inject({
+        method: 'POST',
+        url: '/api/reports/generate',
+        headers: jsonHeaders,
+        body: JSON.stringify({
+          agent_id: 'agent_corrupt_kpi',
+          template: 'campaign_roi',
+          period: '2026-Q3',
+        }),
+      });
+
+      // Must be rejected with 422 validation_failed per anti-hallucination rules
+      expect(failedGenRes.statusCode).toBe(422);
+      const failedData = JSON.parse(failedGenRes.body);
+      expect(failedData.error).toBe('validation_failed');
+      expect(failedData.message).toContain('failed anti-hallucination validation');
+      expect(failedData.report.body_md).toContain('Gagal membuat laporan');
     });
   });
 });

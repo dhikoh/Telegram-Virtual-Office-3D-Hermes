@@ -86,8 +86,8 @@
 | **REQ-075** | Screen 2 (Agent Sheet): Bottom sheet with Chat, Activity, Tasks, Profile tabs | 4 | apps/web/src/components/agent-sheet | VERIFIED | Bottom sheet drawer verified with Chat (SSE), Activity, Tasks, Profile tabs & gateway health check |
 | **REQ-076** | Screen 3 (Tasks): Mobile Kanban swipe (Backlog, Running, Needs approval, Done), CRUD, Markdown viewer | 4 | apps/web/src/screens/Tasks.tsx | VERIFIED | 4 Kanban swipe columns verified, Task creation modal, and Markdown result modal verified |
 | **REQ-077** | Screen 4 (Inbox): Pending approvals first (full action text, haptics), errors, reports | 4 | apps/web/src/screens/Inbox.tsx | VERIFIED | Pending approvals first with full action payload, errors section, and completed tasks list verified |
-| **REQ-078** | Screen 5 (Reports): Department tabs, KPI sparklines (recharts), source badges, manual entry form | 5 | apps/web/src/screens/Reports.tsx | TODO | Planned Phase 5 |
-| **REQ-079** | Screen 5 (Reports): Anti-hallucination agent prompt, strict zod JSON validation, retry, unverified badge | 5 | apps/server/src/services/reports.ts | TODO | Planned Phase 5 |
+| **REQ-078** | Screen 5 (Reports): Department tabs, KPI sparklines (recharts), source badges, manual entry form | 5 | apps/web/src/screens/Reports.tsx | VERIFIED | Tested in browser subagent in 390x844 mobile viewport; 8 department tabs, Recharts AreaChart sparklines, source badges (manual, import, agent: unverified), manual KPI creation modal functional |
+| **REQ-079** | Screen 5 (Reports): Anti-hallucination agent prompt, strict zod JSON validation, retry, unverified badge | 5 | apps/server/src/routes/reports.ts | VERIFIED | Tested in server.test.ts (anti-hallucination prompt, rejection & retry, 422 on unvalidated schema, unverified source label) & browser verification in Reports.tsx |
 | **REQ-080** | Screen 6 (More): Agents registry, Recruitment room, Audit log, Settings | 6 | apps/web/src/screens/More.tsx | TODO | Planned Phases 6-7 |
 | **REQ-081** | Recruitment Wizard: Step 1 Template choice (8 predefined roles or custom) | 6 | apps/web/src/components/recruitment | TODO | Planned Phase 6 |
 | **REQ-082** | Recruitment Wizard: Step 2 Comprehensive specification form | 6 | apps/web/src/components/recruitment | TODO | Planned Phase 6 |
@@ -99,7 +99,7 @@
 | **REQ-088** | Phase 2 Acceptance: Server core, Telegram auth tests, HermesClient, task runs, /api/stream | 2 | apps/server | VERIFIED | Tests pass, E2E flow verified with real output in e2e-phase2-flow.ts |
 | **REQ-089** | Phase 3 Acceptance: Web shell, Telegram integration, Office map SVG, avatar movements | 3 | apps/web | VERIFIED | Production build passes (15s); 360x740 browser verification passed with demo loading and avatar status movements |
 | **REQ-090** | Phase 4 Acceptance: Agent sheet, chat, Tasks Kanban, Inbox approvals | 4 | apps/web | VERIFIED | Agent sheet drawer, chat streaming, Tasks Kanban swipe, and Inbox approval flows fully verified |
-| **REQ-091** | Phase 5 Acceptance: Reports & KPIs, sparklines, anti-hallucination test | 5 | apps/web, apps/server | TODO | Planned Phase 5 |
+| **REQ-091** | Phase 5 Acceptance: Reports & KPIs, sparklines, anti-hallucination test | 5 | apps/web, apps/server | VERIFIED | Unit tests in server.test.ts, mock-hermes background run completion, and browser artifact phase5_anti_hallucination_report_success.png |
 | **REQ-092** | Phase 6 Acceptance: Recruitment wizard, SOUL.md generator tests, Hiring package | 6 | apps/web, apps/server | TODO | Planned Phase 6 |
 | **REQ-093** | Phase 7 Acceptance: Push notifications, settings, accessibility pass, states matrix | 7 | apps/web, apps/server | TODO | Planned Phase 7 |
 | **REQ-094** | Phase 8 Acceptance: Multi-stage Dockerfile, Coolify deploy guide, final audit, manual test script | 8 | Dockerfile, docs/DEPLOY_COOLIFY.md | TODO | Planned Phase 8 |
@@ -116,11 +116,11 @@
 
 ---
 
-### Ledger Summary Counts (Phase 4)
+### Ledger Summary Counts (Phase 5)
 - **Total Requirements**: 104
-- **VERIFIED**: 86
+- **VERIFIED**: 89
 - **IMPLEMENTED-UNTESTED**: 0
-- **TODO**: 18
+- **TODO**: 15
 - **ASSUMED**: 0
 - **BLOCKED**: 0
 - **DEFERRED-BY-OWNER**: 0

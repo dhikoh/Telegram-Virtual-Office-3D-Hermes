@@ -4,7 +4,7 @@
  */
 
 import { tma } from './tma';
-import type { Agent, Task, Approval } from '@hermes-office/shared';
+import type { Agent, Task, Approval, Kpi, Report } from '@hermes-office/shared';
 
 const API_BASE = '/api';
 
@@ -125,7 +125,13 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ decision }),
     }),
-  getKpis: () => request<unknown[]>('/kpis'),
-  getReports: () => request<unknown[]>('/reports'),
+  getKpis: (department?: string) =>
+    request<Kpi[]>(department ? `/kpis?department=${department}` : '/kpis'),
+  createKpi: (body: unknown) =>
+    request<Kpi>('/kpis', { method: 'POST', body: JSON.stringify(body) }),
+  getReports: (department?: string) =>
+    request<Report[]>(department ? `/reports?department=${department}` : '/reports'),
+  generateReport: (body: { agent_id: string; template: string; period: string }) =>
+    request<Report>('/reports/generate', { method: 'POST', body: JSON.stringify(body) }),
   getAudit: () => request<unknown[]>('/audit'),
 };

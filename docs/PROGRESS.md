@@ -1,13 +1,11 @@
-# Project Progress & Session State (C10)
+## 1. Current Phase: Phase 5 (Reports & KPIs) — COMPLETED
 
-## 1. Current Phase: Phase 4 (Agent Sheet, Chat, Tasks, Inbox) — COMPLETED
-
-- **Status**: Phase 4 completed and verified (Agent Sheet bottom sheet with Chat/Activity/Tasks/Profile tabs, SSE live chat streaming, Tasks Kanban swipe with task creation and markdown viewer modal, Inbox pending approvals with full action text and haptic decisions).
-- **Next Phase**: Phase 5 (Reports & KPIs).
+- **Status**: Phase 5 completed and verified (Reports screen with 8 department tabs, Recharts AreaChart sparklines, source badges for manual, imported, and unverified agent numbers, manual KPI entry modal, and anti-hallucination report generator modal with verified green banner and Zod validation).
+- **Next Phase**: Phase 6 (Recruitment Room & Agent Registration).
 
 ---
 
-## 2. What Is Done (Phases 0, 1, 2, 3 & 4)
+## 2. What Is Done (Phases 0, 1, 2, 3, 4 & 5)
 
 ### Phase 0: Recon & Ledger
 1. Initialized Git repository for the project.
@@ -71,15 +69,33 @@
 5. Expanded unit tests to 30 passing vitest tests across all packages.
 6. Validated via browser subagent on mobile viewport (360x740), capturing screenshots of Agent Sheet Chat, Profile, Tasks modal, Tasks Kanban, and Inbox.
 
+### Phase 5: Reports & KPIs (Anti-Hallucination)
+1. Implemented Reports screen (`apps/web/src/screens/Reports.tsx`) with 8 department tabs, Recharts AreaChart sparklines, and metric cards with "as of" timestamps.
+2. Source Badging (Rule REQ-078 & REQ-079):
+   - `Manual`: green badge for human entries.
+   - `Imported`: blue badge for integrated feeds.
+   - `Agen (Unverified)`: warning badge for any agent-generated metric estimate.
+3. Manual KPI entry modal (`createKpi`) saving to SQLite database via `/api/kpis`.
+4. Anti-Hallucination Report Generator Modal:
+   - Information banner guaranteeing analysis strictly on verified database numbers.
+   - Report template picker (Penjualan Harian, Sosial Mingguan, Finansial Bulanan, ROI Kampanye).
+   - Backend prompt restricting output to database KPIs only, with strict Zod schema validation (`summary_md`, `insights[]`, `risks[]`, `actions[]`), retry loop, and 422 failure handling.
+   - Rendered report displays green glowing badge "🛡️ Laporan Lolos Verifikasi Anti-Halusinasi" and Markdown executive summary.
+5. Added unit tests for Phase 5 in `apps/server/src/server.test.ts` (32 total tests passing across monorepo).
+6. Validated live report generation and modal in mobile viewport via browser subagent, capturing artifact `phase5_anti_hallucination_report_success.png`.
+
 ---
 
-## 3. Next Steps (Phase 5: Reports & KPIs)
+## 3. Next Steps (Phase 6: Recruitment Room & Agent Registration)
 
-1. Implement Reports screen (`apps/web/src/screens/Reports.tsx`) with department tabs (command, social, sales, finance, marketing, analytics, support, hr).
-2. Implement KPI sparklines and charts using Recharts for visual progress tracking.
-3. Display verified vs unverified source badges on reports per Rule REQ-078.
-4. Connect to server-side anti-hallucination report generation pipeline (`/api/reports/generate` and `/api/kpis`).
-5. Run full regression gate (`npm run typecheck && npm test && npm run gap-check`).
+1. Implement Screen 6 More (`apps/web/src/screens/More.tsx`) with Recruitment Room entrance, Agents Registry, and Audit Logs.
+2. Build 4-Step Recruitment Wizard:
+   - Step 1: Predefined role template selector (8 departments).
+   - Step 2: Comprehensive character & capability spec form.
+   - Step 3: Deterministic SOUL.md generator with 9 standard sections (`packages/shared/src/soul.ts`).
+   - Step 4: Hiring package with verified VPS CLI instructions (`hermes profile create`, systemd setup) and register form (`/api/hiring/draft` & `/api/agents`).
+3. Add tests for SOUL.md generator and recruitment wizard.
+4. Run full regression gate (`npm run typecheck && npm test && npm run gap-check`).
 
 ---
 

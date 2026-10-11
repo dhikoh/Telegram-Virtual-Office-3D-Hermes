@@ -20,8 +20,11 @@ export class MockHermesServer {
   }
 
   public start(): Promise<void> {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       this.server = http.createServer((req, res) => this.handleRequest(req, res));
+      this.server.once('error', (err) => {
+        reject(err);
+      });
       this.server.listen(this.port, () => {
         resolve();
       });
@@ -97,6 +100,21 @@ export class MockHermesServer {
         created_at: Date.now(),
       };
       this.runs.set(runId, run);
+
+      const needsApproval = /approval|transfer|approve|delete|persetujuan|alokasi/i.test(run.input);
+      if (!needsApproval) {
+        setTimeout(() => {
+          if (run.status === 'started') {
+            run.status = 'running';
+            setTimeout(() => {
+              if (run.status === 'running') {
+                this.completeRunOutput(run);
+              }
+            }, 80);
+          }
+        }, 40);
+      }
+
       this.sendJson(res, 202, { run_id: runId, status: 'started' });
       return;
     }
@@ -266,11 +284,38 @@ export class MockHermesServer {
     }
   }
 
+  private completeRunOutput(run: MockRun): void {
+    run.status = 'completed';
+
+    if (run.input.includes('strictly valid JSON') || run.input.includes('VERIFIED DATA')) {
+      if (run.input.includes('SIMULATE_INVALID_JSON')) {
+        run.output = 'Laporan narasi tanpa JSON yang valid: data meningkat drastis.';
+      } else {
+        run.output = JSON.stringify({
+          summary_md: `### Ringkasan Eksekutif KPI\nBerdasarkan data KPI departemen, seluruh indikator menunjukkan stabilitas tinggi dan kepatuhan penuh terhadap target operasional.`,
+          insights: [
+            'Seluruh indikator kinerja utama tercapai dengan baik.',
+            'Tidak ada penyimpangan signifikan dari rencana kuartalan.',
+          ],
+          risks: [
+            'Fluktuasi beban server pada jam operasional puncak.',
+          ],
+          actions: [
+            'Pertahankan pengawasan metrik harian.',
+            'Lakukan optimalisasi alokasi sumber daya mingguan.',
+          ],
+        });
+      }
+    } else {
+      run.output = `Hasil tugas untuk: "${run.input || 'Operasional'}" telah selesai dengan status sukses.`;
+    }
+  }
+
   private finishRun(run: MockRun, send: (e: string, d: unknown) => void, res: ServerResponse): void {
     setTimeout(() => {
       if (run.status === 'cancelled') return;
-      run.status = 'completed';
-      run.output = `Hasil tugas untuk: "${run.input || 'Operasional'}" telah selesai dengan status sukses.`;
+      this.completeRunOutput(run);
+
       send('run.completed', {
         run_id: run.run_id,
         status: 'completed',
@@ -278,7 +323,7 @@ export class MockHermesServer {
         usage: { input_tokens: 110, output_tokens: 220, total_tokens: 330 },
       });
       res.end();
-    }, 300);
+    }, 150);
   }
 
   private streamChatCompletion(res: ServerResponse): void {

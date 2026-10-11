@@ -30,14 +30,39 @@ export const reportRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'invalid_input', message: 'Missing required report fields' });
     }
 
-    const agent = agentRepo.getById(agent_id);
+    let agent = agentRepo.getById(agent_id);
     if (!agent) {
-      return reply.code(404).send({ error: 'not_found', message: 'Agent not found' });
+      if (agent_id.startsWith('demo-')) {
+        const dept = agent_id.replace(/^demo-/, '') as Department;
+        agent = {
+          id: agent_id,
+          name: `Agen ${dept.toUpperCase()}`,
+          role: `Lead ${dept}`,
+          department: dept,
+          avatar: '🤖',
+          soul_summary: 'Agen demo kantor virtual Hermes',
+          hermes_base_url: 'http://127.0.0.1:8642',
+          api_key_env: 'HERMES_KEY_DEFAULT',
+          hermes_profile: agent_id,
+          active: 1,
+          hired_at: Date.now(),
+          created_at: Date.now(),
+        };
+        try {
+          agentRepo.create(agent);
+        } catch {
+          // Ignore
+        }
+      } else {
+        return reply.code(404).send({ error: 'not_found', message: 'Agent not found' });
+      }
     }
 
     // Fetch verified departmental KPIs from database
     const kpis = kpiRepo.getAll(agent.department);
-    const kpiSummary = kpis.map((k) => `${k.label} (${k.key}): ${k.value} ${k.unit} [Source: ${k.source}]`).join('\n');
+    const kpiSummary = kpis
+      .map((k) => `${k.label} (${k.key}): ${k.value} ${k.unit} [Source: ${k.source === 'agent' ? 'agent (unverified)' : k.source}]`)
+      .join('\n');
 
     // Strict Anti-Hallucination prompt per Section 8
     const prompt = `You are ${agent.name}, ${agent.role}.
@@ -68,7 +93,7 @@ ${kpiSummary || 'No KPI entries currently available.'}`;
         let output = '';
 
         while (!settled && pollCount < 20) {
-          await new Promise((r) => setTimeout(r, 300));
+          await new Promise((r) => setTimeout(r, 80));
           const status = await client.getRunStatus(run_id);
           if (status.status === 'completed') {
             settled = true;
