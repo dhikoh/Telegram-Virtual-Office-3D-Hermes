@@ -1,0 +1,140 @@
+import type {
+  HermesClient,
+  StartRunParams,
+  StartRunResponse,
+  HermesRunStatus,
+} from './client.interface.js';
+import type { HermesCapabilities } from '@hermes-office/shared';
+
+export class RealHermesClient implements HermesClient {
+  private baseUrl: string;
+  private apiKey: string;
+
+  constructor(baseUrl: string, apiKey: string) {
+    this.baseUrl = baseUrl.replace(/\/+$/, '');
+    this.apiKey = apiKey;
+  }
+
+  private headers(extra: Record<string, string> = {}): Record<string, string> {
+    return {
+      Authorization: `Bearer ${this.apiKey}`,
+      'Content-Type': 'application/json',
+      ...extra,
+    };
+  }
+
+  public async capabilities(): Promise<HermesCapabilities> {
+    const res = await fetch(`${this.baseUrl}/v1/capabilities`, {
+      headers: this.headers(),
+    });
+    if (!res.ok) throw new Error(`Hermes capabilities error: ${res.status} ${res.statusText}`);
+    return (await res.json()) as HermesCapabilities;
+  }
+
+  public async startRun(params: StartRunParams): Promise<StartRunResponse> {
+    const res = await fetch(`${this.baseUrl}/v1/runs`, {
+      method: 'POST',
+      headers: this.headers(),
+      body: JSON.stringify(params),
+    });
+    if (!res.ok) throw new Error(`Hermes startRun error: ${res.status} ${res.statusText}`);
+    return (await res.json()) as StartRunResponse;
+  }
+
+  public async getRunStatus(runId: string): Promise<HermesRunStatus> {
+    const res = await fetch(`${this.baseUrl}/v1/runs/${runId}`, {
+      headers: this.headers(),
+    });
+    if (!res.ok) throw new Error(`Hermes getRunStatus error: ${res.status} ${res.statusText}`);
+    return (await res.json()) as HermesRunStatus;
+  }
+
+  public async resolveApproval(
+    runId: string,
+    decision: 'once' | 'deny'
+  ): Promise<{ status: string; decision: string }> {
+    const res = await fetch(`${this.baseUrl}/v1/runs/${runId}/approval`, {
+      method: 'POST',
+      headers: this.headers(),
+      body: JSON.stringify({ decision }),
+    });
+    if (!res.ok) throw new Error(`Hermes resolveApproval error: ${res.status} ${res.statusText}`);
+    return (await res.json()) as { status: string; decision: string };
+  }
+
+  public async stopRun(runId: string): Promise<{ status: string }> {
+    const res = await fetch(`${this.baseUrl}/v1/runs/${runId}/stop`, {
+      method: 'POST',
+      headers: this.headers(),
+    });
+    if (!res.ok) throw new Error(`Hermes stopRun error: ${res.status} ${res.statusText}`);
+    return (await res.json()) as { status: string };
+  }
+
+  public async streamEvents(
+    runId: string,
+    onEvent: (event: string, data: unknown) => void
+  ): Promise<() => void> {
+    const controller = new AbortController();
+    fetch(`${this.baseUrl}/v1/runs/${runId}/events`, {
+      headers: { Authorization: `Bearer ${this.apiKey}` },
+      signal: controller.signal,
+    })
+      .then(async (res) => {
+        if (!res.body) return;
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split('\n\n');
+          buffer = parts.pop() || '';
+
+          for (const part of parts) {
+            const line = part.trim();
+            if (line.startsWith('data: ')) {
+              try {
+                const parsed = JSON.parse(line.substring(6));
+                onEvent(parsed.event || 'message', parsed.data || parsed);
+              } catch {
+                // Ignore parse errors on malformed chunks
+              }
+            }
+          }
+        }
+      })
+      .catch(() => {
+        // stream closed
+      });
+
+    return () => controller.abort();
+  }
+
+  public async chatStream(
+    messages: { role: string; content: string }[],
+    onChunk: (chunk: string) => void
+  ): Promise<void> {
+    const res = await fetch(`${this.baseUrl}/v1/chat/completions`, {
+      method: 'POST',
+      headers: this.headers(),
+      body: JSON.stringify({
+        model: 'hermes-agent',
+        messages,
+        stream: true,
+      }),
+    });
+    if (!res.ok || !res.body) return;
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      onChunk(decoder.decode(value));
+    }
+  }
+}

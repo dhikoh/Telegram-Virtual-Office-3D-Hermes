@@ -12,3 +12,7 @@ Rule: One line per non-obvious decision. Format: `[DEC-XXX] <Decision>: <Rationa
 - **[DEC-006]** Telegram authentication verification: Enforce 3600-second maximum auth age and timing-safe comparison (`timingSafeEqual`) to prevent replay and timing attacks.
 - **[DEC-007]** Mock Hermes Server uses Node native `node:http`: Zero extraneous dependencies in dev tooling, preserving strict compliance with Section 4 allowed stack and Rule R4.
 - **[DEC-008]** Phase-aware Gap Check executes natively with Node 22 `--experimental-strip-types`: Direct TypeScript execution for scripts without additional build lag or bundler drift.
+- **[DEC-009]** SQLite migration path fallback mechanism: Migrator checks both `__dirname/migrations` and `src/db/migrations` to ensure transparent execution from both TypeScript source and compiled `dist/`.
+- **[DEC-010]** Explicit 64-character hex regex validation for Telegram initData hash: Prevents Node.js `Buffer.from(hash, 'hex')` from silently ignoring invalid trailing characters.
+- **[DEC-011]** Custom Zod preprocessor for environment boolean parsing: Ensures string `'0'` evaluates to `false` and `'1'` to `true`, preventing false security aborts on `DEV_AUTH_BYPASS`.
+- **[DEC-012]** Dispatcher run event listener cleanup pattern: Stream subscription unbinds on terminal events (`run.completed`, `run.failed`, `run.cancelled`) to prevent memory leaks during long-running server uptime.

@@ -222,7 +222,7 @@ export class MockHermesServer {
       });
     }, 400);
 
-    const needsApproval = /approval|transfer|approve|delete/i.test(run.input);
+    const needsApproval = /approval|transfer|approve|delete|persetujuan|alokasi/i.test(run.input);
 
     if (needsApproval) {
       setTimeout(() => {

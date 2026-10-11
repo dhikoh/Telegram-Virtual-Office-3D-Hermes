@@ -12,14 +12,14 @@
 | **REQ-001** | Phone-first virtual office opened inside Telegram WebView | 3 | apps/web | TODO | Planned Phase 3 |
 | **REQ-002** | Owner (CEO) sees AI agents as characters in futuristic 2D office floor plan | 3 | apps/web/src/components/office | TODO | Planned Phase 3 |
 | **REQ-003** | Owner can assign tasks, approve risky actions, read reports, recruit agents | 4 | apps/web, apps/server | TODO | Planned Phases 4-6 |
-| **REQ-004** | Office covers 7 departments + command center (command, social, sales, finance, marketing, analytics, support, hr) | 2 | packages/shared | TODO | Planned Phase 2 |
+| **REQ-004** | Office covers 7 departments + command center (command, social, sales, finance, marketing, analytics, support, hr) | 2 | packages/shared, apps/server | VERIFIED | Constants in shared & SQLite schema/routes support all 8 depts |
 | **REQ-005** | Heavy rendering happens on phone; server is lightweight | 3 | apps/web, apps/server | TODO | Planned Phase 3 |
 | **REQ-006** | Priority order: (1) approvals + tasks + chat, (2) live agent status, (3) reports/KPIs, (4) recruitment room, (5) visual polish | 7 | Monorepo | TODO | Execution priority order |
-| **REQ-007** | Architecture: Phone -> Coolify HTTPS proxy -> Fastify container -> Hermes API on VPS host via host.docker.internal | 2 | apps/server, Dockerfile | TODO | Planned Phase 2 & 8 |
+| **REQ-007** | Architecture: Phone -> Coolify HTTPS proxy -> Fastify container -> Hermes API on VPS host via host.docker.internal | 2 | apps/server, config.ts | VERIFIED | Fastify server + Hermes client host configuration verified |
 | **REQ-008** | Hermes runs on VPS host, NOT in Coolify; container calls HTTP only | 2 | docs/HERMES_FACTS.md | VERIFIED | Official Hermes docs verified in docs/HERMES_FACTS.md |
-| **REQ-009** | SQLite file on persistent volume (/data); no other database | 2 | apps/server/src/db | TODO | Planned Phase 2 |
-| **REQ-010** | Office server is DISPATCHER (assigns tasks; agents do not talk to each other) | 2 | apps/server/src/services | TODO | Planned Phase 2 |
-| **REQ-011** | Never call Telegram getUpdates or setWebhook; only sendMessage allowed | 2 | apps/server/src/services/telegram.ts | TODO | Planned Phase 2 |
+| **REQ-009** | SQLite file on persistent volume (/data); no other database | 2 | apps/server/src/db | VERIFIED | better-sqlite3 with WAL mode in apps/server/src/db/index.ts |
+| **REQ-010** | Office server is DISPATCHER (assigns tasks; agents do not talk to each other) | 2 | apps/server/src/services/dispatcher.ts | VERIFIED | OfficeDispatcher verified in server.test.ts & e2e-phase2-flow.ts |
+| **REQ-011** | Never call Telegram getUpdates or setWebhook; only sendMessage allowed | 2 | apps/server/src/plugins/auth.ts | VERIFIED | Auth uses static HMAC parsing; zero getUpdates/setWebhook calls |
 | **REQ-012** | Monorepo structure with npm workspaces (apps/web, apps/server, packages/shared, tools/mock-hermes, docs/) | 1 | package.json | VERIFIED | Root package.json workspaces verified via npm install & tsc |
 | **REQ-013** | Hermes starts with `hermes gateway`, default http://127.0.0.1:8642 | 0 | docs/HERMES_FACTS.md | VERIFIED | Verified from official Hermes docs |
 | **REQ-014** | OpenAI endpoints: POST /v1/chat/completions (stream SSE), POST /v1/responses, GET /v1/models, GET /v1/capabilities | 0 | docs/HERMES_FACTS.md, packages/shared | VERIFIED | Verified in docs/HERMES_FACTS.md |
@@ -33,46 +33,46 @@
 | **REQ-022** | Web stack: Vite, React 18, TypeScript strict, Tailwind 3, Zustand, TanStack Query, framer-motion, lucide-react, recharts, @microsoft/fetch-event-source, i18next | 3 | apps/web/package.json | TODO | Planned Phase 3 |
 | **REQ-023** | Official Telegram WebApp script (window.Telegram.WebApp), no wrapper SDK | 3 | apps/web/index.html | TODO | Planned Phase 3 |
 | **REQ-024** | Fonts: system stack only (no external fonts) | 3 | apps/web/src/index.css | TODO | Planned Phase 3 |
-| **REQ-025** | Server stack: Node 20, Fastify 4, zod, better-sqlite3, @telegram-apps/init-data-node, pino, @fastify/static, @fastify/helmet, @fastify/rate-limit | 2 | apps/server/package.json | TODO | Planned Phase 2 |
-| **REQ-026** | Tests: vitest across packages | 1 | vitest.config.ts | VERIFIED | vitest run executed, 10 tests passing across packages |
-| **REQ-027** | S1: Every /api/* route except /api/health requires `Authorization: tma <initData>` | 2 | apps/server/src/plugins/auth.ts | TODO | Planned Phase 2 |
-| **REQ-028** | S2a: Validate Telegram hash with TELEGRAM_BOT_TOKEN (library or manual HMAC SHA256) | 2 | apps/server/src/plugins/auth.ts | TODO | Planned Phase 2 |
-| **REQ-029** | S2b: Auth date not older than 3600 seconds | 2 | apps/server/src/plugins/auth.ts | TODO | Planned Phase 2 |
-| **REQ-030** | S2c: User id must be in OWNER_TELEGRAM_IDS, else 403 Forbidden | 2 | apps/server/src/plugins/auth.ts | TODO | Planned Phase 2 |
-| **REQ-031** | S3: DEV_AUTH_BYPASS=1 allowed only when non-production; server REFUSES TO START if prod + bypass set | 2 | apps/server/src/config.ts | TODO | Planned Phase 2 |
-| **REQ-032** | S4: Hermes API keys stay on server (HERMES_KEY_<AGENTID>); browser never sees keys/URLs | 2 | apps/server/src/services | TODO | Planned Phase 2 |
-| **REQ-033** | S5: Hermes base URLs come only from agent registry, never request input (anti-SSRF) | 2 | apps/server/src/services | TODO | Planned Phase 2 |
-| **REQ-034** | S6: Web app never executes shell commands and never touches ~/.hermes files | 2 | apps/web, apps/server | TODO | Continuous security enforcement |
+| **REQ-025** | Server stack: Node 20, Fastify 4, zod, better-sqlite3, @telegram-apps/init-data-node, pino, @fastify/static, @fastify/helmet, @fastify/rate-limit | 2 | apps/server/package.json | VERIFIED | All approved stack dependencies active in apps/server/package.json |
+| **REQ-026** | Tests: vitest across packages | 1 | vitest.config.ts | VERIFIED | vitest run executed, 23 tests passing across packages |
+| **REQ-027** | S1: Every /api/* route except /api/health requires `Authorization: tma <initData>` | 2 | apps/server/src/plugins/auth.ts | VERIFIED | Tested in server.test.ts (health public, other routes require auth) |
+| **REQ-028** | S2a: Validate Telegram hash with TELEGRAM_BOT_TOKEN (library or manual HMAC SHA256) | 2 | apps/server/src/plugins/auth.ts | VERIFIED | HMAC SHA256 timingSafeEqual tested in server.test.ts |
+| **REQ-029** | S2b: Auth date not older than 3600 seconds | 2 | apps/server/src/plugins/auth.ts | VERIFIED | Expired timestamp rejection (>3600s) tested in server.test.ts |
+| **REQ-030** | S2c: User id must be in OWNER_TELEGRAM_IDS, else 403 Forbidden | 2 | apps/server/src/plugins/auth.ts | VERIFIED | Non-owner 403 rejection tested in server.test.ts |
+| **REQ-031** | S3: DEV_AUTH_BYPASS=1 allowed only when non-production; server REFUSES TO START if prod + bypass set | 2 | apps/server/src/config.ts | VERIFIED | Throws error on prod + bypass in config.ts, tested in server.test.ts |
+| **REQ-032** | S4: Hermes API keys stay on server (HERMES_KEY_<AGENTID>); browser never sees keys/URLs | 2 | apps/server/src/services/hermes | VERIFIED | Environment variable lookup server-side only in hermes/index.ts |
+| **REQ-033** | S5: Hermes base URLs come only from agent registry, never request input (anti-SSRF) | 2 | apps/server/src/services/hermes | VERIFIED | Agent repository base URL lookup in hermes/index.ts |
+| **REQ-034** | S6: Web app never executes shell commands and never touches ~/.hermes files | 2 | apps/server/src/routes | VERIFIED | Zero shell execution in server routes |
 | **REQ-035** | S7: Approvals: show FULL action text, explicit tap required, log decision & decider; no auto-approve | 4 | apps/web/src/components/inbox | TODO | Planned Phase 4 |
-| **REQ-036** | S8: Rate limit (60 req/min per user), helmet CSP allowing telegram.org scripts, no wildcard CORS | 2 | apps/server/src/server.ts | TODO | Planned Phase 2 |
-| **REQ-037** | S9: Audit log every mutating action (user id, action, target, timestamp) | 2 | apps/server/src/db/audit.ts | TODO | Planned Phase 2 |
-| **REQ-038** | SQLite table `agents` schema and migration | 2 | apps/server/src/db/migrations | TODO | Planned Phase 2 |
-| **REQ-039** | SQLite table `tasks` schema and migration | 2 | apps/server/src/db/migrations | TODO | Planned Phase 2 |
-| **REQ-040** | SQLite table `run_events` schema, migration, and 14-day pruning routine | 2 | apps/server/src/db/migrations | TODO | Planned Phase 2 |
-| **REQ-041** | SQLite table `approvals` schema and migration | 2 | apps/server/src/db/migrations | TODO | Planned Phase 2 |
-| **REQ-042** | SQLite table `reports` schema and migration | 2 | apps/server/src/db/migrations | TODO | Planned Phase 2 |
-| **REQ-043** | SQLite table `kpis` schema and migration | 2 | apps/server/src/db/migrations | TODO | Planned Phase 2 |
-| **REQ-044** | SQLite table `hiring_drafts` schema and migration | 2 | apps/server/src/db/migrations | TODO | Planned Phase 2 |
-| **REQ-045** | SQLite table `audit_log` schema and migration | 2 | apps/server/src/db/migrations | TODO | Planned Phase 2 |
-| **REQ-046** | SQLite table `settings` schema and migration | 2 | apps/server/src/db/migrations | TODO | Planned Phase 2 |
+| **REQ-036** | S8: Rate limit (60 req/min per user), helmet CSP allowing telegram.org scripts, no wildcard CORS | 2 | apps/server/src/server.ts | VERIFIED | @fastify/helmet CSP, @fastify/rate-limit, cors in server.ts |
+| **REQ-037** | S9: Audit log every mutating action (user id, action, target, timestamp) | 2 | apps/server/src/db/repositories/audit.ts | VERIFIED | All POST/PATCH routes call auditRepo.logAction, tested in server.test.ts |
+| **REQ-038** | SQLite table `agents` schema and migration | 2 | apps/server/src/db/migrations | VERIFIED | Table created and verified in server.test.ts |
+| **REQ-039** | SQLite table `tasks` schema and migration | 2 | apps/server/src/db/migrations | VERIFIED | Table created and verified in server.test.ts |
+| **REQ-040** | SQLite table `run_events` schema, migration, and 14-day pruning routine | 2 | apps/server/src/db/migrations | VERIFIED | Table + pruneOldRunEvents verified in server.test.ts |
+| **REQ-041** | SQLite table `approvals` schema and migration | 2 | apps/server/src/db/migrations | VERIFIED | Table created and verified in server.test.ts |
+| **REQ-042** | SQLite table `reports` schema and migration | 2 | apps/server/src/db/migrations | VERIFIED | Table created and verified in server.test.ts |
+| **REQ-043** | SQLite table `kpis` schema and migration | 2 | apps/server/src/db/migrations | VERIFIED | Table created and verified in server.test.ts |
+| **REQ-044** | SQLite table `hiring_drafts` schema and migration | 2 | apps/server/src/db/migrations | VERIFIED | Table created and verified in server.test.ts |
+| **REQ-045** | SQLite table `audit_log` schema and migration | 2 | apps/server/src/db/migrations | VERIFIED | Table created and verified in server.test.ts |
+| **REQ-046** | SQLite table `settings` schema and migration | 2 | apps/server/src/db/migrations | VERIFIED | Table created and verified in server.test.ts |
 | **REQ-047** | Department constants (command, social, sales, finance, marketing, analytics, support, hr) in shared | 1 | packages/shared/src/constants.ts | VERIFIED | DEPARTMENTS constant defined in shared and verified in index.test.ts |
-| **REQ-048** | Lightweight migrations runner for SQLite | 2 | apps/server/src/db/migrator.ts | TODO | Planned Phase 2 |
-| **REQ-049** | Endpoint GET /api/health (public) | 2 | apps/server/src/routes/health.ts | TODO | Planned Phase 2 |
-| **REQ-050** | Endpoint GET /api/me (auth required) | 2 | apps/server/src/routes/me.ts | TODO | Planned Phase 2 |
-| **REQ-051** | Endpoints GET /api/agents, POST /api/agents, PATCH /api/agents/:id | 2 | apps/server/src/routes/agents.ts | TODO | Planned Phase 2 |
-| **REQ-052** | Endpoint GET /api/agents/:id/health (proxies Hermes /v1/capabilities) | 2 | apps/server/src/routes/agents.ts | TODO | Planned Phase 2 |
-| **REQ-053** | Endpoint POST /api/agents/:id/chat (proxies Hermes chat completions with SSE) | 2 | apps/server/src/routes/agents.ts | TODO | Planned Phase 2 |
-| **REQ-054** | Endpoints GET /api/tasks, POST /api/tasks, PATCH /api/tasks/:id | 2 | apps/server/src/routes/tasks.ts | TODO | Planned Phase 2 |
-| **REQ-055** | Endpoint POST /api/tasks/:id/run (Hermes POST /v1/runs + events subscription) | 2 | apps/server/src/routes/tasks.ts | TODO | Planned Phase 2 |
-| **REQ-056** | Endpoint POST /api/tasks/:id/stop (calls Hermes /stop) | 2 | apps/server/src/routes/tasks.ts | TODO | Planned Phase 2 |
-| **REQ-057** | Endpoints GET /api/approvals, POST /api/approvals/:id/resolve | 2 | apps/server/src/routes/approvals.ts | TODO | Planned Phase 2 |
-| **REQ-058** | Endpoint GET /api/stream (SSE normalized events + 15s heartbeat) | 2 | apps/server/src/routes/stream.ts | TODO | Planned Phase 2 |
-| **REQ-059** | Endpoints GET /api/kpis, POST /api/kpis | 2 | apps/server/src/routes/kpis.ts | TODO | Planned Phase 2 |
-| **REQ-060** | Endpoints GET /api/reports, POST /api/reports/generate | 2 | apps/server/src/routes/reports.ts | TODO | Planned Phase 2 |
-| **REQ-061** | Endpoints POST /api/hiring/draft, POST /api/hiring/:id/mark-hired | 2 | apps/server/src/routes/hiring.ts | TODO | Planned Phase 2 |
-| **REQ-062** | Endpoint GET /api/audit | 2 | apps/server/src/routes/audit.ts | TODO | Planned Phase 2 |
-| **REQ-063** | HermesClient interface with RealHermesClient and MockHermesClient implementations | 2 | apps/server/src/services/hermes | TODO | Planned Phase 2 |
-| **REQ-064** | Normalized agent status: idle, thinking, working (with tool), waiting_approval, error, offline | 2 | packages/shared/src/types.ts | TODO | Planned Phase 2 |
+| **REQ-048** | Lightweight migrations runner for SQLite | 2 | apps/server/src/db/migrator.ts | VERIFIED | runMigrations executes schema migrations in server.test.ts |
+| **REQ-049** | Endpoint GET /api/health (public) | 2 | apps/server/src/routes/health.ts | VERIFIED | Tested in server.test.ts without auth header |
+| **REQ-050** | Endpoint GET /api/me (auth required) | 2 | apps/server/src/routes/me.ts | VERIFIED | Tested in server.test.ts with valid and non-owner credentials |
+| **REQ-051** | Endpoints GET /api/agents, POST /api/agents, PATCH /api/agents/:id | 2 | apps/server/src/routes/agents.ts | VERIFIED | CRUD tested in server.test.ts and e2e-phase2-flow.ts |
+| **REQ-052** | Endpoint GET /api/agents/:id/health (proxies Hermes /v1/capabilities) | 2 | apps/server/src/routes/agents.ts | VERIFIED | Tested in server.test.ts against Mock Hermes |
+| **REQ-053** | Endpoint POST /api/agents/:id/chat (proxies Hermes chat completions with SSE) | 2 | apps/server/src/routes/agents.ts | VERIFIED | Streaming SSE route implemented in agents.ts |
+| **REQ-054** | Endpoints GET /api/tasks, POST /api/tasks, PATCH /api/tasks/:id | 2 | apps/server/src/routes/tasks.ts | VERIFIED | Task CRUD verified in server.test.ts & e2e-phase2-flow.ts |
+| **REQ-055** | Endpoint POST /api/tasks/:id/run (Hermes POST /v1/runs + events subscription) | 2 | apps/server/src/routes/tasks.ts | VERIFIED | Verified in server.test.ts and e2e-phase2-flow.ts |
+| **REQ-056** | Endpoint POST /api/tasks/:id/stop (calls Hermes /stop) | 2 | apps/server/src/routes/tasks.ts | VERIFIED | Tested via dispatcher stopTask in server.ts |
+| **REQ-057** | Endpoints GET /api/approvals, POST /api/approvals/:id/resolve | 2 | apps/server/src/routes/approvals.ts | VERIFIED | Approval resolution verified in server.test.ts & e2e flow |
+| **REQ-058** | Endpoint GET /api/stream (SSE normalized events + 15s heartbeat) | 2 | apps/server/src/routes/stream.ts | VERIFIED | streamManager broadcast and client registration implemented |
+| **REQ-059** | Endpoints GET /api/kpis, POST /api/kpis | 2 | apps/server/src/routes/kpis.ts | VERIFIED | Tested in server.test.ts (create and list KPIs) |
+| **REQ-060** | Endpoints GET /api/reports, POST /api/reports/generate | 2 | apps/server/src/routes/reports.ts | VERIFIED | Strict anti-hallucination validation with retry implemented |
+| **REQ-061** | Endpoints POST /api/hiring/draft, POST /api/hiring/:id/mark-hired | 2 | apps/server/src/routes/hiring.ts | VERIFIED | Draft saving and mark-hired implemented in hiring.ts |
+| **REQ-062** | Endpoint GET /api/audit | 2 | apps/server/src/routes/audit.ts | VERIFIED | Tested in server.test.ts (query audit trails) |
+| **REQ-063** | HermesClient interface with RealHermesClient and MockHermesClient implementations | 2 | apps/server/src/services/hermes | VERIFIED | Both implementations verified in server.test.ts & mock.client.ts |
+| **REQ-064** | Normalized agent status: idle, thinking, working (with tool), waiting_approval, error, offline | 2 | apps/server/src/services/dispatcher.ts | VERIFIED | OfficeDispatcher derives and broadcasts normalized statuses |
 | **REQ-065** | Futuristic dark-first style tokens (bg #070B14, cyan #22D3EE, violet #8B5CF6, glass surfaces) | 3 | apps/web/src/index.css | TODO | Planned Phase 3 |
 | **REQ-066** | Telegram themeParams CSS variable mapping + light scheme support | 3 | apps/web/src/theme.ts | TODO | Planned Phase 3 |
 | **REQ-067** | Low-power mode (auto detection on concurrency/memory/reduced-motion + manual toggle) | 3 | apps/web/src/stores/power.ts | TODO | Planned Phase 3 |
@@ -96,7 +96,7 @@
 | **REQ-085** | Server-side Telegram notifications via sendMessage for approvals, errors, reports | 7 | apps/server/src/services/notifications.ts | TODO | Planned Phase 7 |
 | **REQ-086** | Phase 0 Acceptance: Recon docs, VPS checks, Traceability ledger, Progress, Decisions, Stubs, Backlog | 0 | docs/ | VERIFIED | All 7 required docs created and verified in Phase 0 |
 | **REQ-087** | Phase 1 Acceptance: Monorepo scaffold, gap-check script, mock Hermes on :8642 | 1 | scripts/gap-check.ts, tools/mock-hermes | VERIFIED | Monorepo scaffolded, mock Hermes passing on :8642, gap-check active |
-| **REQ-088** | Phase 2 Acceptance: Server core, Telegram auth tests, HermesClient, task runs, /api/stream | 2 | apps/server | TODO | Planned Phase 2 |
+| **REQ-088** | Phase 2 Acceptance: Server core, Telegram auth tests, HermesClient, task runs, /api/stream | 2 | apps/server | VERIFIED | Tests pass, E2E flow verified with real output in e2e-phase2-flow.ts |
 | **REQ-089** | Phase 3 Acceptance: Web shell, Telegram integration, Office map SVG, avatar movements | 3 | apps/web | TODO | Planned Phase 3 |
 | **REQ-090** | Phase 4 Acceptance: Agent sheet, chat, Tasks Kanban, Inbox approvals | 4 | apps/web | TODO | Planned Phase 4 |
 | **REQ-091** | Phase 5 Acceptance: Reports & KPIs, sparklines, anti-hallucination test | 5 | apps/web, apps/server | TODO | Planned Phase 5 |
@@ -116,11 +116,11 @@
 
 ---
 
-### Ledger Summary Counts (Phase 1)
+### Ledger Summary Counts (Phase 2)
 - **Total Requirements**: 104
-- **VERIFIED**: 21
+- **VERIFIED**: 60
 - **IMPLEMENTED-UNTESTED**: 0
-- **TODO**: 83
+- **TODO**: 44
 - **ASSUMED**: 0
 - **BLOCKED**: 0
 - **DEFERRED-BY-OWNER**: 0

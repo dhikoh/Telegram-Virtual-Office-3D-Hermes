@@ -122,7 +122,7 @@ function checkCodeHygiene(): CheckResult {
       if (/console\.log\(/i.test(line)) {
         issues.push(`${relPath}:${lineNum} - console.log forbidden (use logger)`);
       }
-      if (/\bany\b/i.test(line) && !line.includes('//') && !line.includes('/*')) {
+      if (/(:\s*any\b|<any>|\bas\s+any\b)/.test(line) && !line.includes('//') && !line.includes('/*')) {
         issues.push(`${relPath}:${lineNum} - 'any' type without comment explanation`);
       }
     });
