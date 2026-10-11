@@ -16,3 +16,8 @@ Rule: One line per non-obvious decision. Format: `[DEC-XXX] <Decision>: <Rationa
 - **[DEC-010]** Explicit 64-character hex regex validation for Telegram initData hash: Prevents Node.js `Buffer.from(hash, 'hex')` from silently ignoring invalid trailing characters.
 - **[DEC-011]** Custom Zod preprocessor for environment boolean parsing: Ensures string `'0'` evaluates to `false` and `'1'` to `true`, preventing false security aborts on `DEV_AUTH_BYPASS`.
 - **[DEC-012]** Dispatcher run event listener cleanup pattern: Stream subscription unbinds on terminal events (`run.completed`, `run.failed`, `run.cancelled`) to prevent memory leaks during long-running server uptime.
+- **[DEC-013]** Web client SVG percentage overlay coordinate system: Avoids WebKit/iOS `<foreignObject>` rendering artifacts by using proportional percentage coordinates for Framer Motion avatars on top of the SVG floor plan.
+- **[DEC-014]** Telegram WebApp official script with error-safe degrading wrapper: Direct `<script src="https://telegram.org/js/telegram-web-app.js">` without wrapper SDK, guarded by try/catch feature detection for all TMA capabilities.
+- **[DEC-015]** Dev environment TMA mock injection: Automatically injects valid simulated Telegram WebApp object with test initData in development to enable browser testing outside Telegram.
+- **[DEC-016]** Low-power mode three-tier detection: Combines hardware concurrency `<= 4`, device memory `<= 4`, and `prefers-reduced-motion` media queries with user manual toggle persistence in `localStorage`.
+- **[DEC-017]** Fastify static asset bypass in authHook: Excludes non-`/api/` paths from Telegram HMAC auth so static frontend SPA bundles are served directly without breaking Rule S1.

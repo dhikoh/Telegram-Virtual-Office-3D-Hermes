@@ -8,6 +8,9 @@ build/
 *.sqlite3
 *.sqlite-journal
 *.log
+data/
+dist-types/
+*.tsbuildinfo
 coverage/
 .DS_Store
 Thumbs.db

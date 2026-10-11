@@ -2,6 +2,10 @@ import fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import fastifyStatic from '@fastify/static';
 import type Database from 'better-sqlite3';
 import { authHook } from './plugins/auth.js';
 import { OfficeDispatcher } from './services/dispatcher.js';
@@ -71,6 +75,28 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
   app.register(reportRoutes);
   app.register(hiringRoutes);
   app.register(auditRoutes);
+
+  // Serve compiled web build when available (Section 2: ONE container office)
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const candidatePaths = [
+    path.resolve(__dirname, '../../web/dist'),
+    path.resolve(__dirname, '../../../apps/web/dist'),
+  ];
+  const webDist = candidatePaths.find((p) => fs.existsSync(p));
+
+  if (webDist) {
+    app.register(fastifyStatic, {
+      root: webDist,
+      prefix: '/',
+    });
+    app.setNotFoundHandler((req, reply) => {
+      if (req.url.startsWith('/api')) {
+        reply.status(404).send({ error: 'Endpoint not found' });
+      } else {
+        reply.sendFile('index.html');
+      }
+    });
+  }
 
   return app;
 }

@@ -25,6 +25,7 @@
   "references": [
     { "path": "./packages/shared" },
     { "path": "./tools/mock-hermes" },
-    { "path": "./apps/server" }
+    { "path": "./apps/server" },
+    { "path": "./apps/web" }
   ]
 }

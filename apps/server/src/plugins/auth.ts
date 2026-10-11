@@ -68,6 +68,11 @@ export function validateInitData(
 }
 
 export async function authHook(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+  // Only /api/* routes require TMA authorization (Rule S1)
+  if (!request.url.startsWith('/api/')) {
+    return;
+  }
+
   // GET /api/health is public (Rule S1)
   if (request.url === '/api/health' || request.url.startsWith('/api/health?')) {
     return;

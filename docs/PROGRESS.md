@@ -1,13 +1,13 @@
 # Project Progress & Session State (C10)
 
-## 1. Current Phase: Phase 2 (Server Core)
+## 1. Current Phase: Phase 3 (Web Shell + Office Map) — COMPLETED
 
-- **Status**: Completed Phase 2 (Server core, SQLite database, Telegram HMAC auth, HermesClient, Task dispatcher, approvals, /api/stream).
-- **Next Phase**: Phase 3 (Web shell + Office Map).
+- **Status**: Completed Phase 3 (Vite + React 18 + Tailwind 3 web shell, Telegram WebApp SDK, i18n Indonesian/English, futuristic design system tokens, interactive 2D SVG floor plan, live SSE /api/stream listener, low-power mode, browser acceptance verified in 360x740 mobile viewport).
+- **Next Phase**: Phase 4 (Agent Sheet, chat streaming, Tasks Kanban, Inbox approvals).
 
 ---
 
-## 2. What Is Done (Phase 0, Phase 1 & Phase 2)
+## 2. What Is Done (Phases 0, 1, 2 & 3)
 
 ### Phase 0: Recon & Ledger
 1. Initialized Git repository for the project.
@@ -36,26 +36,39 @@
 10. Built strict anti-hallucination report generation with database KPI prompt generation and zod schema validation retry loop.
 11. Implemented security audit logging (`audit_log` table) on all mutating actions.
 12. Added rate limiting (60 req/min) and Helmet CSP allowing `telegram.org` scripts.
-13. Tested with 23 passing Vitest tests and executed live scripted flow (`scripts/e2e-phase2-flow.ts`).
-14. Regression gate green: `npm run typecheck && npm test && npm run gap-check`.
+
+### Phase 3: Web Shell & Interactive Office Map
+1. Scaffolded `apps/web` with Vite, React 18, TypeScript strict, and Tailwind CSS 3.
+2. Built futuristic dark-first design system (`#070B14`, cyan `#22D3EE`, violet `#8B5CF6`, glass surfaces `rgba(255,255,255,0.04)` + backdrop-blur, system typography without external fonts per Rule REQ-024).
+3. Implemented safe Telegram WebApp SDK integration (`apps/web/src/services/tma.ts`) wrapping `ready()`, `expand()`, `BackButton`, `HapticFeedback`, `disableVerticalSwipes()`, `requestFullscreen()`, and safe-area insets with try/catch fallback.
+4. Created browser dev mock (`apps/web/src/mock-tma.ts`) injecting simulated `Telegram.WebApp` with valid dev `initData` outside the Telegram mobile client.
+5. Integrated i18next (`apps/web/src/i18n/`) with Indonesian (`id`) default, English (`en`) selector, and full UI string catalogs.
+6. Built Low-Power Mode store (`apps/web/src/stores/power.ts`) with three-tier hardware auto-detection (`hardwareConcurrency <= 4`, `deviceMemory <= 4`, `prefers-reduced-motion`) and manual toggle.
+7. Built Top HUD (`apps/web/src/components/layout/HeaderHUD.tsx`) with active runs, pending approvals, errors, agents online, and live SSE event ticker.
+8. Built 2D Interactive SVG Floor Plan (`apps/web/src/components/office/Map.tsx`) featuring 8 department rooms, central Lounge, Approval Gate, and '+' HR door.
+9. Implemented Avatar chips (`apps/web/src/components/office/Avatar.tsx`) with dynamic status rings, tool tags, and coordinate positioning based on normalized status.
+10. Implemented floating "Ask Office" orchestrator chat button (`apps/web/src/components/office/AskOffice.tsx`).
+11. Implemented Empty state onboarding card with "Muat Kantor Demo" (`apps/web/src/components/office/Empty.tsx`) loading 8 department demo agents with official `DEMO` badges.
+12. Configured Fastify static server in `apps/server/src/server.ts` to serve compiled SPA bundle while protecting `/api/*` routes with Rule S1 HMAC auth.
+13. Tested in 360x740 mobile viewport via browser subagent, verifying demo loading, room layout, avatar movement, and drawer interactions.
+14. Unit test suite expanded to 28 passing tests across web, server, shared, and mock packages.
 
 ---
 
-## 3. Next Steps (Phase 3: Web Shell + Office Map)
+## 3. Next Steps (Phase 4: Agent Sheet, Chat, Tasks, & Inbox)
 
-1. Scaffold `apps/web` with Vite, React 18, TypeScript, Tailwind CSS 3.
-2. Setup i18n with Indonesian (id) default and English (en) selector.
-3. Integrate Telegram WebApp SDK (`window.Telegram.WebApp`), ready(), expand(), BackButton, Haptics, disableVerticalSwipes, safe-area insets, and Dev TMA mock.
-4. Build futuristic design system tokens (bg #070B14, glass surfaces, cyan #22D3EE, violet #8B5CF6).
-5. Implement interactive floor plan SVG with 8 department rooms + Lounge and status ring animations.
-6. Connect Office map to `/api/stream` SSE live agent updates.
-7. Implement low-power mode with auto-detection and manual toggle.
+1. Implement Agent Sheet bottom drawer (`apps/web/src/components/agent-sheet/`) with 4 tabs: Chat, Activity, Tasks, Profile.
+2. Implement SSE chat streaming with agent (`POST /api/agents/:id/chat`).
+3. Implement Tasks Kanban screen with horizontal swipe columns (Backlog, Running, Needs approval, Done).
+4. Implement Task creation modal, "Run now" button, and Markdown result viewer.
+5. Implement Inbox screen with pending approval resolution cards (Approve/Deny buttons + haptic feedback).
+6. Add unit tests for Agent Sheet, Task Kanban store, and Inbox approvals.
 
 ---
 
 ## 4. Open Questions
 
-1. None blocking. Server core and mock gateway are fully verified.
+1. None blocking. Web shell and 2D office floor plan are fully functional and verified.
 
 ---
 
