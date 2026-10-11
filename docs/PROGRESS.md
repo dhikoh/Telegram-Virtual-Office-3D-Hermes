@@ -1,13 +1,13 @@
 # Project Progress & Session State (C10)
 
-## 1. Current Phase: Phase 3 (Web Shell + Office Map) — COMPLETED
+## 1. Current Phase: Phase 4 (Agent Sheet, Chat, Tasks, Inbox) — COMPLETED
 
-- **Status**: Completed Phase 3 (Vite + React 18 + Tailwind 3 web shell, Telegram WebApp SDK, i18n Indonesian/English, futuristic design system tokens, interactive 2D SVG floor plan, live SSE /api/stream listener, low-power mode, browser acceptance verified in 360x740 mobile viewport).
-- **Next Phase**: Phase 4 (Agent Sheet, chat streaming, Tasks Kanban, Inbox approvals).
+- **Status**: Phase 4 completed and verified (Agent Sheet bottom sheet with Chat/Activity/Tasks/Profile tabs, SSE live chat streaming, Tasks Kanban swipe with task creation and markdown viewer modal, Inbox pending approvals with full action text and haptic decisions).
+- **Next Phase**: Phase 5 (Reports & KPIs).
 
 ---
 
-## 2. What Is Done (Phases 0, 1, 2 & 3)
+## 2. What Is Done (Phases 0, 1, 2, 3 & 4)
 
 ### Phase 0: Recon & Ledger
 1. Initialized Git repository for the project.
@@ -50,19 +50,36 @@
 10. Implemented floating "Ask Office" orchestrator chat button (`apps/web/src/components/office/AskOffice.tsx`).
 11. Implemented Empty state onboarding card with "Muat Kantor Demo" (`apps/web/src/components/office/Empty.tsx`) loading 8 department demo agents with official `DEMO` badges.
 12. Configured Fastify static server in `apps/server/src/server.ts` to serve compiled SPA bundle while protecting `/api/*` routes with Rule S1 HMAC auth.
-13. Tested in 360x740 mobile viewport via browser subagent, verifying demo loading, room layout, avatar movement, and drawer interactions.
-14. Unit test suite expanded to 28 passing tests across web, server, shared, and mock packages.
+13. Tested in 360x740 mobile viewport via browser subagent.
+
+### Phase 4: Agent Sheet, Chat, Tasks, & Inbox
+1. Implemented Agent Sheet bottom drawer (`apps/web/src/components/agent-sheet/AgentSheet.tsx`) with 4 tabs:
+   - Chat: live SSE chat stream with agent, role chips, quick prompt chips.
+   - Activity: live tool progress indicator, running task info, real-time activity log.
+   - Tasks: list of tasks assigned to the agent, "Buat Tugas" button, status badges.
+   - Profile: Character SOUL summary, profile configs, and live "Uji Koneksi" gateway health check.
+2. Built Tasks screen (`apps/web/src/screens/Tasks.tsx`) with 4-column horizontal swipe Kanban:
+   - Columns: Backlog, Running, Needs Approval, Done.
+   - Floating "+ Buat Tugas" modal with title, description, agent select, priority tags.
+   - Task cards with quick "Jalankan" (Run now) trigger and Markdown result viewer modal (`apps/web/src/components/common/MarkdownView.tsx`).
+3. Built Inbox screen (`apps/web/src/screens/Inbox.tsx`) prioritizing human-in-the-loop approvals:
+   - Shows Pending Approvals first with glowing warning card, full requested summary, and un-truncated JSON payload (Rule S7 & REQ-035).
+   - Explicit "Tolak Aksi" (Deny) and "Setujui Aksi" (Approve) action buttons (touch targets >= 48px).
+   - Haptic notification feedback and real-time resolution with `/api/approvals/:id/resolve`.
+   - Secondary sections for Execution Errors and Completed Task notifications.
+4. Added hash routing sync (`#office`, `#tasks`, `#inbox`, `#reports`, `#more`) for Telegram WebApp deep linking and back-button navigation.
+5. Expanded unit tests to 30 passing vitest tests across all packages.
+6. Validated via browser subagent on mobile viewport (360x740), capturing screenshots of Agent Sheet Chat, Profile, Tasks modal, Tasks Kanban, and Inbox.
 
 ---
 
-## 3. Next Steps (Phase 4: Agent Sheet, Chat, Tasks, & Inbox)
+## 3. Next Steps (Phase 5: Reports & KPIs)
 
-1. Implement Agent Sheet bottom drawer (`apps/web/src/components/agent-sheet/`) with 4 tabs: Chat, Activity, Tasks, Profile.
-2. Implement SSE chat streaming with agent (`POST /api/agents/:id/chat`).
-3. Implement Tasks Kanban screen with horizontal swipe columns (Backlog, Running, Needs approval, Done).
-4. Implement Task creation modal, "Run now" button, and Markdown result viewer.
-5. Implement Inbox screen with pending approval resolution cards (Approve/Deny buttons + haptic feedback).
-6. Add unit tests for Agent Sheet, Task Kanban store, and Inbox approvals.
+1. Implement Reports screen (`apps/web/src/screens/Reports.tsx`) with department tabs (command, social, sales, finance, marketing, analytics, support, hr).
+2. Implement KPI sparklines and charts using Recharts for visual progress tracking.
+3. Display verified vs unverified source badges on reports per Rule REQ-078.
+4. Connect to server-side anti-hallucination report generation pipeline (`/api/reports/generate` and `/api/kpis`).
+5. Run full regression gate (`npm run typecheck && npm test && npm run gap-check`).
 
 ---
 

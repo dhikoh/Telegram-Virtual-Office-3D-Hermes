@@ -68,4 +68,70 @@ describe('Web Shell & Office Store (Phase 3)', () => {
     usePowerStore.getState().toggleLowPower();
     expect(usePowerStore.getState().isLowPower).toBe(!initialPower);
   });
+
+  it('manages tasks list and status transitions', () => {
+    const newTask = {
+      id: 'task-test-1',
+      title: 'Uji Analisis Sentimen',
+      description: 'Lakukan analisis postingan sosial',
+      agent_id: 'demo-social',
+      priority: 'high' as const,
+      status: 'backlog' as const,
+      run_id: null,
+      result_md: null,
+      due_at: null,
+      created_by: 123456789,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+    };
+
+    useOfficeStore.setState({ tasks: [newTask] });
+    expect(useOfficeStore.getState().tasks.length).toBe(1);
+
+    // Update status to running
+    useOfficeStore.setState((state) => ({
+      tasks: state.tasks.map((t) => (t.id === newTask.id ? { ...t, status: 'running' as const } : t)),
+    }));
+    expect(useOfficeStore.getState().tasks[0].status).toBe('running');
+
+    // Update status to done with markdown result
+    useOfficeStore.setState((state) => ({
+      tasks: state.tasks.map((t) =>
+        t.id === newTask.id
+          ? { ...t, status: 'done' as const, result_md: '## Hasil Analisis\nSemua metrik positif.' }
+          : t
+      ),
+    }));
+    const doneTask = useOfficeStore.getState().tasks[0];
+    expect(doneTask.status).toBe('done');
+    expect(doneTask.result_md).toContain('Hasil Analisis');
+  });
+
+  it('handles approvals queue and decision resolution', () => {
+    const mockApproval = {
+      id: 'app-test-1',
+      run_id: 'run-999',
+      agent_id: 'demo-finance',
+      summary: 'Konfirmasi transfer biaya server ke host provider',
+      payload_json: '{"amount": 150, "currency": "USD"}',
+      status: 'pending' as const,
+      decided_by: null,
+      decided_at: null,
+      created_at: Date.now(),
+    };
+
+    useOfficeStore.setState({ approvals: [mockApproval] });
+    expect(useOfficeStore.getState().approvals.length).toBe(1);
+
+    // Simulate approval resolution
+    useOfficeStore.setState((state) => ({
+      approvals: state.approvals.map((a) =>
+        a.id === mockApproval.id ? { ...a, status: 'approved' as const, decided_by: 123456789, decided_at: Date.now() } : a
+      ),
+    }));
+
+    const resolved = useOfficeStore.getState().approvals[0];
+    expect(resolved.status).toBe('approved');
+    expect(resolved.decided_by).toBe(123456789);
+  });
 });

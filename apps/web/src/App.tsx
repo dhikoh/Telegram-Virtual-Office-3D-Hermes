@@ -34,11 +34,29 @@ export const App: React.FC = () => {
     };
   }, [fetchInitialData, initStream]);
 
+  // Hash routing support for deep-linking and browser navigation
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash.replace(/^#\/?/, '') as NavTab;
+      if (['office', 'tasks', 'inbox', 'reports', 'more'].includes(hash)) {
+        setCurrentTab(hash);
+      }
+    };
+    handleHash();
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
+
+  const handleTabChange = (tab: NavTab) => {
+    window.location.hash = tab;
+    setCurrentTab(tab);
+  };
+
   // BackButton handling: if on a secondary tab, BackButton returns to office tab
   useEffect(() => {
     if (currentTab !== 'office') {
       tma.showBackButton(() => {
-        setCurrentTab('office');
+        handleTabChange('office');
       });
     } else {
       tma.hideBackButton();
@@ -51,18 +69,18 @@ export const App: React.FC = () => {
       <div className="flex-1 w-full">
         {currentTab === 'office' && (
           <OfficeScreen
-            onOpenRecruitment={() => setCurrentTab('more')}
-            onOpenInbox={() => setCurrentTab('inbox')}
+            onOpenRecruitment={() => handleTabChange('more')}
+            onOpenInbox={() => handleTabChange('inbox')}
           />
         )}
         {currentTab === 'tasks' && <TasksScreen />}
         {currentTab === 'inbox' && <InboxScreen />}
         {currentTab === 'reports' && <ReportsScreen />}
-        {currentTab === 'more' && <MoreScreen onOpenRecruitment={() => setCurrentTab('more')} />}
+        {currentTab === 'more' && <MoreScreen onOpenRecruitment={() => handleTabChange('more')} />}
       </div>
 
       {/* Persistent Bottom Nav */}
-      <BottomNav currentTab={currentTab} onTabChange={setCurrentTab} />
+      <BottomNav currentTab={currentTab} onTabChange={handleTabChange} />
     </div>
   );
 };

@@ -5,11 +5,12 @@
 
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { RefreshCw, X } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { HeaderHUD } from '../components/layout/HeaderHUD';
 import { Map } from '../components/office/Map';
 import { EmptyOffice } from '../components/office/Empty';
 import { AskOffice } from '../components/office/AskOffice';
+import { AgentSheet } from '../components/agent-sheet/AgentSheet';
 import { useOfficeStore, type OfficeAgent } from '../stores/office';
 import { tma } from '../services/tma';
 import type { AgentNormalizedStatus } from '@hermes-office/shared';
@@ -32,7 +33,6 @@ export const OfficeScreen: React.FC<OfficeScreenProps> = ({ onOpenRecruitment, o
   } = useOfficeStore();
 
   const [showSimPanel, setShowSimPanel] = useState(false);
-  const [orchestratorModalOpen, setOrchestratorModalOpen] = useState(false);
 
   const selectedAgent = agents.find((a) => a.id === selectedAgentId);
 
@@ -41,7 +41,10 @@ export const OfficeScreen: React.FC<OfficeScreenProps> = ({ onOpenRecruitment, o
   };
 
   const handleOpenAskOffice = () => {
-    setOrchestratorModalOpen(true);
+    const commandAgent = agents.find((a) => a.department === 'command') || agents[0];
+    if (commandAgent) {
+      setSelectedAgentId(commandAgent.id);
+    }
   };
 
   return (
@@ -140,102 +143,12 @@ export const OfficeScreen: React.FC<OfficeScreenProps> = ({ onOpenRecruitment, o
         {/* Floating Ask Office Button */}
         {agents.length > 0 && <AskOffice onClick={handleOpenAskOffice} />}
 
-        {/* Quick Agent Detail Preview Modal (Phase 3 Web Shell preview; full sheet in Phase 4) */}
+        {/* Full Agent Sheet Bottom Sheet (Rule REQ-075) */}
         {selectedAgent && (
-          <div className="fixed inset-x-0 bottom-16 z-40 max-w-md mx-auto p-3 animate-in fade-in slide-in-from-bottom-4">
-            <div className="glass-panel-glow rounded-2xl p-4 bg-slate-950/95 border border-office-cyan/40 shadow-2xl flex flex-col">
-              <div className="flex items-center justify-between pb-2 border-b border-white/10">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-full bg-slate-900 flex items-center justify-center text-xl border border-office-cyan/40 shadow-glow-cyan">
-                    {selectedAgent.avatar}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <h3 className="text-sm font-bold text-office-text leading-tight">
-                        {selectedAgent.name}
-                      </h3>
-                      {selectedAgent.isDemo && (
-                        <span className="text-[8px] font-mono font-bold bg-office-cyan/20 text-office-cyan px-1 rounded">
-                          DEMO
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-[10px] text-office-cyan font-medium">
-                      {selectedAgent.role} ({selectedAgent.department})
-                    </span>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setSelectedAgentId(null)}
-                  type="button"
-                  className="p-1 rounded-full text-office-muted hover:text-white hover:bg-white/10"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Status and Summary */}
-              <div className="py-2.5 flex flex-col gap-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-office-muted">Status Saat Ini:</span>
-                  <span className="font-mono font-semibold text-office-cyan uppercase text-[11px] px-2 py-0.5 rounded bg-office-cyan/10 border border-office-cyan/30">
-                    {selectedAgent.status}
-                    {selectedAgent.currentTool ? ` (${selectedAgent.currentTool})` : ''}
-                  </span>
-                </div>
-                <p className="text-[11px] text-office-text/80 leading-relaxed bg-black/40 p-2 rounded-lg border border-white/5">
-                  {selectedAgent.soul_summary}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Quick Orchestrator Chat Modal (Ask Office) */}
-        {orchestratorModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-3">
-            <div className="glass-panel-glow w-full max-w-sm rounded-2xl p-5 bg-slate-950 border border-office-cyan/40 shadow-2xl flex flex-col">
-              <div className="flex items-center justify-between pb-3 border-b border-white/10">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-office-cyan/20 flex items-center justify-center text-office-cyan">
-                    ⚡
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-white">
-                      {t('office.orchestratorTitle')}
-                    </h3>
-                    <span className="text-[10px] text-office-cyan">
-                      Pusat Komando Hermes
-                    </span>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setOrchestratorModalOpen(false)}
-                  type="button"
-                  className="p-1 text-office-muted hover:text-white"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="py-4">
-                <p className="text-xs text-office-muted leading-relaxed mb-3">
-                  {t('office.orchestratorDesc')}
-                </p>
-                <div className="p-3 rounded-xl bg-black/50 border border-white/10 font-mono text-xs text-office-cyan">
-                  &gt; Siap menerima instruksi CEO.
-                </div>
-              </div>
-
-              <button
-                onClick={() => setOrchestratorModalOpen(false)}
-                type="button"
-                className="w-full py-2.5 rounded-xl bg-office-cyan text-office-bg font-semibold text-xs min-h-[44px]"
-              >
-                Tutup Dialog
-              </button>
-            </div>
-          </div>
+          <AgentSheet
+            agent={selectedAgent}
+            onClose={() => setSelectedAgentId(null)}
+          />
         )}
       </main>
     </div>

@@ -46,6 +46,79 @@ export const api = {
   createTask: (body: unknown) => request<Task>('/tasks', { method: 'POST', body: JSON.stringify(body) }),
   runTask: (id: string) => request<{ status: string; run_id: string }>(`/tasks/${id}/run`, { method: 'POST' }),
   stopTask: (id: string) => request<{ status: string }>(`/tasks/${id}/stop`, { method: 'POST' }),
+  getAgentHealth: (id: string) =>
+    request<{ status: string; capabilities?: unknown }>(`/agents/${id}/health`),
+  streamChat: async (
+    id: string,
+    messages: { role: string; content: string }[],
+    onChunk: (delta: string) => void,
+    onDone: () => void,
+    onError: (err: Error) => void
+  ): Promise<void> => {
+    try {
+      const initData = tma.getInitData();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (initData) {
+        headers['Authorization'] = `tma ${initData}`;
+      }
+
+      const response = await fetch(`${API_BASE}/agents/${id}/chat`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ messages }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Chat API error: ${response.status} ${response.statusText}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('ReadableStream not supported by browser');
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith(':')) continue;
+
+          if (trimmed.startsWith('data: ')) {
+            const dataStr = trimmed.substring(6).trim();
+            if (dataStr === '[DONE]') {
+              onDone();
+              return;
+            }
+            try {
+              const parsed = JSON.parse(dataStr);
+              const deltaContent = parsed.choices?.[0]?.delta?.content || '';
+              if (deltaContent) {
+                onChunk(deltaContent);
+              }
+            } catch {
+              // Raw non-json string data
+              onChunk(dataStr);
+            }
+          }
+        }
+      }
+
+      onDone();
+    } catch (err: unknown) {
+      onError(err instanceof Error ? err : new Error(String(err)));
+    }
+  },
   getApprovals: () => request<Approval[]>('/approvals'),
   resolveApproval: (id: string, decision: 'approve' | 'deny') =>
     request<Approval>(`/approvals/${id}/resolve`, {

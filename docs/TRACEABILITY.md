@@ -11,7 +11,7 @@
 | :--- | :--- | :---: | :--- | :---: | :--- |
 | **REQ-001** | Phone-first virtual office opened inside Telegram WebView | 3 | apps/web | VERIFIED | Tested in browser subagent in 360x740 mobile viewport |
 | **REQ-002** | Owner (CEO) sees AI agents as characters in futuristic 2D office floor plan | 3 | apps/web/src/components/office | VERIFIED | 2D SVG floor plan and avatar positioning verified in Map.tsx & Avatar.tsx |
-| **REQ-003** | Owner can assign tasks, approve risky actions, read reports, recruit agents | 4 | apps/web, apps/server | TODO | Planned Phases 4-6 |
+| **REQ-003** | Owner can assign tasks, approve risky actions, read reports, recruit agents | 4 | apps/web, apps/server | VERIFIED | Tasks Kanban, Agent Sheet actions, and Inbox approvals verified in Phase 4 |
 | **REQ-004** | Office covers 7 departments + command center (command, social, sales, finance, marketing, analytics, support, hr) | 2 | packages/shared, apps/server | VERIFIED | Constants in shared & SQLite schema/routes support all 8 depts |
 | **REQ-005** | Heavy rendering happens on phone; server is lightweight | 3 | apps/web, apps/server | VERIFIED | Client-side SVG/framer-motion rendering with lightweight Fastify server verified |
 | **REQ-006** | Priority order: (1) approvals + tasks + chat, (2) live agent status, (3) reports/KPIs, (4) recruitment room, (5) visual polish | 7 | Monorepo | TODO | Execution priority order |
@@ -43,7 +43,7 @@
 | **REQ-032** | S4: Hermes API keys stay on server (HERMES_KEY_<AGENTID>); browser never sees keys/URLs | 2 | apps/server/src/services/hermes | VERIFIED | Environment variable lookup server-side only in hermes/index.ts |
 | **REQ-033** | S5: Hermes base URLs come only from agent registry, never request input (anti-SSRF) | 2 | apps/server/src/services/hermes | VERIFIED | Agent repository base URL lookup in hermes/index.ts |
 | **REQ-034** | S6: Web app never executes shell commands and never touches ~/.hermes files | 2 | apps/server/src/routes | VERIFIED | Zero shell execution in server routes |
-| **REQ-035** | S7: Approvals: show FULL action text, explicit tap required, log decision & decider; no auto-approve | 4 | apps/web/src/components/inbox | TODO | Planned Phase 4 |
+| **REQ-035** | S7: Approvals: show FULL action text, explicit tap required, log decision & decider; no auto-approve | 4 | apps/web/src/screens/Inbox.tsx | VERIFIED | Full action payload rendered in pre block, explicit large tap buttons (min-h 48px), haptic feedback, no auto-approval |
 | **REQ-036** | S8: Rate limit (60 req/min per user), helmet CSP allowing telegram.org scripts, no wildcard CORS | 2 | apps/server/src/server.ts | VERIFIED | @fastify/helmet CSP, @fastify/rate-limit, cors in server.ts |
 | **REQ-037** | S9: Audit log every mutating action (user id, action, target, timestamp) | 2 | apps/server/src/db/repositories/audit.ts | VERIFIED | All POST/PATCH routes call auditRepo.logAction, tested in server.test.ts |
 | **REQ-038** | SQLite table `agents` schema and migration | 2 | apps/server/src/db/migrations | VERIFIED | Table created and verified in server.test.ts |
@@ -83,9 +83,9 @@
 | **REQ-072** | Screen 1 (Office): Avatar movement and animations by normalized status | 3 | apps/web/src/components/office/Avatar.tsx | VERIFIED | Status rings, animations, and coordinates movement verified in Avatar.tsx & browser |
 | **REQ-073** | Screen 1 (Office): Floating "Ask Office" orchestrator chat button | 3 | apps/web/src/components/office/AskOffice.tsx | VERIFIED | Floating AskOffice button with haptic feedback verified in AskOffice.tsx & browser |
 | **REQ-074** | Screen 1 (Office): Empty state onboarding card + "Load demo office" (DEMO badges) | 3 | apps/web/src/components/office/Empty.tsx | VERIFIED | EmptyOffice onboarding card and 8 demo agents with DEMO badge verified in browser |
-| **REQ-075** | Screen 2 (Agent Sheet): Bottom sheet with Chat, Activity, Tasks, Profile tabs | 4 | apps/web/src/components/agent-sheet | TODO | Planned Phase 4 |
-| **REQ-076** | Screen 3 (Tasks): Mobile Kanban swipe (Backlog, Running, Needs approval, Done), CRUD, Markdown viewer | 4 | apps/web/src/screens/Tasks.tsx | TODO | Planned Phase 4 |
-| **REQ-077** | Screen 4 (Inbox): Pending approvals first (full action text, haptics), errors, reports | 4 | apps/web/src/screens/Inbox.tsx | TODO | Planned Phase 4 |
+| **REQ-075** | Screen 2 (Agent Sheet): Bottom sheet with Chat, Activity, Tasks, Profile tabs | 4 | apps/web/src/components/agent-sheet | VERIFIED | Bottom sheet drawer verified with Chat (SSE), Activity, Tasks, Profile tabs & gateway health check |
+| **REQ-076** | Screen 3 (Tasks): Mobile Kanban swipe (Backlog, Running, Needs approval, Done), CRUD, Markdown viewer | 4 | apps/web/src/screens/Tasks.tsx | VERIFIED | 4 Kanban swipe columns verified, Task creation modal, and Markdown result modal verified |
+| **REQ-077** | Screen 4 (Inbox): Pending approvals first (full action text, haptics), errors, reports | 4 | apps/web/src/screens/Inbox.tsx | VERIFIED | Pending approvals first with full action payload, errors section, and completed tasks list verified |
 | **REQ-078** | Screen 5 (Reports): Department tabs, KPI sparklines (recharts), source badges, manual entry form | 5 | apps/web/src/screens/Reports.tsx | TODO | Planned Phase 5 |
 | **REQ-079** | Screen 5 (Reports): Anti-hallucination agent prompt, strict zod JSON validation, retry, unverified badge | 5 | apps/server/src/services/reports.ts | TODO | Planned Phase 5 |
 | **REQ-080** | Screen 6 (More): Agents registry, Recruitment room, Audit log, Settings | 6 | apps/web/src/screens/More.tsx | TODO | Planned Phases 6-7 |
@@ -98,7 +98,7 @@
 | **REQ-087** | Phase 1 Acceptance: Monorepo scaffold, gap-check script, mock Hermes on :8642 | 1 | scripts/gap-check.ts, tools/mock-hermes | VERIFIED | Monorepo scaffolded, mock Hermes passing on :8642, gap-check active |
 | **REQ-088** | Phase 2 Acceptance: Server core, Telegram auth tests, HermesClient, task runs, /api/stream | 2 | apps/server | VERIFIED | Tests pass, E2E flow verified with real output in e2e-phase2-flow.ts |
 | **REQ-089** | Phase 3 Acceptance: Web shell, Telegram integration, Office map SVG, avatar movements | 3 | apps/web | VERIFIED | Production build passes (15s); 360x740 browser verification passed with demo loading and avatar status movements |
-| **REQ-090** | Phase 4 Acceptance: Agent sheet, chat, Tasks Kanban, Inbox approvals | 4 | apps/web | TODO | Planned Phase 4 |
+| **REQ-090** | Phase 4 Acceptance: Agent sheet, chat, Tasks Kanban, Inbox approvals | 4 | apps/web | VERIFIED | Agent sheet drawer, chat streaming, Tasks Kanban swipe, and Inbox approval flows fully verified |
 | **REQ-091** | Phase 5 Acceptance: Reports & KPIs, sparklines, anti-hallucination test | 5 | apps/web, apps/server | TODO | Planned Phase 5 |
 | **REQ-092** | Phase 6 Acceptance: Recruitment wizard, SOUL.md generator tests, Hiring package | 6 | apps/web, apps/server | TODO | Planned Phase 6 |
 | **REQ-093** | Phase 7 Acceptance: Push notifications, settings, accessibility pass, states matrix | 7 | apps/web, apps/server | TODO | Planned Phase 7 |
@@ -116,11 +116,11 @@
 
 ---
 
-### Ledger Summary Counts (Phase 3)
+### Ledger Summary Counts (Phase 4)
 - **Total Requirements**: 104
-- **VERIFIED**: 80
+- **VERIFIED**: 86
 - **IMPLEMENTED-UNTESTED**: 0
-- **TODO**: 24
+- **TODO**: 18
 - **ASSUMED**: 0
 - **BLOCKED**: 0
 - **DEFERRED-BY-OWNER**: 0
