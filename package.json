@@ -1,0 +1,25 @@
+{
+  "name": "hermes-virtual-office",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*",
+    "tools/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "tsc --build",
+    "test": "vitest run",
+    "gap-check": "node --experimental-strip-types scripts/gap-check.ts",
+    "mock:hermes": "node --experimental-strip-types tools/mock-hermes/src/index.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "eslint": "^9.14.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

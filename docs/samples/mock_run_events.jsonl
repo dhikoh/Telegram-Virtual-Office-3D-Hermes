@@ -1,0 +1,8 @@
+{"event": "run.started", "data": {"run_id": "run_mock_001", "status": "running", "timestamp": 1710000001}}
+{"event": "tool.started", "data": {"run_id": "run_mock_001", "tool": "search_data", "preview": "{\"query\": \"Q3 financial summary\"}", "timestamp": 1710000002}}
+{"event": "tool.completed", "data": {"run_id": "run_mock_001", "tool": "search_data", "duration": 1.25, "error": false, "preview": "Found 12 transaction ledger entries.", "timestamp": 1710000003}}
+{"event": "message.interim", "data": {"run_id": "run_mock_001", "text": "Aggregating monthly recurring revenue...", "already_streamed": false, "timestamp": 1710000004}}
+{"event": "approval.request", "data": {"run_id": "run_mock_001", "action": "execute_transfer", "summary": "Approve transfer of $5,000 for server budget", "payload": {"amount": 5000, "currency": "USD", "destination": "Cloud Host Corp"}, "timestamp": 1710000005}}
+{"event": "tool.started", "data": {"run_id": "run_mock_001", "tool": "generate_report", "preview": "{\"format\": \"markdown\"}", "timestamp": 1710000007}}
+{"event": "tool.completed", "data": {"run_id": "run_mock_001", "tool": "generate_report", "duration": 0.8, "error": false, "preview": "Financial report generated successfully.", "timestamp": 1710000008}}
+{"event": "run.completed", "data": {"run_id": "run_mock_001", "status": "completed", "output": "### Financial Summary Q3\n- Revenue: $120,000\n- Status: On Track", "usage": {"input_tokens": 120, "output_tokens": 310, "total_tokens": 430}, "timestamp": 1710000009}}

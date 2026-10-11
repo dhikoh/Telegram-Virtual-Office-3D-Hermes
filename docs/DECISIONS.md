@@ -10,3 +10,5 @@ Rule: One line per non-obvious decision. Format: `[DEC-XXX] <Decision>: <Rationa
 - **[DEC-004]** Single dispatcher architecture: Office server dispatches tasks and tracks runs; agents do not communicate peer-to-peer.
 - **[DEC-005]** HermesClient dual-implementation abstraction: Modular switch between `MockHermesClient` and `RealHermesClient` controlled via `HERMES_MODE`.
 - **[DEC-006]** Telegram authentication verification: Enforce 3600-second maximum auth age and timing-safe comparison (`timingSafeEqual`) to prevent replay and timing attacks.
+- **[DEC-007]** Mock Hermes Server uses Node native `node:http`: Zero extraneous dependencies in dev tooling, preserving strict compliance with Section 4 allowed stack and Rule R4.
+- **[DEC-008]** Phase-aware Gap Check executes natively with Node 22 `--experimental-strip-types`: Direct TypeScript execution for scripts without additional build lag or bundler drift.

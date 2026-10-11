@@ -1,0 +1,12 @@
+data: {"id":"chatcmpl-mock-1","object":"chat.completion.chunk","created":1710000001,"model":"hermes-agent","choices":[{"index":0,"delta":{"role":"assistant","content":"Halo"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-mock-1","object":"chat.completion.chunk","created":1710000002,"model":"hermes-agent","choices":[{"index":0,"delta":{"content":", ada yang bisa"},"finish_reason":null}]}
+
+event: hermes.tool.progress
+data: {"tool":"status_check","step":"checking agent availability","status":"in_progress"}
+
+data: {"id":"chatcmpl-mock-1","object":"chat.completion.chunk","created":1710000003,"model":"hermes-agent","choices":[{"index":0,"delta":{"content":" saya bantu untuk operasional kantor?"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-mock-1","object":"chat.completion.chunk","created":1710000004,"model":"hermes-agent","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}
+
+data: [DONE]
