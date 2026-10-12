@@ -222,5 +222,11 @@ PHASE 8 - Deploy and final audit.
  - FINAL AUDIT: docs/FINAL_AUDIT.md with every ledger row and its final status; zero TODO and zero ASSUMED unless the owner approved them. Also a manual phone-test script in Indonesian for the owner (open the app, check agent status, assign a task, approve an action, read a report, draft a new agent, stop Hermes and observe the offline state, let the session expire).
  - Acceptance: docker build succeeds locally; the container starts and /api/health returns ok; docs complete; gap-check fully enforced and green.
 
+PHASE 9 - OPTIONAL 3D OFFICE VIEW
+ - Goal: Alternative 3D rendering of the same Office screen. 2D view stays default and fallback.
+ - Architecture: Single source of truth in packages/shared (`getAgentPlacement`), lazy loading via dynamic `import()`, 2D/3D toggle saved in settings, no external assets (primitives / small local models <= 2MB, docs/ASSETS.md).
+ - Performance: Canvas dpr capped [1, 1.5], frameloop="demand", instancing for repeated furniture, quality tiers, pause when hidden/unfocused, WebGL context loss fallback to 2D, 3D chunk <= 700 KB gzip.
+ - Acceptance: Unit tests for getAgentPlacement, gap-check fails on static 3D import from main or remote assets, docs/3D_PHONE_TEST.md, exit report as "PHASE 9 DONE - 3D PHONE TEST PENDING (owner)".
+
 ## 10. DEFINITION OF DONE (v1)
-Owner opens the bot's Mini App on a phone, sees the agents live, assigns a task, approves an action, reads a report built from real KPI data, and drafts a new agent's SOUL.md - with auth enforced and no secret reaching the browser.
+Owner opens the bot's Mini App on a phone, sees the agents live, assigns a task, approves an action, reads a report built from real KPI data, and drafts a new agent's SOUL.md - with auth enforced and no secret reaching the browser. Optional: toggles to 3D office view with smooth performance.

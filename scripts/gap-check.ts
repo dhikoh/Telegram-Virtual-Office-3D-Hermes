@@ -185,6 +185,62 @@ function checkTraceabilityLedger(currentPhase: number): CheckResult {
   };
 }
 
+function checkPhase9Rules(currentPhase: number): CheckResult {
+  if (currentPhase < 9) {
+    return {
+      category: 'Phase 9 3D Architecture (Rule 9.1-9.4)',
+      passed: true,
+      message: `Phase ${currentPhase}: Phase 9 rules apply in Phase 9`,
+    };
+  }
+
+  const issues: string[] = [];
+  const assetsMd = path.join(rootDir, 'docs', 'ASSETS.md');
+  const phoneTestMd = path.join(rootDir, 'docs', '3D_PHONE_TEST.md');
+
+  if (!fs.existsSync(assetsMd)) issues.push('docs/ASSETS.md is missing');
+  if (!fs.existsSync(phoneTestMd)) issues.push('docs/3D_PHONE_TEST.md is missing');
+
+  const entryFiles = [
+    path.join(rootDir, 'apps', 'web', 'src', 'main.tsx'),
+    path.join(rootDir, 'apps', 'web', 'src', 'App.tsx'),
+    path.join(rootDir, 'apps', 'web', 'src', 'screens', 'Office.tsx'),
+  ];
+
+  for (const f of entryFiles) {
+    if (fs.existsSync(f)) {
+      const lines = fs.readFileSync(f, 'utf-8').split('\n');
+      lines.forEach((line, idx) => {
+        if (/^\s*import\b.*from\s*['"](three|@react-three\/fiber|@react-three\/drei)['"]/.test(line)) {
+          issues.push(`${path.basename(f)}:${idx + 1} - Static 3D import from main bundle`);
+        }
+      });
+    }
+  }
+
+  const office3dDir = path.join(rootDir, 'apps', 'web', 'src', 'components', 'office', 'office-3d');
+  if (fs.existsSync(office3dDir)) {
+    const files = fs.readdirSync(office3dDir).filter((x) => x.endsWith('.tsx') || x.endsWith('.ts'));
+    for (const f of files) {
+      const full = path.join(office3dDir, f);
+      const code = fs.readFileSync(full, 'utf-8');
+      if (/import\s+\*\s+as\s+THREE/i.test(code)) {
+        issues.push(`${f} - Wildcard import (import * as THREE) forbidden (Rule 4B)`);
+      }
+      if (/https?:\/\//i.test(code)) {
+        issues.push(`${f} - Remote URL found in 3D source (Rule 9.4 CSP violation)`);
+      }
+    }
+  }
+
+  return {
+    category: 'Phase 9 3D Architecture (Rule 9.1-9.4)',
+    passed: issues.length === 0,
+    message: issues.length === 0 ? 'Verified: Lazy 3D bundle, named imports, no remote assets' : `${issues.length} Phase 9 rule violations`,
+    details: issues,
+  };
+}
+
 function checkMockSecurity(): CheckResult {
   // Enforces that mock mode must throw in production (C3f)
   return {
@@ -206,6 +262,7 @@ function runGapCheck(): void {
     checkTables(currentPhase),
     checkCodeHygiene(),
     checkTraceabilityLedger(currentPhase),
+    checkPhase9Rules(currentPhase),
     checkMockSecurity(),
   ];
 

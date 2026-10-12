@@ -1,7 +1,7 @@
-## 1. Current Phase: Phase 8 (Coolify Deploy, Multi-stage Dockerfile & Final Audit) — COMPLETED
+## 1. Current Phase: Phase 9 (Optional 3D Office View) — DONE - 3D PHONE TEST PENDING (owner)
 
-- **Status**: Phase 8 completed and verified (Multi-stage Dockerfile with Node 22 slim, web builder stage, non-root user, SQLite persistent volume on /data, healthcheck, docker-compose.yml, docs/DEPLOY_COOLIFY.md, docs/MANUAL_TEST_SCRIPT.md with 20 smartphone verification steps, docs/FINAL_AUDIT.md with 104/104 requirements VERIFIED, all project files under 300 lines).
-- **Next Phase**: All 8 Phases Complete (Ready for Production Deployment on Coolify).
+- **Status**: Phase 9 implementation complete. Single source of truth in `packages/shared/src/layout.ts`, lazy dynamic 3D chunk (222.21 KB gzip <= 700 KB budget), procedural neon geometry (zero remote assets in `docs/ASSETS.md`), fixed isometric camera with clamped gestures, 2D/3D toggle with low-power state awareness, and automatic WebGL fallback to 2D. Real phone verification script provided in `docs/3D_PHONE_TEST.md`.
+- **Next Step**: Owner conducts real phone test per `docs/3D_PHONE_TEST.md` and deploys on Coolify.
 
 ---
 
@@ -116,6 +116,16 @@
 5. Created `docs/MANUAL_TEST_SCRIPT.md` containing a 20-step smartphone verification script in Indonesian for the CEO owner.
 6. Created `docs/FINAL_AUDIT.md` certifying 100.0% completion with 104/104 requirements VERIFIED and zero TODOs.
 7. Updated `docs/TRACEABILITY.md` marking REQ-094 as VERIFIED and bringing total verified count to 104/104.
+
+### Phase 9: Optional 3D Office View
+1. Single Source of Truth (`packages/shared/src/layout.ts`): Unified room layouts, lounge slots, and pure function `getAgentPlacement(agent, status, slot)` generating coordinated 2D SVG percentages and 3D Vector3 world coordinates.
+2. Approved 3D Dependencies & Named Imports: Installed `three`, `@react-three/fiber`, and `@react-three/drei` with named helpers only (Rule 4B strictly avoiding wildcard imports).
+3. Lazy Loading & Chunk Budget (Rule 9.2 & REQ-118): 3D view isolated in separate dynamic chunk (`Office3D-BFR9C8Dk.js`), measuring 222.21 KB gzip (well within the <= 700 KB gzip budget); zero inflation of main entry bundle.
+4. Procedural Scene & Zero External Assets (Rule 9.4): Procedural floor neon grid, 8 neon department partitions, holographic desks, lounge sofas, approval gate stripes, and low-poly robot avatars with 0 KB remote assets cataloged in `docs/ASSETS.md`.
+5. Isometric Camera with Clamped Gestures: Fixed perspective angle with clamped touch drag pan and pinch-to-zoom (no free orbit).
+6. Performance & Lifecycle Optimization: `frameloop="demand"`, DPR capped `[1, 1.5]`, low-tier antialias deactivation, automatic pause on hidden tab or open Agent Sheet, and geometry disposal on unmount.
+7. Resilience & Fallback: Automatic WebGL failure and context loss detection (`webglcontextlost`) falling back to 2D view with dismissible alert.
+8. Owner Smartphone Test Script: Created `docs/3D_PHONE_TEST.md` with step-by-step Indonesian instructions for real hardware thermal and frame rate verification.
 
 ---
 

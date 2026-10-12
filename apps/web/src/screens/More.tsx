@@ -26,6 +26,7 @@ import { RecruitmentWizard } from '../components/recruitment/RecruitmentWizard';
 import { AgentsRegistryModal } from '../components/more/AgentsRegistryModal';
 import { AuditLogModal } from '../components/more/AuditLogModal';
 import { TelegramNotificationsCard } from '../components/more/TelegramNotificationsCard';
+import { ViewModeCard } from '../components/more/ViewModeCard';
 
 interface MoreScreenProps {
   onOpenRecruitment?: () => void;
@@ -218,6 +219,9 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
               />
             </button>
           </div>
+
+          {/* View Mode 2D / 3D Selection Card (Rule 9.3 & REQ-108) */}
+          <ViewModeCard />
 
           {/* Telegram Notifications Settings Card (Rule REQ-085 & REQ-093) */}
           <TelegramNotificationsCard />

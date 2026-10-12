@@ -1,0 +1,130 @@
+/**
+ * 3D Low-Poly Agent Character & Status Ring (Rule REQ-111 & REQ-112).
+ * Smooth straight-path movement, status-colored ring, and floating badge.
+ */
+
+import React, { useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
+import { Html } from '@react-three/drei';
+import { Vector3, Group } from 'three';
+import type { OfficeAgent } from '../../../stores/office';
+
+interface Agent3DProps {
+  agent: OfficeAgent;
+  targetPos: [number, number, number];
+  onSelect: (agent: OfficeAgent) => void;
+  showLabel?: boolean;
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  idle: '#94A3B8',
+  thinking: '#22D3EE',
+  working: '#34D399',
+  waiting_approval: '#FBBF24',
+  error: '#F43F5E',
+  offline: '#64748B',
+};
+
+export const Agent3D: React.FC<Agent3DProps> = ({
+  agent,
+  targetPos,
+  onSelect,
+  showLabel = true,
+}) => {
+  const groupRef = useRef<Group>(null);
+  const ringRef = useRef<Group>(null);
+  const currentPos = useRef(new Vector3(...targetPos));
+  const destination = useRef(new Vector3(...targetPos));
+
+  // Update target destination when prop changes
+  destination.current.set(...targetPos);
+
+  const statusColor = STATUS_COLORS[agent.status] || STATUS_COLORS.idle;
+
+  // Smooth straight-path interpolation loop
+  useFrame((_, delta) => {
+    if (!groupRef.current) return;
+
+    const dist = currentPos.current.distanceTo(destination.current);
+    if (dist > 0.01) {
+      // Interpolate towards target position smoothly
+      currentPos.current.lerp(destination.current, Math.min(1, delta * 6));
+      groupRef.current.position.copy(currentPos.current);
+    } else {
+      groupRef.current.position.copy(destination.current);
+    }
+
+    // Subtle breathing or rotation animation when active
+    if (ringRef.current && (agent.status === 'working' || agent.status === 'thinking')) {
+      ringRef.current.rotation.z += delta * 1.5;
+    }
+  });
+
+  return (
+    <group
+      ref={groupRef}
+      position={targetPos}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect(agent);
+      }}
+    >
+      {/* Floor Status Ring */}
+      <group ref={ringRef} position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <mesh>
+          <ringGeometry args={[0.42, 0.54, 32]} />
+          <meshBasicMaterial color={statusColor} />
+        </mesh>
+      </group>
+
+      {/* Low-Poly Robot Character Body */}
+      <group position={[0, 0.45, 0]}>
+        {/* Torso */}
+        <mesh position={[0, 0.1, 0]}>
+          <cylinderGeometry args={[0.26, 0.22, 0.5, 12]} />
+          <meshStandardMaterial color="#0F172A" metalness={0.8} roughness={0.2} />
+        </mesh>
+
+        {/* Chest Accent Light */}
+        <mesh position={[0, 0.15, 0.23]}>
+          <boxGeometry args={[0.18, 0.12, 0.02]} />
+          <meshBasicMaterial color={statusColor} />
+        </mesh>
+
+        {/* Head */}
+        <mesh position={[0, 0.52, 0]}>
+          <sphereGeometry args={[0.2, 16, 16]} />
+          <meshStandardMaterial color="#1E293B" metalness={0.7} roughness={0.3} />
+        </mesh>
+
+        {/* Glowing Visor */}
+        <mesh position={[0, 0.52, 0.18]}>
+          <boxGeometry args={[0.22, 0.08, 0.05]} />
+          <meshBasicMaterial color={statusColor} />
+        </mesh>
+      </group>
+
+      {/* Floating HTML Label (capped to 20 visible labels via distance factor) */}
+      {showLabel && (
+        <Html
+          position={[0, 1.3, 0]}
+          center
+          distanceFactor={14}
+          zIndexRange={[100, 0]}
+        >
+          <div className="flex flex-col items-center pointer-events-none select-none">
+            <div className="bg-office-surface/90 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/10 shadow-lg flex items-center space-x-1 whitespace-nowrap">
+              <span className="text-xs">{agent.avatar || '🤖'}</span>
+              <span className="text-[11px] font-semibold text-white/90">{agent.name}</span>
+            </div>
+            {agent.status === 'working' && agent.currentTool && (
+              <span className="text-[9px] text-cyan-300 bg-cyan-950/80 px-1.5 rounded border border-cyan-800/40 mt-0.5">
+                ⚡ {agent.currentTool}
+              </span>
+            )}
+          </div>
+        </Html>
+      )}
+    </group>
+  );
+};

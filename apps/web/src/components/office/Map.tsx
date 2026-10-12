@@ -7,7 +7,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { UserPlus } from 'lucide-react';
-import type { Department } from '@hermes-office/shared';
+import { getAgentPlacement } from '@hermes-office/shared';
 import { Avatar } from './Avatar';
 import { useOfficeStore, type OfficeAgent } from '../../stores/office';
 
@@ -16,54 +16,16 @@ interface MapProps {
   onOpenRecruitment?: () => void;
 }
 
-// Room Desk Coordinates on a 380 x 420 Canvas
-const DEPARTMENT_DESKS: Record<Department, { x: number; y: number }> = {
-  command: { x: 190, y: 55 },
-  social: { x: 61, y: 56 },
-  marketing: { x: 319, y: 56 },
-  sales: { x: 61, y: 140 },
-  analytics: { x: 319, y: 140 },
-  finance: { x: 61, y: 225 },
-  support: { x: 319, y: 225 },
-  hr: { x: 61, y: 315 },
-};
-
-const APPROVAL_GATE_POS = { x: 190, y: 108 };
-
-// Lounge relaxing slots for idle agents
-const LOUNGE_SLOTS = [
-  { x: 160, y: 180 },
-  { x: 220, y: 180 },
-  { x: 160, y: 230 },
-  { x: 220, y: 230 },
-  { x: 160, y: 280 },
-  { x: 220, y: 280 },
-  { x: 190, y: 205 },
-  { x: 190, y: 255 },
-];
-
 export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) => {
   const { t } = useTranslation();
   const { agents } = useOfficeStore();
 
-  // Compute coordinate for each agent based on status
+  // Compute coordinate for each agent using shared single source of truth (Rule 9.1)
   let idleCount = 0;
   const agentPositions = agents.map((agent) => {
-    let pos = { x: 190, y: 200 };
-
-    if (agent.status === 'waiting_approval') {
-      pos = APPROVAL_GATE_POS;
-    } else if (agent.status === 'idle') {
-      pos = LOUNGE_SLOTS[idleCount % LOUNGE_SLOTS.length];
-      idleCount++;
-    } else {
-      const desk = DEPARTMENT_DESKS[agent.department as Department];
-      if (desk) {
-        pos = desk;
-      }
-    }
-
-    return { agent, pos };
+    const slotIdx = agent.status === 'idle' ? idleCount++ : 0;
+    const placement = getAgentPlacement(agent, agent.status, slotIdx);
+    return { agent, pos: placement.pos2d };
   });
 
   return (

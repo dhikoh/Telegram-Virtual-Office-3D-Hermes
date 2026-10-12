@@ -12,8 +12,11 @@ import { EmptyOffice } from '../components/office/Empty';
 import { AskOffice } from '../components/office/AskOffice';
 import { AgentSheet } from '../components/agent-sheet/AgentSheet';
 import { useOfficeStore, type OfficeAgent } from '../stores/office';
+import { useViewModeStore } from '../stores/view-mode';
 import { tma } from '../services/tma';
 import type { AgentNormalizedStatus } from '@hermes-office/shared';
+
+const Office3D = React.lazy(() => import('../components/office/office-3d/Office3D'));
 
 interface OfficeScreenProps {
   onOpenRecruitment?: () => void;
@@ -31,6 +34,8 @@ export const OfficeScreen: React.FC<OfficeScreenProps> = ({ onOpenRecruitment, o
     setSelectedAgentId,
     setAgentStatus,
   } = useOfficeStore();
+
+  const { viewMode, webGLError, setWebGLError } = useViewModeStore();
 
   const [showSimPanel, setShowSimPanel] = useState(false);
 
@@ -68,6 +73,20 @@ export const OfficeScreen: React.FC<OfficeScreenProps> = ({ onOpenRecruitment, o
           </div>
         )}
 
+        {/* WebGL Context Loss / Incompatibility Fallback Banner (Rule 9.3 & REQ-117) */}
+        {webGLError && (
+          <div className="w-full mb-3 p-3 rounded-xl bg-office-warn/15 border border-office-warn/40 flex items-center justify-between">
+            <span className="text-xs text-office-warn font-medium">{webGLError}</span>
+            <button
+              onClick={() => setWebGLError(null)}
+              type="button"
+              className="text-[11px] text-office-warn font-mono hover:underline px-2 py-0.5 rounded bg-office-warn/10"
+            >
+              Tutup
+            </button>
+          </div>
+        )}
+
         {/* State Matrix: Loading indicator */}
         {isLoading && agents.length === 0 && (
           <div className="w-full py-16 flex flex-col items-center justify-center">
@@ -86,7 +105,7 @@ export const OfficeScreen: React.FC<OfficeScreenProps> = ({ onOpenRecruitment, o
           <div className="w-full flex flex-col items-center">
             <div className="w-full flex items-center justify-between px-1 mb-2">
               <span className="text-[11px] font-mono text-office-muted tracking-wider uppercase">
-                2D Floor Plan • 8 Divisions
+                {viewMode === '3D' ? '3D Isometric Floor Plan' : '2D Floor Plan • 8 Divisions'}
               </span>
 
               {/* Dev Simulation Bar Toggle */}
@@ -132,11 +151,28 @@ export const OfficeScreen: React.FC<OfficeScreenProps> = ({ onOpenRecruitment, o
               </div>
             )}
 
-            {/* 2D SVG Map */}
-            <Map
-              onSelectAgent={handleSelectAgent}
-              onOpenRecruitment={onOpenRecruitment}
-            />
+            {/* View Mode Switching: 3D Isometric View (Lazy loaded) or 2D SVG Map */}
+            {viewMode === '3D' ? (
+              <React.Suspense
+                fallback={
+                  <div className="w-full max-w-[390px] aspect-[380/420] flex flex-col items-center justify-center rounded-xl border border-office-border bg-office-bg">
+                    <div className="w-8 h-8 rounded-full border-2 border-office-cyan border-t-transparent animate-spin mb-2" />
+                    <span className="text-xs text-office-muted font-mono">Memuat Tampilan 3D...</span>
+                  </div>
+                }
+              >
+                <Office3D
+                  isPaused={!!selectedAgent}
+                  onSelectAgent={handleSelectAgent}
+                  onOpenRecruitment={onOpenRecruitment}
+                />
+              </React.Suspense>
+            ) : (
+              <Map
+                onSelectAgent={handleSelectAgent}
+                onOpenRecruitment={onOpenRecruitment}
+              />
+            )}
           </div>
         )}
 

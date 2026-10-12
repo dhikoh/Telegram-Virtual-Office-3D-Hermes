@@ -9,11 +9,14 @@ import { useTranslation } from 'react-i18next';
 import { PlayCircle, ShieldAlert, AlertTriangle, Users, Zap } from 'lucide-react';
 import { useOfficeStore } from '../../stores/office';
 import { usePowerStore } from '../../stores/power';
+import { useViewModeStore } from '../../stores/view-mode';
 
 export const HeaderHUD: React.FC = () => {
   const { t } = useTranslation();
   const { agents, tasks, approvals, streamStatus, ticker } = useOfficeStore();
   const { isLowPower, toggleLowPower } = usePowerStore();
+  const { viewMode, setViewMode } = useViewModeStore();
+  const is3DDisabled = isLowPower;
 
   const activeRunsCount = tasks.filter((task) => task.status === 'running').length;
   const pendingApprovalsCount = approvals.filter((app) => app.status === 'pending').length;
@@ -116,21 +119,51 @@ export const HeaderHUD: React.FC = () => {
           </span>
         </div>
 
-        {/* Low Power Toggle Button */}
-        <button
-          onClick={toggleLowPower}
-          type="button"
-          aria-label={t('power.toggle')}
-          title={isLowPower ? t('power.active') : t('power.label')}
-          className={`shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono transition-colors min-h-[28px] ${
-            isLowPower
-              ? 'bg-office-warn/20 text-office-warn border border-office-warn/40'
-              : 'bg-white/5 text-office-muted hover:text-office-text'
-          }`}
-        >
-          <Zap className="w-3 h-3" />
-          <span>{isLowPower ? 'ECO' : 'FULL'}</span>
-        </button>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* 2D | 3D View Mode Toggle (Rule 9.3) */}
+          <div className="flex items-center rounded bg-black/60 border border-white/10 p-0.5 text-[10px] font-mono">
+            <button
+              onClick={() => setViewMode('2D')}
+              type="button"
+              className={`px-1.5 py-0.5 rounded transition-colors ${
+                viewMode === '2D' ? 'bg-office-cyan text-black font-bold' : 'text-office-muted hover:text-white'
+              }`}
+            >
+              2D
+            </button>
+            <button
+              onClick={() => !is3DDisabled && setViewMode('3D')}
+              disabled={is3DDisabled}
+              title={is3DDisabled ? '3D dinonaktifkan dalam mode hemat daya' : undefined}
+              type="button"
+              className={`px-1.5 py-0.5 rounded transition-colors ${
+                viewMode === '3D'
+                  ? 'bg-office-cyan text-black font-bold'
+                  : is3DDisabled
+                  ? 'text-white/20 cursor-not-allowed opacity-50'
+                  : 'text-office-muted hover:text-white'
+              }`}
+            >
+              3D
+            </button>
+          </div>
+
+          {/* Low Power Toggle Button */}
+          <button
+            onClick={toggleLowPower}
+            type="button"
+            aria-label={t('power.toggle')}
+            title={isLowPower ? t('power.active') : t('power.label')}
+            className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono transition-colors min-h-[28px] ${
+              isLowPower
+                ? 'bg-office-warn/20 text-office-warn border border-office-warn/40'
+                : 'bg-white/5 text-office-muted hover:text-office-text'
+            }`}
+          >
+            <Zap className="w-3 h-3" />
+            <span>{isLowPower ? 'ECO' : 'FULL'}</span>
+          </button>
+        </div>
       </div>
     </header>
   );
