@@ -40,7 +40,7 @@
 | **REQ-029** | S2b: Auth date not older than 3600 seconds | 2 | apps/server/src/plugins/auth.ts | VERIFIED | Expired timestamp rejection (>3600s) tested in server.test.ts |
 | **REQ-030** | S2c: User id must be in OWNER_TELEGRAM_IDS, else 403 Forbidden | 2 | apps/server/src/plugins/auth.ts | VERIFIED | Non-owner 403 rejection tested in server.test.ts |
 | **REQ-031** | S3: DEV_AUTH_BYPASS=1 allowed only when non-production; server REFUSES TO START if prod + bypass set | 2 | apps/server/src/config.ts | VERIFIED | Throws error on prod + bypass in config.ts, tested in server.test.ts |
-| **REQ-032** | S4: Hermes API keys stay on server (HERMES_KEY_<AGENTID>); browser never sees keys/URLs | 2 | apps/server/src/services/hermes | VERIFIED | Environment variable lookup server-side only in hermes/index.ts |
+| **REQ-032** | S4: Hermes API keys stay on server (HERMES_KEY_<AGENTID>); browser never sees keys/URLs | 2 | apps/server/src/services/hermes | IMPLEMENTED-UNTESTED | corrected after audit — F-08: demo-data.ts and shared schemas.ts leak hermes_base_url/api_key_env to browser bundle |
 | **REQ-033** | S5: Hermes base URLs come only from agent registry, never request input (anti-SSRF) | 2 | apps/server/src/services/hermes | VERIFIED | Agent repository base URL lookup in hermes/index.ts |
 | **REQ-034** | S6: Web app never executes shell commands and never touches ~/.hermes files | 2 | apps/server/src/routes | VERIFIED | Zero shell execution in server routes |
 | **REQ-035** | S7: Approvals: show FULL action text, explicit tap required, log decision & decider; no auto-approve | 4 | apps/web/src/screens/Inbox.tsx | VERIFIED | Full action payload rendered in pre block, explicit large tap buttons (min-h 48px), haptic feedback, no auto-approval |
@@ -105,13 +105,13 @@
 | **REQ-094** | Phase 8 Acceptance: Multi-stage Dockerfile, Coolify deploy guide, final audit, manual test script | 8 | Dockerfile, docs/DEPLOY_COOLIFY.md, docs/MANUAL_TEST_SCRIPT.md, docs/FINAL_AUDIT.md | VERIFIED | Multi-stage Dockerfile, docker-compose.yml, docs/DEPLOY_COOLIFY.md, docs/MANUAL_TEST_SCRIPT.md (20 steps), docs/FINAL_AUDIT.md (104/104 verified) |
 | **REQ-095** | Rule R1: Work on ONE phase at a time; commit "phase-N: <summary>"; stop until owner replies "lanjut" | 0 | Process | VERIFIED | Enforced strictly across all phases |
 | **REQ-096** | Rule R4: Do not add dependencies outside section 4 without owner confirmation | 0 | package.json | VERIFIED | Only Section 4 approved libraries planned |
-| **REQ-097** | Rule R5: TypeScript strict, no `any` without comment, files under 300 lines | 1 | tsconfig.json | VERIFIED | Strict TS compiler options enabled, tsc --build passes |
-| **REQ-098** | Rule R6: Secrets only via environment variables, never sent to browser | 0 | .env.example | VERIFIED | Zero secrets in client-side code |
+| **REQ-097** | Rule R5: TypeScript strict, no `any` without comment, files under 300 lines | 1 | tsconfig.json | IMPLEMENTED-UNTESTED | corrected after audit — F-09: 10 occurrences of `(fastify as any)` with eslint-disable in route files bypass type safety |
+| **REQ-098** | Rule R6: Secrets only via environment variables, never sent to browser | 0 | .env.example | IMPLEMENTED-UNTESTED | corrected after audit — F-03: zod .default() on TELEGRAM_BOT_TOKEN and HERMES_KEY_DEFAULT allows production start with fake credentials |
 | **REQ-099** | Rule R9: UI default Indonesian (id), English (en) selectable, all strings in i18n | 3 | apps/web/src/i18n | VERIFIED | Indonesian default with English selector verified in i18n/index.ts & browser |
 | **REQ-100** | Rule R10: Mobile-first 360x740, touch targets >= 44px, no hover-only interactions | 3 | apps/web | VERIFIED | 360x740 mobile viewport and touch targets >= 44px verified across all interactive screens and modals |
-| **REQ-101** | Rule C3: Automated phase-aware gap-check script (`npm run gap-check`) | 1 | scripts/gap-check.ts | VERIFIED | scripts/gap-check.ts implements checks a through h |
+| **REQ-101** | Rule C3: Automated phase-aware gap-check script (`npm run gap-check`) | 1 | scripts/gap-check.ts | IMPLEMENTED-UNTESTED | corrected after audit — F-01/F-02/F-04/F-05/F-06/F-10: C3c (i18n), C3d (env), C3h (screens) missing; C3a/C3b/C3f weak or hardcoded |
 | **REQ-102** | Rule C4: Regression gate (`typecheck && test && gap-check`) at start and end of phases | 1 | scripts/ | VERIFIED | Root scripts typecheck, test, and gap-check all functional |
-| **REQ-103** | Rule C5: State matrix on every screen (loading, empty, error, offline, success, low-power) | 3 | apps/web, docs/QA.md | VERIFIED | State matrix for all 5 screens and Pass 2 adversarial tests documented and verified in docs/QA.md |
+| **REQ-103** | Rule C5: State matrix on every screen (loading, empty, error, offline, success, low-power) | 3 | apps/web, docs/QA.md | IMPLEMENTED-UNTESTED | corrected after audit — F-07/F-04: C9 pass 2 missing Hermes down/slow/SSE cases; C3h screen state matrix check missing |
 | **REQ-104** | Rule C6: Single source of truth in packages/shared (schemas, types, endpoints, enums) | 1 | packages/shared | VERIFIED | packages/shared provides single source of truth for endpoints and types |
 | **REQ-105** | Phase 9 approved dependencies: three, @react-three/fiber, @react-three/drei (named imports only, no postprocessing) | 9 | apps/web/package.json | VERIFIED | Installed three, @react-three/fiber, @react-three/drei. Named imports strictly used, zero wildcard imports |
 | **REQ-106** | Phase 9 single source of truth in packages/shared: layout config & pure getAgentPlacement function for 2D & 3D | 9 | packages/shared/src/layout.ts | VERIFIED | Shared layout.ts defines room geometries and getAgentPlacement(agent, status, slot) for both 2D SVG and 3D scenes |
@@ -126,15 +126,15 @@
 | **REQ-115** | Phase 9 Instancing & draw calls: Instanced meshes for repeated furniture (desks, chairs); target <= 150 draw calls | 9 | apps/web/src/components/office/office-3d/Furniture.tsx | VERIFIED | Procedural room groups with instanced-style box primitives; draw calls well below 150 target |
 | **REQ-116** | Phase 9 Resource lifecycle: Pause rendering when hidden, sheet open fullscreen, or tab inactive; dispose on unmount | 9 | apps/web/src/components/office/office-3d/Office3D.tsx | VERIFIED | VisibilityChange listener and isPaused prop on open sheet stop frameloop; geometries cleaned on unmount |
 | **REQ-117** | Phase 9 Resiliency: WebGL unavailable or context loss automatically falls back to 2D with dismissible alert | 9 | apps/web/src/stores/view-mode.ts, apps/web/src/screens/Office.tsx | VERIFIED | webglcontextlost listener and detectWebGL() fallback to 2D with dismissible banner; unit test verified |
-| **REQ-118** | Phase 9 Chunk budget: 3D chunk <= 700 KB gzip; verified in build output | 9 | apps/web/dist | VERIFIED | Vite production build produces Office3D chunk of 222.21 kB gzip (budget <= 700 kB gzip) |
+| **REQ-118** | Phase 9 Chunk budget: 3D chunk <= 700 KB gzip; verified in build output | 9 | apps/web/dist | IMPLEMENTED-UNTESTED | corrected after audit — A-1: chunk size was claimed but not independently verified; needs automated gap-check measurement |
 | **REQ-119** | Phase 9 Acceptance: Unit tests for getAgentPlacement, gap-check verification, and docs/3D_PHONE_TEST.md owner test script | 9 | docs/3D_PHONE_TEST.md | BLOCKED | BLOCKED (needs owner) — owner smartphone testing script created in docs/3D_PHONE_TEST.md |
 
 ---
 
-### Ledger Summary Counts (Phase 9 — Complete)
+### Ledger Summary Counts (Phase 9 — Audit Remediation In Progress)
 - **Total Requirements**: 119
-- **VERIFIED**: 118
-- **IMPLEMENTED-UNTESTED**: 0
+- **VERIFIED**: 112
+- **IMPLEMENTED-UNTESTED**: 6 (REQ-032, REQ-097, REQ-098, REQ-101, REQ-103, REQ-118)
 - **TODO**: 0
 - **ASSUMED**: 0
 - **BLOCKED**: 1 (REQ-119: 3D real phone test pending owner)
