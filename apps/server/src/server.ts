@@ -39,9 +39,9 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", 'https://telegram.org'],
+        scriptSrc: ["'self'", 'https://telegram.org', 'https://static.cloudflareinsights.com'],
         styleSrc: ["'self'", "'unsafe-inline'"],
-        connectSrc: ["'self'"],
+        connectSrc: ["'self'", 'https://cloudflareinsights.com'],
       },
     },
   });
