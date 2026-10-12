@@ -205,15 +205,18 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
                 </span>
               </div>
             </div>
+            {/* Knob is intentionally plain white: against the inset track that is
+                the only pairing that reads in both states. */}
             <button
               onClick={handleTogglePower}
               type="button"
+              aria-pressed={isLowPower}
               className={`w-12 h-6 rounded-full transition-colors relative p-0.5 min-h-[44px] flex items-center ${
-                isLowPower ? 'bg-office-warn' : 'bg-office-inset'
+                isLowPower ? 'bg-office-warn shadow-nu-inset' : 'bg-office-border shadow-nu-inset'
               }`}
             >
               <div
-                className={`w-5 h-5 rounded-full bg-office-panel transition-transform ${
+                className={`w-5 h-5 rounded-full bg-white shadow-nu-flat transition-transform ${
                   isLowPower ? 'translate-x-6' : 'translate-x-0'
                 }`}
               />
@@ -264,7 +267,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
         </div>
 
         {/* App Version Info */}
-        <div className="text-center py-4 text-[10px] font-mono text-office-muted/60">
+        <div className="text-center py-4 text-[10px] font-mono text-office-muted">
           Hermes Virtual Office v1.0.0 • Phase 7 (Notifications & Polish)
         </div>
       </div>

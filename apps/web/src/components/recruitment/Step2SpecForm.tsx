@@ -122,7 +122,7 @@ export const Step2SpecForm: React.FC<Step2SpecFormProps> = ({
           onChange={(e) => setMission(e.target.value)}
           rows={2}
           required
-          className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text placeholder-slate-600 focus:outline-none focus:border-office-accent min-h-[56px]"
+          className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text placeholder:text-office-text/70 focus:outline-none focus:border-office-accent min-h-[56px]"
         />
       </div>
 
@@ -226,7 +226,7 @@ export const Step2SpecForm: React.FC<Step2SpecFormProps> = ({
         </button>
         <button
           type="submit"
-          className="flex-1 py-2.5 rounded-xl bg-office-violet text-office-text text-xs font-bold hover:bg-violet-600 flex items-center justify-center gap-1.5 shadow-nu-raised min-h-[44px]"
+          className="flex-1 py-2.5 rounded-xl bg-office-accent text-office-on-accent text-xs font-bold hover:opacity-90 flex items-center justify-center gap-1.5 shadow-nu-raised min-h-[44px]"
         >
           <span>Lanjut ke Preview SOUL</span>
           <ArrowRight className="w-3.5 h-3.5" />

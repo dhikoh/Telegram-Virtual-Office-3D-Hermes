@@ -109,7 +109,7 @@ export const AgentSheetChat: React.FC<AgentSheetChatProps> = ({ agent }) => {
             >
               <MarkdownView content={m.content} />
             </div>
-            <span className="text-[9px] font-mono text-office-muted/70 mt-1 px-1">
+            <span className="text-[9px] font-mono text-office-muted mt-1 px-1">
               {m.timestamp}
             </span>
           </div>
@@ -148,7 +148,7 @@ export const AgentSheetChat: React.FC<AgentSheetChatProps> = ({ agent }) => {
           }}
           placeholder={`Instruksi untuk ${agent.name}...`}
           disabled={isStreaming}
-          className="flex-1 bg-office-inset border border-office-border rounded-xl px-3 py-2 text-xs text-office-text placeholder:text-office-muted/50 focus:outline-none focus:border-office-accent min-h-[44px]"
+          className="flex-1 bg-office-inset border border-office-border rounded-xl px-3 py-2 text-xs text-office-text placeholder:text-office-text/70 focus:outline-none focus:border-office-accent min-h-[44px]"
         />
         <button
           onClick={() => handleSendMessage()}

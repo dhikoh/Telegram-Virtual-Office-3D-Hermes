@@ -90,7 +90,7 @@ export const TelegramNotificationsCard: React.FC = () => {
         </div>
       )}
 
-      <div className="flex items-center gap-1.5 text-[10px] text-office-muted/80 pt-0.5">
+      <div className="flex items-center gap-1.5 text-[10px] text-office-muted pt-0.5">
         <ShieldCheck className="w-3.5 h-3.5 text-office-success shrink-0" />
         <span>Kepatuhan REQ-011: Server hanya menggunakan sendMessage, aman tanpa konflik webhook.</span>
       </div>

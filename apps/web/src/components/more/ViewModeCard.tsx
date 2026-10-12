@@ -55,7 +55,7 @@ export const ViewModeCard: React.FC = () => {
             viewMode === '3D'
               ? 'bg-office-accent text-office-on-accent font-bold shadow-nu-raised'
               : is3DDisabled
-              ? 'bg-office-hover text-office-muted/20 cursor-not-allowed opacity-40 border border-office-border'
+              ? 'bg-office-hover text-office-muted cursor-not-allowed opacity-40 border border-office-border'
               : 'bg-office-hover text-office-muted hover:text-office-text'
           }`}
         >

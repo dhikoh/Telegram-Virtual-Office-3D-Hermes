@@ -23,6 +23,11 @@ const FORBIDDEN: Array<{ pattern: RegExp; why: string }> = [
   { pattern: /\btext-slate-\d{3}\b/, why: 'use text-office-muted' },
   { pattern: /\bglow-(cyan|violet|warn|danger)\b/, why: 'neon glow is gone; use shadow-nu-raised' },
   { pattern: /\boffice-cyan\b/, why: 'use office-accent' },
+  // Contrast additions after the first screenshot review (Tahap 2 polish):
+  { pattern: /\btext-office-muted\//, why: 'faded ink drops below 4.5:1; use full text-office-muted' },
+  { pattern: /\bhover:bg-violet-600\b/, why: 'raw Tailwind accent; use office token classes' },
+  { pattern: /\bbg-office-violet text-office-text\b/, why: 'dark ink on violet fails contrast; use accent CTA or text-office-on-violet' },
+  { pattern: /(?:text|bg|border|placeholder)-(?:slate|gray|neutral|zinc)-\d{3}/, why: 'raw palette outside the office token set' },
 ];
 
 /** The 3D scene keeps its own neon palette until Tahap 3 rewrites the world. */

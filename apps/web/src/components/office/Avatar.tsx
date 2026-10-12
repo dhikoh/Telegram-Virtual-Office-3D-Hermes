@@ -58,7 +58,7 @@ export const Avatar: React.FC<AvatarProps> = ({ agent, targetX, targetY, onClick
         : 'border-2 border-dashed border-office-violet animate-spin-ring shadow-nu-raised';
       if (agent.currentTool) {
         badgeContent = (
-          <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-office-violet text-office-text text-[8px] font-mono px-1 py-0.2 rounded shadow-nu-raised whitespace-nowrap max-w-[60px] truncate">
+          <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-office-violet text-office-on-violet text-[8px] font-mono px-1 py-0.2 rounded shadow-nu-raised whitespace-nowrap max-w-[60px] truncate">
             {agent.currentTool}
           </span>
         );

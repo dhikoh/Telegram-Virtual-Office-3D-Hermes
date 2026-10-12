@@ -87,7 +87,7 @@ export const KpiEntryModal: React.FC<KpiEntryModalProps> = ({
               onChange={(e) => setKpiKey(e.target.value)}
               placeholder="mrr"
               required
-              className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text placeholder-slate-600 focus:outline-none focus:border-office-accent font-mono min-h-[44px]"
+              className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text placeholder:text-office-text/70 focus:outline-none focus:border-office-accent font-mono min-h-[44px]"
             />
           </div>
 
@@ -99,7 +99,7 @@ export const KpiEntryModal: React.FC<KpiEntryModalProps> = ({
               onChange={(e) => setKpiLabel(e.target.value)}
               placeholder="Monthly Recurring Revenue"
               required
-              className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text placeholder-slate-600 focus:outline-none focus:border-office-accent min-h-[44px]"
+              className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text placeholder:text-office-text/70 focus:outline-none focus:border-office-accent min-h-[44px]"
             />
           </div>
 
@@ -113,7 +113,7 @@ export const KpiEntryModal: React.FC<KpiEntryModalProps> = ({
                 onChange={(e) => setKpiValue(e.target.value)}
                 placeholder="125000"
                 required
-                className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text placeholder-slate-600 focus:outline-none focus:border-office-accent font-mono min-h-[44px]"
+                className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text placeholder:text-office-text/70 focus:outline-none focus:border-office-accent font-mono min-h-[44px]"
               />
             </div>
             <div>
@@ -123,7 +123,7 @@ export const KpiEntryModal: React.FC<KpiEntryModalProps> = ({
                 value={kpiUnit}
                 onChange={(e) => setKpiUnit(e.target.value)}
                 placeholder="USD / % / deals"
-                className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text placeholder-slate-600 focus:outline-none focus:border-office-accent font-mono min-h-[44px]"
+                className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text placeholder:text-office-text/70 focus:outline-none focus:border-office-accent font-mono min-h-[44px]"
               />
             </div>
           </div>
@@ -136,7 +136,7 @@ export const KpiEntryModal: React.FC<KpiEntryModalProps> = ({
                 value={kpiPeriod}
                 onChange={(e) => setKpiPeriod(e.target.value)}
                 placeholder="2026-Q3"
-                className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text placeholder-slate-600 focus:outline-none focus:border-office-accent font-mono min-h-[44px]"
+                className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text placeholder:text-office-text/70 focus:outline-none focus:border-office-accent font-mono min-h-[44px]"
               />
             </div>
             <div>
@@ -160,7 +160,7 @@ export const KpiEntryModal: React.FC<KpiEntryModalProps> = ({
               value={kpiNote}
               onChange={(e) => setKpiNote(e.target.value)}
               placeholder="Buku kas / rekening koran Q3"
-              className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text placeholder-slate-600 focus:outline-none focus:border-office-accent min-h-[44px]"
+              className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text placeholder:text-office-text/70 focus:outline-none focus:border-office-accent min-h-[44px]"
             />
           </div>
 

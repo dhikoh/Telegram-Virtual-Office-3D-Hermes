@@ -77,7 +77,7 @@ export const Step3SoulPreview: React.FC<Step3SoulPreviewProps> = ({
         <button
           type="button"
           onClick={handleNext}
-          className="flex-1 py-2.5 rounded-xl bg-office-violet text-office-text text-xs font-bold hover:bg-violet-600 min-h-[44px] shadow-nu-raised flex items-center justify-center gap-1.5"
+          className="flex-1 py-2.5 rounded-xl bg-office-accent text-office-on-accent text-xs font-bold hover:opacity-90 min-h-[44px] shadow-nu-raised flex items-center justify-center gap-1.5"
         >
           <span>Paket Penerimaan</span>
           <ArrowRight className="w-3.5 h-3.5" />

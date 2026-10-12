@@ -106,7 +106,7 @@ export const TasksScreen: React.FC = () => {
               {/* Task Cards Column List */}
               <div className="flex-1 overflow-y-auto p-2.5 flex flex-col gap-2.5">
                 {colTasks.length === 0 ? (
-                  <div className="py-8 text-center text-xs text-office-muted/60 font-mono">
+                  <div className="py-8 text-center text-xs text-office-muted font-mono">
                     Kosong
                   </div>
                 ) : (

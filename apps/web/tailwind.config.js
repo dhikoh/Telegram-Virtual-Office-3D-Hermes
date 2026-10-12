@@ -17,6 +17,7 @@ export default {
           card: 'rgba(255, 255, 255, 0.55)', // legacy token, kept so old classnames compile
           accent: '#F59E0B', // primary CTA fill (was office-cyan)
           'accent-ink': '#92400E', // accent as TEXT on the light ground (contrast ≥ 4.5:1)
+          'on-violet': '#FFFFFF', // ink for the violet DEMO badge
           'on-accent': '#1F2937', // text on top of accent
           violet: '#7C5CFC',
           success: '#15803D',

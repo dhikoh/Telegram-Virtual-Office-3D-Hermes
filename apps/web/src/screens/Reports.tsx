@@ -91,7 +91,7 @@ export const ReportsScreen: React.FC = () => {
               setIsReportModalOpen(true);
             }}
             type="button"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-office-violet text-office-text text-xs font-semibold shadow-nu-raised hover:bg-violet-600 min-h-[44px]"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-office-accent text-office-on-accent text-xs font-semibold shadow-nu-raised hover:opacity-90 min-h-[44px]"
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span>Buat Laporan</span>
@@ -132,7 +132,7 @@ export const ReportsScreen: React.FC = () => {
 
         {departmentKpis.length === 0 ? (
           <div className="glass-panel rounded-2xl p-6 text-center border border-office-border flex flex-col items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-office-muted/40" />
+            <TrendingUp className="w-6 h-6 text-office-muted" />
             <span className="text-xs text-office-muted">Belum ada data KPI untuk departemen ini.</span>
             <button
               onClick={() => setIsManualModalOpen(true)}

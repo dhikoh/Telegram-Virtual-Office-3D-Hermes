@@ -46,7 +46,7 @@ export const SpecListEditor: React.FC<SpecListEditorProps> = ({
             }
           }}
           placeholder={placeholder}
-          className="flex-1 bg-office-inset border border-office-border rounded-xl px-3 py-2 text-xs text-office-text placeholder:text-office-muted/50 focus:outline-none focus:border-office-accent min-h-[44px]"
+          className="flex-1 bg-office-inset border border-office-border rounded-xl px-3 py-2 text-xs text-office-text placeholder:text-office-text/70 focus:outline-none focus:border-office-accent min-h-[44px]"
         />
         <button
           type="button"

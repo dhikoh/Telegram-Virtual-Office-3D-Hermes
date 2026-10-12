@@ -86,7 +86,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               placeholder="Contoh: Analisis tren viral hashtag #AI..."
-              className="w-full bg-office-inset border border-office-border rounded-xl px-3 py-2 text-office-text placeholder:text-office-muted/40 focus:outline-none focus:border-office-accent min-h-[44px]"
+              className="w-full bg-office-inset border border-office-border rounded-xl px-3 py-2 text-office-text placeholder:text-office-text/70 focus:outline-none focus:border-office-accent min-h-[44px]"
             />
           </div>
 
@@ -97,7 +97,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               value={newDescription}
               onChange={(e) => setNewDescription(e.target.value)}
               placeholder="Instruksi detail untuk agen..."
-              className="w-full bg-office-inset border border-office-border rounded-xl p-2.5 text-office-text placeholder:text-office-muted/40 focus:outline-none focus:border-office-accent resize-none"
+              className="w-full bg-office-inset border border-office-border rounded-xl p-2.5 text-office-text placeholder:text-office-text/70 focus:outline-none focus:border-office-accent resize-none"
             />
           </div>
 

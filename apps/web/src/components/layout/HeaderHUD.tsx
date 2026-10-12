@@ -140,7 +140,7 @@ export const HeaderHUD: React.FC = () => {
                 viewMode === '3D'
                   ? 'bg-office-accent text-black font-bold'
                   : is3DDisabled
-                  ? 'text-office-muted/20 cursor-not-allowed opacity-50'
+                  ? 'text-office-muted cursor-not-allowed opacity-50'
                   : 'text-office-muted hover:text-office-text'
               }`}
             >

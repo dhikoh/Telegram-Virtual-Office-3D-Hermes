@@ -61,7 +61,7 @@ export const EmptyOffice: React.FC = () => {
           <span>{isLoading ? t('office.loadingDemo') : t('office.loadDemo')}</span>
         </button>
 
-        <span className="text-[10px] text-office-muted/70 mt-3 font-mono">
+        <span className="text-[10px] text-office-muted mt-3 font-mono">
           Semua agen simulasi ditandai badge DEMO resmi.
         </span>
       </div>

@@ -125,7 +125,7 @@ export const GenerateReportModal: React.FC<GenerateReportModalProps> = ({
                 value={reportPeriod}
                 onChange={(e) => setReportPeriod(e.target.value)}
                 placeholder="2026-Q3"
-                className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text placeholder-slate-600 focus:outline-none focus:border-office-violet font-mono min-h-[44px]"
+                className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text placeholder:text-office-text/70 focus:outline-none focus:border-office-violet font-mono min-h-[44px]"
               />
             </div>
 
@@ -158,7 +158,7 @@ export const GenerateReportModal: React.FC<GenerateReportModalProps> = ({
                 type="button"
                 onClick={handleGenerateReport}
                 disabled={isGenerating}
-                className="flex-1 py-2.5 rounded-xl bg-office-violet text-office-text text-xs font-bold hover:bg-violet-600 min-h-[44px] shadow-nu-raised disabled:opacity-50 flex items-center justify-center gap-1.5"
+                className="flex-1 py-2.5 rounded-xl bg-office-accent text-office-on-accent text-xs font-bold hover:opacity-90 min-h-[44px] shadow-nu-raised disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
                 {isGenerating ? (
                   <>
