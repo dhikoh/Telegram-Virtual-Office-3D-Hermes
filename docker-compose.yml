@@ -1,0 +1,31 @@
+services:
+  office:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hermes-virtual-office
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    extra_hosts:
+      # Enables the container to reach Hermes Gateway running on the VPS host
+      - "host.docker.internal:host-gateway"
+    volumes:
+      # Persistent volume for SQLite database
+      - office-data:/data
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      - DB_PATH=/data/office.sqlite
+      # Provide real values via .env or Coolify UI
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - OWNER_TELEGRAM_IDS=${OWNER_TELEGRAM_IDS}
+      - APP_URL=${APP_URL}
+      - HERMES_MODE=real
+      - HERMES_BASE_URL=http://host.docker.internal:8642
+      - HERMES_KEY_DEFAULT=${HERMES_KEY_DEFAULT:-mock-secret-key}
+
+volumes:
+  office-data:
+    name: hermes-office-data

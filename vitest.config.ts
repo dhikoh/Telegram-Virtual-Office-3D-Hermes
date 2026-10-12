@@ -13,5 +13,6 @@ export default defineConfig({
     environment: 'node',
     include: ['**/*.test.ts', '**/*.spec.ts'],
     exclude: ['**/node_modules/**', '**/dist/**'],
+    fileParallelism: false,
   },
 });

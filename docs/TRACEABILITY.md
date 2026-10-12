@@ -102,7 +102,7 @@
 | **REQ-091** | Phase 5 Acceptance: Reports & KPIs, sparklines, anti-hallucination test | 5 | apps/web, apps/server | VERIFIED | Unit tests in server.test.ts, mock-hermes background run completion, and browser artifact phase5_anti_hallucination_report_success.png |
 | **REQ-092** | Phase 6 Acceptance: Recruitment wizard, SOUL.md generator tests, Hiring package | 6 | apps/web, apps/server, packages/shared | VERIFIED | 4 unit tests in soul.test.ts passed; browser test verified complete 4-step wizard and registered agent Aura into virtual office |
 | **REQ-093** | Phase 7 Acceptance: Push notifications, settings, accessibility pass, states matrix | 7 | apps/web, apps/server, docs/QA.md | VERIFIED | TelegramNotificationService (4/4 tests), adversarial & state matrix tests (15/15 tests), docs/QA.md state matrix, min-h-[44px] touch targets, and all files < 300 lines |
-| **REQ-094** | Phase 8 Acceptance: Multi-stage Dockerfile, Coolify deploy guide, final audit, manual test script | 8 | Dockerfile, docs/DEPLOY_COOLIFY.md | TODO | Planned Phase 8 |
+| **REQ-094** | Phase 8 Acceptance: Multi-stage Dockerfile, Coolify deploy guide, final audit, manual test script | 8 | Dockerfile, docs/DEPLOY_COOLIFY.md, docs/MANUAL_TEST_SCRIPT.md, docs/FINAL_AUDIT.md | VERIFIED | Multi-stage Dockerfile, docker-compose.yml, docs/DEPLOY_COOLIFY.md, docs/MANUAL_TEST_SCRIPT.md (20 steps), docs/FINAL_AUDIT.md (104/104 verified) |
 | **REQ-095** | Rule R1: Work on ONE phase at a time; commit "phase-N: <summary>"; stop until owner replies "lanjut" | 0 | Process | VERIFIED | Enforced strictly across all phases |
 | **REQ-096** | Rule R4: Do not add dependencies outside section 4 without owner confirmation | 0 | package.json | VERIFIED | Only Section 4 approved libraries planned |
 | **REQ-097** | Rule R5: TypeScript strict, no `any` without comment, files under 300 lines | 1 | tsconfig.json | VERIFIED | Strict TS compiler options enabled, tsc --build passes |
@@ -116,11 +116,11 @@
 
 ---
 
-### Ledger Summary Counts (Phase 7)
+### Ledger Summary Counts (Phase 8 — Final Audit)
 - **Total Requirements**: 104
-- **VERIFIED**: 103
+- **VERIFIED**: 104 (100.0%)
 - **IMPLEMENTED-UNTESTED**: 0
-- **TODO**: 1
+- **TODO**: 0
 - **ASSUMED**: 0
 - **BLOCKED**: 0
 - **DEFERRED-BY-OWNER**: 0
