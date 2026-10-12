@@ -35,6 +35,7 @@ export const Scene: React.FC<SceneProps> = ({ onSelectAgent, onOpenRecruitment }
   });
 
   const handleSelectRoom = (nameKey: string) => {
+    // i18n-dynamic: office.rooms
     setActiveRoomNotice(t(nameKey));
     if (nameKey.includes('hr') && onOpenRecruitment) {
       onOpenRecruitment();

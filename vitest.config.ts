@@ -12,7 +12,7 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: ['./vitest.setup.ts'],
-    include: ['**/*.test.ts', '**/*.spec.ts'],
+    include: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts'],
     exclude: ['**/node_modules/**', '**/dist/**'],
     fileParallelism: false,
   },

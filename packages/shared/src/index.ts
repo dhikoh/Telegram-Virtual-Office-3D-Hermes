@@ -4,3 +4,4 @@ export * from './schemas.js';
 export * from './types.js';
 export * from './soul.js';
 export * from './layout.js';
+export * from './schema-spec.js';
