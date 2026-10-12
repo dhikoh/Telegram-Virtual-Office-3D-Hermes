@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Plus, X } from 'lucide-react';
-import type { Agent, TaskPriority } from '@hermes-office/shared';
+import type { AgentPublic, TaskPriority } from '@hermes-office/shared';
 import { tma } from '../../services/tma';
 
 interface CreateTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
-  agents: Agent[];
+  agents: AgentPublic[];
   defaultAgentId?: string;
   onCreate: (task: {
     title: string;

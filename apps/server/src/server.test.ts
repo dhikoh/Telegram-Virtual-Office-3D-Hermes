@@ -4,6 +4,7 @@ import BetterSqlite3 from 'better-sqlite3';
 import { buildServer } from './server.js';
 import { runMigrations, pruneOldRunEvents } from './db/migrator.js';
 import { MockHermesServer } from '@hermes-office/mock-hermes';
+import { AgentPublicSchema } from '@hermes-office/shared';
 import { createTelegramInitData } from './auth.test.js';
 
 describe('Server Core, Routes & Lifecycle (Phase 2 & 5)', () => {
@@ -86,6 +87,39 @@ describe('Server Core, Routes & Lifecycle (Phase 2 & 5)', () => {
       });
       expect(healthRes.statusCode).toBe(200);
       expect(JSON.parse(healthRes.body).capabilities.features.run_submission).toBe(true);
+    });
+
+    it('F-08 contract: GET /api/agents and PATCH /api/agents/:id parse with AgentPublicSchema and contain no server-only fields', async () => {
+      const listRes = await app.inject({
+        method: 'GET',
+        url: '/api/agents',
+        headers: authHeader,
+      });
+      expect(listRes.statusCode).toBe(200);
+      const list = JSON.parse(listRes.body);
+      expect(Array.isArray(list)).toBe(true);
+      expect(list.length).toBeGreaterThan(0);
+      for (const agent of list) {
+        const parsed = AgentPublicSchema.safeParse(agent);
+        expect(parsed.success).toBe(true);
+        expect(agent).not.toHaveProperty('hermes_base_url');
+        expect(agent).not.toHaveProperty('api_key_env');
+        expect(typeof agent.endpoint_configured).toBe('boolean');
+      }
+
+      const patchRes = await app.inject({
+        method: 'PATCH',
+        url: `/api/agents/${list[0].id}`,
+        headers: jsonHeaders,
+        body: JSON.stringify({ role: 'Updated Role' }),
+      });
+      expect(patchRes.statusCode).toBe(200);
+      const patched = JSON.parse(patchRes.body);
+      const parsedPatched = AgentPublicSchema.safeParse(patched);
+      expect(parsedPatched.success).toBe(true);
+      expect(patched).not.toHaveProperty('hermes_base_url');
+      expect(patched).not.toHaveProperty('api_key_env');
+      expect(typeof patched.endpoint_configured).toBe('boolean');
     });
 
     it('creates a task, runs it with mock, handles approval, and completes', async () => {

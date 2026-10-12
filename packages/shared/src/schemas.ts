@@ -26,8 +26,46 @@ export const AgentSchema = z.object({
   department: DepartmentSchema,
   avatar: z.string().default('🤖'),
   soul_summary: z.string().default(''),
-  hermes_base_url: z.string().url().default('http://127.0.0.1:8642'),
-  api_key_env: z.string().default('HERMES_KEY_DEFAULT'),
+  hermes_base_url: z.string().url(),
+  api_key_env: z.string().min(1),
+  hermes_profile: z.string().default('default'),
+  active: z.number().int().min(0).max(1).default(1),
+  hired_at: z.number().int(),
+  created_at: z.number().int(),
+});
+
+/**
+ * Public agent schema for API responses and client code.
+ * F-08: hermes_base_url and api_key_env are stripped; endpoint_configured replaces them.
+ */
+export const AgentPublicSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  role: z.string(),
+  department: DepartmentSchema,
+  avatar: z.string(),
+  soul_summary: z.string(),
+  hermes_profile: z.string(),
+  active: z.number(),
+  hired_at: z.number(),
+  created_at: z.number(),
+  endpoint_configured: z.boolean(),
+  isDemo: z.boolean().optional(),
+});
+
+/**
+ * Input schema for agent create/patch requests.
+ * hermes_base_url and api_key_env accepted only in request bodies.
+ */
+export const AgentInputSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  role: z.string().min(1),
+  department: DepartmentSchema,
+  avatar: z.string().default('🤖'),
+  soul_summary: z.string().default(''),
+  hermes_base_url: z.string().url().optional(),
+  api_key_env: z.string().optional(),
   hermes_profile: z.string().default('default'),
   active: z.number().int().min(0).max(1).default(1),
   hired_at: z.number().int(),

@@ -4,7 +4,7 @@
  */
 
 import { tma } from './tma';
-import type { Agent, Task, Approval, Kpi, Report, HiringDraft, AuditLog } from '@hermes-office/shared';
+import type { AgentPublic, Task, Approval, Kpi, Report, HiringDraft, AuditLog } from '@hermes-office/shared';
 
 const API_BASE = '/api';
 
@@ -38,10 +38,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 export const api = {
   getHealth: () => request<{ status: string; uptime: number; timestamp: string }>('/health'),
   getMe: () => request<{ user: { id: number; username?: string; role: string } }>('/me'),
-  getAgents: () => request<Agent[]>('/agents'),
-  createAgent: (body: unknown) => request<Agent>('/agents', { method: 'POST', body: JSON.stringify(body) }),
+  getAgents: () => request<AgentPublic[]>('/agents'),
+  createAgent: (body: unknown) => request<AgentPublic>('/agents', { method: 'POST', body: JSON.stringify(body) }),
   updateAgent: (id: string, body: unknown) =>
-    request<Agent>(`/agents/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+    request<AgentPublic>(`/agents/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   getTasks: () => request<Task[]>('/tasks'),
   createTask: (body: unknown) => request<Task>('/tasks', { method: 'POST', body: JSON.stringify(body) }),
   runTask: (id: string) => request<{ status: string; run_id: string }>(`/tasks/${id}/run`, { method: 'POST' }),
@@ -136,7 +136,7 @@ export const api = {
   createHiringDraft: (body: unknown) =>
     request<HiringDraft>('/hiring/draft', { method: 'POST', body: JSON.stringify(body) }),
   markHired: (id: string, agent?: unknown) =>
-    request<{ success: boolean; agent?: Agent }>(`/hiring/${id}/mark-hired`, {
+    request<{ success: boolean; agent?: AgentPublic }>(`/hiring/${id}/mark-hired`, {
       method: 'POST',
       body: JSON.stringify({ agent }),
     }),

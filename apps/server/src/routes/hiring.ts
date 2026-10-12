@@ -3,9 +3,11 @@ import { HiringDraftSchema } from '@hermes-office/shared';
 import { HiringRepository } from '../db/repositories/hiring.js';
 import { AgentRepository } from '../db/repositories/agents.js';
 import { AuditRepository } from '../db/repositories/audit.js';
+import { config } from '../config.js';
 
 export const hiringRoutes: FastifyPluginAsync = async (fastify) => {
-  const db = (fastify as any).db; // eslint-disable-line @typescript-eslint/no-explicit-any
+  // F-09: Typed decorations via types/fastify.d.ts
+  const { db } = fastify;
   const hiringRepo = new HiringRepository(db);
   const agentRepo = new AgentRepository(db);
   const auditRepo = new AuditRepository(db);
@@ -34,7 +36,7 @@ export const hiringRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.code(201).send(draft);
   });
 
-  fastify.post<{ Params: { id: string }; Body: { agent?: any } }>( // eslint-disable-line @typescript-eslint/no-explicit-any
+  fastify.post<{ Params: { id: string }; Body: { agent?: Record<string, unknown> } }>(
     '/api/hiring/:id/mark-hired',
     async (request, reply) => {
       const { id } = request.params;
@@ -47,16 +49,17 @@ export const hiringRoutes: FastifyPluginAsync = async (fastify) => {
 
       const agentData = request.body?.agent;
       if (agentData && agentData.id && agentData.name) {
+        // F-08: hermes_base_url comes from server config, not client request
         agentRepo.create({
-          id: agentData.id,
-          name: agentData.name,
-          role: agentData.role || 'Operasional Agent',
-          department: agentData.department || 'command',
-          avatar: agentData.avatar || '🤖',
-          soul_summary: agentData.soul_summary || '',
-          hermes_base_url: agentData.hermes_base_url || 'http://127.0.0.1:8642',
-          api_key_env: agentData.api_key_env || 'HERMES_KEY_DEFAULT',
-          hermes_profile: agentData.hermes_profile || agentData.id,
+          id: String(agentData.id),
+          name: String(agentData.name),
+          role: String(agentData.role || 'Operasional Agent'),
+          department: (agentData.department as 'command' | 'social' | 'sales' | 'finance' | 'marketing' | 'analytics' | 'support' | 'hr') || 'command',
+          avatar: String(agentData.avatar || '🤖'),
+          soul_summary: String(agentData.soul_summary || ''),
+          hermes_base_url: config.HERMES_BASE_URL,
+          api_key_env: String(agentData.api_key_env || 'HERMES_KEY_DEFAULT'),
+          hermes_profile: String(agentData.hermes_profile || agentData.id),
           active: 1,
           hired_at: Date.now(),
           created_at: Date.now(),

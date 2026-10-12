@@ -41,13 +41,11 @@ export const AgentSheetProfile: React.FC<AgentSheetProfileProps> = ({ agent }) =
           <span className="text-office-muted">Hermes Profile:</span>
           <span className="font-mono text-office-text">{agent.hermes_profile}</span>
         </div>
-        <div className="flex justify-between py-1 border-b border-white/5">
-          <span className="text-office-muted">Base URL:</span>
-          <span className="font-mono text-office-text truncate max-w-[200px]">{agent.hermes_base_url}</span>
-        </div>
         <div className="flex justify-between py-1">
-          <span className="text-office-muted">Kunci API Env:</span>
-          <span className="font-mono text-office-text">{agent.api_key_env}</span>
+          <span className="text-office-muted">Endpoint Gateway:</span>
+          <span className="font-mono text-office-text">
+            {agent.endpoint_configured ? 'Endpoint terpasang' : 'Belum diatur'}
+          </span>
         </div>
       </div>
 

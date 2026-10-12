@@ -4,7 +4,11 @@
 
 import React, { useState } from 'react';
 import type { AgentHiringSpec } from '@hermes-office/shared';
-import { generateHiringPackage } from '@hermes-office/shared';
+import {
+  generateSoulMarkdown,
+  generateHiringCommands,
+  generateHiringChecklist,
+} from '@hermes-office/shared';
 import {
   Copy,
   Check,
@@ -33,16 +37,26 @@ export const Step4HiringPackage: React.FC<Step4HiringPackageProps> = ({
   onBack,
 }) => {
   const { fetchInitialData, addTickerMessage } = useOfficeStore();
-  const pkg = React.useMemo(() => generateHiringPackage(spec), [spec]);
+  const slug = spec.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'new-agent';
+  const pkg = React.useMemo(() => {
+    const soulMd = generateSoulMarkdown(spec);
+    const hash = slug.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+    const suggestedPort = 8650 + (hash % 40);
+    return {
+      slug,
+      soul_md: soulMd,
+      commands_md: generateHiringCommands(spec, slug, suggestedPort, soulMd),
+      checklist: generateHiringChecklist(slug, suggestedPort),
+    };
+  }, [spec, slug]);
 
   // Checklist state
   const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({});
   const [copiedCommands, setCopiedCommands] = useState(false);
 
   // Registration Form State
-  const [baseUrl, setBaseUrl] = useState('http://127.0.0.1:8642');
-  const [apiKeyEnv, setApiKeyEnv] = useState(pkg.api_key_env);
-  const [hermesProfile, setHermesProfile] = useState(pkg.slug);
+  const [baseUrl, setBaseUrl] = useState('');
+  const [hermesProfile, setHermesProfile] = useState(slug);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDrafting, setIsDrafting] = useState(false);
@@ -105,8 +119,7 @@ export const Step4HiringPackage: React.FC<Step4HiringPackageProps> = ({
         department: spec.department,
         avatar: spec.avatar || '🤖',
         soul_summary: spec.mission,
-        hermes_base_url: baseUrl.trim() || 'http://127.0.0.1:8642',
-        api_key_env: apiKeyEnv.trim() || pkg.api_key_env,
+        ...(baseUrl.trim() ? { hermes_base_url: baseUrl.trim() } : {}),
         hermes_profile: hermesProfile.trim() || pkg.slug,
         active: 1,
         hired_at: Date.now(),
@@ -214,34 +227,24 @@ export const Step4HiringPackage: React.FC<Step4HiringPackageProps> = ({
         </div>
 
         <div>
-          <label className="text-[10px] text-office-muted block mb-1">Hermes Base URL</label>
+          <label className="text-[10px] text-office-muted block mb-1">Ganti Hermes Base URL (Opsional)</label>
           <input
             type="text"
             value={baseUrl}
             onChange={(e) => setBaseUrl(e.target.value)}
+            placeholder="Kosongkan untuk default server"
             className="w-full px-3 py-1.5 rounded-lg bg-black/80 border border-white/15 text-xs text-white font-mono focus:outline-none focus:border-office-cyan"
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="text-[10px] text-office-muted block mb-1">Nama Variabel Env Key</label>
-            <input
-              type="text"
-              value={apiKeyEnv}
-              onChange={(e) => setApiKeyEnv(e.target.value)}
-              className="w-full px-3 py-1.5 rounded-lg bg-black/80 border border-white/15 text-xs text-white font-mono focus:outline-none focus:border-office-cyan"
-            />
-          </div>
-          <div>
-            <label className="text-[10px] text-office-muted block mb-1">Hermes Profile Slug</label>
-            <input
-              type="text"
-              value={hermesProfile}
-              onChange={(e) => setHermesProfile(e.target.value)}
-              className="w-full px-3 py-1.5 rounded-lg bg-black/80 border border-white/15 text-xs text-white font-mono focus:outline-none focus:border-office-cyan"
-            />
-          </div>
+        <div>
+          <label className="text-[10px] text-office-muted block mb-1">Hermes Profile Slug</label>
+          <input
+            type="text"
+            value={hermesProfile}
+            onChange={(e) => setHermesProfile(e.target.value)}
+            className="w-full px-3 py-1.5 rounded-lg bg-black/80 border border-white/15 text-xs text-white font-mono focus:outline-none focus:border-office-cyan"
+          />
         </div>
       </div>
 

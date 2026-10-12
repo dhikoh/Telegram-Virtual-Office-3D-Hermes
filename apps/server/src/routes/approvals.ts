@@ -4,8 +4,8 @@ import { ApprovalRepository } from '../db/repositories/approvals.js';
 import { AuditRepository } from '../db/repositories/audit.js';
 
 export const approvalRoutes: FastifyPluginAsync = async (fastify) => {
-  const db = (fastify as any).db; // eslint-disable-line @typescript-eslint/no-explicit-any
-  const dispatcher = (fastify as any).dispatcher; // eslint-disable-line @typescript-eslint/no-explicit-any
+  // F-09: Typed decorations via types/fastify.d.ts
+  const { db, dispatcher } = fastify;
   const approvalRepo = new ApprovalRepository(db);
   const auditRepo = new AuditRepository(db);
 

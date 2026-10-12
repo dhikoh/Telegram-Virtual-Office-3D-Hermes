@@ -5,11 +5,11 @@
  */
 
 import { create } from 'zustand';
-import type { Agent, Task, Approval, Kpi, Report, AgentNormalizedStatus } from '@hermes-office/shared';
+import type { AgentPublic, Task, Approval, Kpi, Report, AgentNormalizedStatus } from '@hermes-office/shared';
 import { api } from '../services/api';
 import { tma } from '../services/tma';
 
-export interface OfficeAgent extends Agent {
+export interface OfficeAgent extends AgentPublic {
   status: AgentNormalizedStatus;
   currentTool?: string;
   isDemo?: boolean;

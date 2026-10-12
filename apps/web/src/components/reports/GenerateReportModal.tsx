@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Sparkles, ShieldCheck, Clock, AlertCircle, X } from 'lucide-react';
-import type { Department, ReportTemplate, Report, Agent } from '@hermes-office/shared';
+import type { Department, ReportTemplate, Report, AgentPublic } from '@hermes-office/shared';
 import { api } from '../../services/api';
 import { tma } from '../../services/tma';
 import { MarkdownView } from '../common/MarkdownView';
@@ -16,7 +16,7 @@ interface GenerateReportModalProps {
   isOpen: boolean;
   onClose: () => void;
   activeDept: Department;
-  departmentAgents: Agent[];
+  departmentAgents: AgentPublic[];
   onReportCreated: (report: Report) => void;
 }
 

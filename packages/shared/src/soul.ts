@@ -117,16 +117,13 @@ ${spec.reporting_cadence.trim()}
  * - Profile .env port setting API_SERVER_PORT and API_SERVER_KEY
  * - hermes -p <name> gateway &
  */
-export function generateHiringPackage(spec: AgentHiringSpec): HiringPackage {
-  const slug = spec.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'new-agent';
-  const soulMd = generateSoulMarkdown(spec);
-
-  // Suggested port offset based on hash or deterministic sequence
-  const hash = slug.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  const suggestedPort = 8650 + (hash % 40);
-  const apiKeyEnv = `HERMES_KEY_${slug.toUpperCase().replace(/-/g, '_')}`;
-
-  const commandsMd = `# Paket Penerimaan VPS — Agen: ${spec.name} (${spec.role})
+export function generateHiringCommands(
+  spec: AgentHiringSpec,
+  slug: string,
+  suggestedPort: number,
+  soulMd: string
+): string {
+  return `# Paket Penerimaan VPS — Agen: ${spec.name} (${spec.role})
 
 > **PENTING**: Jalankan perintah berikut melalui sesi terminal/SSH di VPS tempat Hermes berjalan.
 > Seluruh perintah CLI di bawah ini telah diverifikasi dari dokumentasi resmi Hermes Agent (Phase 0).
@@ -167,14 +164,32 @@ hermes -p ${slug} gateway &
 # sudo systemctl enable --now hermes-${slug}.service
 \`\`\`
 `;
+}
 
-  const checklist = [
+export function generateHiringChecklist(slug: string, suggestedPort: number): string[] {
+  return [
     `Buat profil Hermes: 'hermes profile create ${slug}'`,
     `Tulis isi SOUL.md ke '~/.hermes/profiles/${slug}/SOUL.md'`,
     `Setel API_SERVER_PORT=${suggestedPort} di '~/.hermes/profiles/${slug}/.env'`,
     `Jalankan gateway: 'hermes -p ${slug} gateway &'`,
     `Daftarkan agen ke Hermes Virtual Office melalui formulir di bawah`,
   ];
+}
+
+/**
+ * Creates the complete Hiring Package with verified Phase 0 commands (Rule REQ-084 & REQ-092).
+ * Server/test side package containing suggested server environment key name.
+ */
+export function generateHiringPackage(spec: AgentHiringSpec): HiringPackage {
+  const slug = spec.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'new-agent';
+  const soulMd = generateSoulMarkdown(spec);
+
+  const hash = slug.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const suggestedPort = 8650 + (hash % 40);
+  const apiKeyEnv = `HERMES_KEY_${slug.toUpperCase().replace(/-/g, '_')}`;
+
+  const commandsMd = generateHiringCommands(spec, slug, suggestedPort, soulMd);
+  const checklist = generateHiringChecklist(slug, suggestedPort);
 
   return {
     slug,

@@ -3,6 +3,8 @@ import * as schemas from './schemas.js';
 import type { AgentNormalizedStatus } from './constants.js';
 
 export type Agent = z.infer<typeof schemas.AgentSchema>;
+export type AgentPublic = z.infer<typeof schemas.AgentPublicSchema>;
+export type AgentInput = z.infer<typeof schemas.AgentInputSchema>;
 export type Task = z.infer<typeof schemas.TaskSchema>;
 export type RunEvent = z.infer<typeof schemas.RunEventSchema>;
 export type Approval = z.infer<typeof schemas.ApprovalSchema>;

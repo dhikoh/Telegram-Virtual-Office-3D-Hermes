@@ -10,9 +10,11 @@ import { AgentRepository } from '../db/repositories/agents.js';
 import { AuditRepository } from '../db/repositories/audit.js';
 import { getHermesClientForAgent } from '../services/hermes/index.js';
 import { telegramNotifications } from '../services/notifications.js';
+import { config } from '../config.js';
 
 export const reportRoutes: FastifyPluginAsync = async (fastify) => {
-  const db = (fastify as any).db; // eslint-disable-line @typescript-eslint/no-explicit-any
+  // F-09: Typed decorations via types/fastify.d.ts
+  const { db } = fastify;
   const reportRepo = new ReportRepository(db);
   const kpiRepo = new KpiRepository(db);
   const agentRepo = new AgentRepository(db);
@@ -42,7 +44,8 @@ export const reportRoutes: FastifyPluginAsync = async (fastify) => {
           department: dept,
           avatar: '🤖',
           soul_summary: 'Agen demo kantor virtual Hermes',
-          hermes_base_url: 'http://127.0.0.1:8642',
+          // F-08: hermes_base_url from server config, never hardcoded
+          hermes_base_url: config.HERMES_BASE_URL,
           api_key_env: 'HERMES_KEY_DEFAULT',
           hermes_profile: agent_id,
           active: 1,

@@ -40,7 +40,7 @@
 | **REQ-029** | S2b: Auth date not older than 3600 seconds | 2 | apps/server/src/plugins/auth.ts | VERIFIED | Expired timestamp rejection (>3600s) tested in server.test.ts |
 | **REQ-030** | S2c: User id must be in OWNER_TELEGRAM_IDS, else 403 Forbidden | 2 | apps/server/src/plugins/auth.ts | VERIFIED | Non-owner 403 rejection tested in server.test.ts |
 | **REQ-031** | S3: DEV_AUTH_BYPASS=1 allowed only when non-production; server REFUSES TO START if prod + bypass set | 2 | apps/server/src/config.ts | VERIFIED | Throws error on prod + bypass in config.ts, tested in server.test.ts |
-| **REQ-032** | S4: Hermes API keys stay on server (HERMES_KEY_<AGENTID>); browser never sees keys/URLs | 2 | apps/server/src/services/hermes | IMPLEMENTED-UNTESTED | corrected after audit — F-08: demo-data.ts and shared schemas.ts leak hermes_base_url/api_key_env to browser bundle |
+| **REQ-032** | S4: Hermes API keys stay on server (HERMES_KEY_<AGENTID>); browser never sees keys/URLs | 2 | apps/server/src/services/hermes | VERIFIED | F-08 contract test in server.test.ts verifies GET /api/agents and PATCH /api/agents/:id strip server-only fields; apps/web/dist scanned with 0 hits for internal IPs or key names |
 | **REQ-033** | S5: Hermes base URLs come only from agent registry, never request input (anti-SSRF) | 2 | apps/server/src/services/hermes | VERIFIED | Agent repository base URL lookup in hermes/index.ts |
 | **REQ-034** | S6: Web app never executes shell commands and never touches ~/.hermes files | 2 | apps/server/src/routes | VERIFIED | Zero shell execution in server routes |
 | **REQ-035** | S7: Approvals: show FULL action text, explicit tap required, log decision & decider; no auto-approve | 4 | apps/web/src/screens/Inbox.tsx | VERIFIED | Full action payload rendered in pre block, explicit large tap buttons (min-h 48px), haptic feedback, no auto-approval |
@@ -105,8 +105,8 @@
 | **REQ-094** | Phase 8 Acceptance: Multi-stage Dockerfile, Coolify deploy guide, final audit, manual test script | 8 | Dockerfile, docs/DEPLOY_COOLIFY.md, docs/MANUAL_TEST_SCRIPT.md, docs/FINAL_AUDIT.md | VERIFIED | Multi-stage Dockerfile, docker-compose.yml, docs/DEPLOY_COOLIFY.md, docs/MANUAL_TEST_SCRIPT.md (20 steps), docs/FINAL_AUDIT.md (104/104 verified) |
 | **REQ-095** | Rule R1: Work on ONE phase at a time; commit "phase-N: <summary>"; stop until owner replies "lanjut" | 0 | Process | VERIFIED | Enforced strictly across all phases |
 | **REQ-096** | Rule R4: Do not add dependencies outside section 4 without owner confirmation | 0 | package.json | VERIFIED | Only Section 4 approved libraries planned |
-| **REQ-097** | Rule R5: TypeScript strict, no `any` without comment, files under 300 lines | 1 | tsconfig.json | IMPLEMENTED-UNTESTED | corrected after audit — F-09: 10 occurrences of `(fastify as any)` with eslint-disable in route files bypass type safety |
-| **REQ-098** | Rule R6: Secrets only via environment variables, never sent to browser | 0 | .env.example | IMPLEMENTED-UNTESTED | corrected after audit — F-03: zod .default() on TELEGRAM_BOT_TOKEN and HERMES_KEY_DEFAULT allows production start with fake credentials |
+| **REQ-097** | Rule R5: TypeScript strict, no `any` without comment, files under 300 lines | 1 | tsconfig.json | VERIFIED | FastifyInstance interface augmented via apps/server/src/types/fastify.d.ts; all (fastify as any) and eslint-disable removed from routes; tsc passes cleanly |
+| **REQ-098** | Rule R6: Secrets only via environment variables, never sent to browser | 0 | .env.example | VERIFIED | F-03 fixed: zod .default() removed from secrets; production guards throw if secret missing or fake; tested in config.test.ts (9 tests) |
 | **REQ-099** | Rule R9: UI default Indonesian (id), English (en) selectable, all strings in i18n | 3 | apps/web/src/i18n | VERIFIED | Indonesian default with English selector verified in i18n/index.ts & browser |
 | **REQ-100** | Rule R10: Mobile-first 360x740, touch targets >= 44px, no hover-only interactions | 3 | apps/web | VERIFIED | 360x740 mobile viewport and touch targets >= 44px verified across all interactive screens and modals |
 | **REQ-101** | Rule C3: Automated phase-aware gap-check script (`npm run gap-check`) | 1 | scripts/gap-check.ts | IMPLEMENTED-UNTESTED | corrected after audit — F-01/F-02/F-04/F-05/F-06/F-10: C3c (i18n), C3d (env), C3h (screens) missing; C3a/C3b/C3f weak or hardcoded |
@@ -133,8 +133,8 @@
 
 ### Ledger Summary Counts (Phase 9 — Audit Remediation In Progress)
 - **Total Requirements**: 119
-- **VERIFIED**: 112
-- **IMPLEMENTED-UNTESTED**: 6 (REQ-032, REQ-097, REQ-098, REQ-101, REQ-103, REQ-118)
+- **VERIFIED**: 115
+- **IMPLEMENTED-UNTESTED**: 3 (REQ-101, REQ-103, REQ-118)
 - **TODO**: 0
 - **ASSUMED**: 0
 - **BLOCKED**: 1 (REQ-119: 3D real phone test pending owner)
