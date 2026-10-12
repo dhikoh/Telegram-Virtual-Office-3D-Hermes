@@ -23,29 +23,69 @@ Dokumen ini adalah panduan langkah-demi-langkah bagi pemilik sistem (CEO/Owner) 
 ```
 
 > [!IMPORTANT]
-> **Aturan Keamanan Krusial**: Hermes Agent berjalan di host VPS, **BUKAN** di dalam kontainer Docker. API port Hermes (`8642`) **TIDAK PERNAH** boleh dibuka ke internet publik. Kontainer mengaksesnya melalui jembatan jaringan internal `host.docker.internal`.
+> **Aturan Keamanan Krusial**: Hermes Agent berjalan di host VPS, **BUKAN** di dalam kontainer Docker. API port Hermes (`8642`) **TIDAK PERNAH** boleh dibuka ke internet publik — bind ke IP gateway jaringan Docker (`API_SERVER_HOST=172.16.1.1`), bukan `0.0.0.0`. Kontainer mengaksesnya lewat IP tersebut (lihat bagian 2C).
 
 ---
 
-## 2. Persiapan di VPS Host (Hermes Gateway)
+## 2. Persiapan di VPS Host (Hermes Gateway + API Server)
 
-Jalankan perintah berikut di terminal VPS Host:
+> [!IMPORTANT]
+> Hermes menjalankan **dua** proses terpisah:
+> 1. **Messaging gateway** (`hermes gateway run`) → melayani chat bot Telegram.
+> 2. **API server** (`API_SERVER_ENABLED=true` di dalam gateway yang sama) → melayani endpoint `/v1/runs`, `/v1/capabilities`, `/v1/runs/{id}/events` yang dipakai mini app.
+>
+> Tanpa API server aktif, mini app tetap jalan tapi semua task gagal dengan `Hermes startRun error`. Port 8642 **tidak akan** ada di `ss -ltn` — itu tanda API server belum diaktifkan.
 
-### A. Pastikan Hermes Berjalan pada Interface Internal
-Hermes gateway secara default mendengarkan di `127.0.0.1:8642`. Agar dapat diakses kontainer Docker, pastikan port terbuka untuk subnet Docker:
+### A. Aktifkan API Server
+
+Edit `~/.hermes/.env` di VPS host:
+
 ```bash
-# Cek apakah Hermes sedang berjalan
+API_SERVER_ENABLED=true
+API_SERVER_KEY=<random-32-char>   # generate: openssl rand -hex 16
+API_SERVER_HOST=172.16.1.1        # HANYA jaringan Docker Coolify — jangan 0.0.0.0
+API_SERVER_PORT=8642
+```
+
+`API_SERVER_HOST=172.16.1.1` = gateway IP jaringan Docker `coolify`. Dengan nilai ini port 8642
+hanya bisa diakses kontainer di jaringan itu, **bukan** dari internet publik.
+(Ganti IP-nya jika `docker network inspect coolify` menunjukkan gateway lain.)
+
+> [!WARNING]
+> Jangan pakai `API_SERVER_HOST=0.0.0.0` selama `ufw status` masih `inactive` — port 8642
+> akan terbuka ke publik di IP VPS.
+
+### B. Jalankan Gateway sebagai Systemd Service
+
+Gateway yang dimulai manual (`nohup`/`run`) mati saat server reboot.
+
+```bash
+hermes gateway install     # membuat unit systemd
+hermes gateway restart
+```
+
+Verifikasi — harus mencetak `[API Server] API server listening on http://172.16.1.1:8642`:
+
+```bash
 ss -ltnp | grep 8642
-
-# Jika menggunakan UFW firewall, izinkan akses hanya dari interface Docker:
-sudo ufw allow in on docker0 to any port 8642 proto tcp
+curl -sS http://172.16.1.1:8642/health
 ```
 
-### B. Mulai Hermes Gateway di Host (Background / Systemd)
-```bash
-# Mulai gateway di background (atau gunakan systemd service)
-nohup hermes gateway --port 8642 > ~/.hermes/gateway.log 2>&1 &
+### C. Catatan Jaringan Kontainer Coolify
+
+Coolify **mengabaikan** `docker-compose.yml` di repo bila aplikasi memakai Build Pack
+**Dockerfile** — file itu hanya untuk deployment `docker compose up` manual. Akibatnya
+`extra_hosts: host.docker.internal:host-gateway` tidak ikut terpasang, dan
+`http://host.docker.internal:8642` akan gagal dengan `Could not resolve host`.
+
+Solusi: pakai IP gateway jaringan Coolify langsung di variabel lingkungan aplikasi:
+
 ```
+HERMES_BASE_URL=http://172.16.1.1:8642
+```
+
+Server menolak start bila `HERMES_MODE=real` tetapi `HERMES_BASE_URL` masih localhost —
+error ini muncul di log Coolify dan artinya variabel belum diganti.
 
 ---
 
@@ -72,13 +112,12 @@ nohup hermes gateway --port 8642 > ~/.hermes/gateway.log 2>&1 &
    - **Type**: Persistent Volume
 4. Klik **Save**. Volume ini memastikan seluruh data agen, tugas, persetujuan, dan KPI tetap aman tersimpan saat kontainer di-restart atau di-update.
 
-### Langkah 4: Konfigurasi Jaringan Host (Docker Extra Hosts)
-1. Buka tab **Docker Compose** atau **Custom Docker Run Options** di Coolify.
-2. Tambahkan host gateway argument:
-   ```yaml
-   extra_hosts:
-     - "host.docker.internal:host-gateway"
-   ```
+### Langkah 4: Jaringan Host (tidak perlu extra_hosts)
+
+Build Pack **Dockerfile** di Coolify tidak memakai `docker-compose.yml` repo, jadi
+`extra_hosts` tidak ikut terpasang. Lewati langkah ini — cukup isi
+`HERMES_BASE_URL` dengan IP gateway jaringan Coolify (Langkah 5).
+`host.docker.internal` hanya dipakai bila Anda deploy dengan `docker compose up` manual.
 
 ### Langkah 5: Masukkan Variabel Lingkungan (Environment Variables)
 Buka tab **Environment Variables** di Coolify dan masukkan variabel berikut:
@@ -94,8 +133,8 @@ Buka tab **Environment Variables** di Coolify dan masukkan variabel berikut:
 | `OWNER_EMAILS` | `dhiko.h@gmail.com` | Email pemilik untuk autentikasi Cloudflare Access di web biasa |
 | `APP_URL` | `https://t.me/NamaBot/office` | Link Mini App Telegram Anda |
 | `HERMES_MODE` | `real` | Mode produksi riil terhubung ke Hermes |
-| `HERMES_BASE_URL` | `http://host.docker.internal:8642` | URL gateway Hermes di VPS host |
-| `HERMES_KEY_DEFAULT` | `hermes_secret_token` | Token otentikasi Bearer Hermes API |
+| `HERMES_BASE_URL` | `http://172.16.1.1:8642` | IP gateway jaringan `coolify` + port API server Hermes (lihat bagian 2C) |
+| `HERMES_KEY_DEFAULT` | *(sama persis dengan `API_SERVER_KEY`)* | Bearer key API server Hermes. Server menolak start bila masih placeholder |
 | `HERMES_TIMEOUT_MS` | `30000` | Batas waktu timeout permintaan Hermes dalam milidetik (default 30000) |
 | `DEV_AUTH_BYPASS` | `0` | **Wajib 0** di produksi (Rule S3) |
 

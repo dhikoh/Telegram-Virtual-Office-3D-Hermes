@@ -5,10 +5,14 @@ services:
       dockerfile: Dockerfile
     container_name: hermes-virtual-office
     restart: unless-stopped
+    # Bound to loopback: reachable on this machine only, never from the internet.
+    # (A bare "3000:3000" exposes the office — with its API — to the public IP.)
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     extra_hosts:
       # Enables the container to reach Hermes Gateway running on the VPS host
+      # (only applies to manual `docker compose up` — Coolify's Dockerfile build
+      # pack ignores this file, see docs/DEPLOY_COOLIFY.md)
       - "host.docker.internal:host-gateway"
     volumes:
       # Persistent volume for SQLite database
@@ -21,10 +25,13 @@ services:
       # Provide real values via .env or Coolify UI
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - OWNER_TELEGRAM_IDS=${OWNER_TELEGRAM_IDS}
+      - OWNER_EMAILS=${OWNER_EMAILS:-}
       - APP_URL=${APP_URL}
       - HERMES_MODE=real
-      - HERMES_BASE_URL=http://host.docker.internal:8642
+      - HERMES_BASE_URL=${HERMES_BASE_URL:-http://host.docker.internal:8642}
       - HERMES_KEY_DEFAULT=${HERMES_KEY_DEFAULT:-mock-secret-key}
+      - HERMES_TIMEOUT_MS=${HERMES_TIMEOUT_MS:-30000}
+      - DEV_AUTH_BYPASS=0
 
 volumes:
   office-data:
