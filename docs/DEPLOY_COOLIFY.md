@@ -91,6 +91,7 @@ Buka tab **Environment Variables** di Coolify dan masukkan variabel berikut:
 | `DB_PATH` | `/data/office.sqlite` | Lokasi database di volume persisten |
 | `TELEGRAM_BOT_TOKEN` | `7123456789:AA...` | Token bot dari @BotFather |
 | `OWNER_TELEGRAM_IDS` | `123456789,987654321` | ID Telegram CEO yang berhak mengakses |
+| `OWNER_EMAILS` | `dhiko.h@gmail.com` | Email pemilik untuk autentikasi Cloudflare Access di web biasa |
 | `APP_URL` | `https://t.me/NamaBot/office` | Link Mini App Telegram Anda |
 | `HERMES_MODE` | `real` | Mode produksi riil terhubung ke Hermes |
 | `HERMES_BASE_URL` | `http://host.docker.internal:8642` | URL gateway Hermes di VPS host |

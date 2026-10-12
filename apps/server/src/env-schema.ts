@@ -15,6 +15,7 @@ export const EnvSchema = z.object({
   HOST: z.string().default('0.0.0.0'),
   TELEGRAM_BOT_TOKEN: z.string().min(1),
   OWNER_TELEGRAM_IDS: z.string().min(1),
+  OWNER_EMAILS: z.string().default(''),
   APP_URL: z.string().default('https://t.me/hermes_office_bot/app'),
   HERMES_MODE: z.enum(['mock', 'real']).default('mock'),
   HERMES_BASE_URL: z.string().url().default('http://127.0.0.1:8642'),

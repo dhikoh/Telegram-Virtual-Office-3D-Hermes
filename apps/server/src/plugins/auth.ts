@@ -99,6 +99,24 @@ export async function authHook(request: FastifyRequest, reply: FastifyReply): Pr
   }
 
   if (!authHeader || !authHeader.startsWith('tma ')) {
+    // Cloudflare Zero Trust (Access) web authentication
+    const cfEmail = request.headers['cf-access-authenticated-user-email'];
+    if (cfEmail && typeof cfEmail === 'string' && cfEmail.trim().length > 0) {
+      const email = cfEmail.trim().toLowerCase();
+      const isAllowedEmail =
+        config.ownerEmailsList.length === 0 || config.ownerEmailsList.includes(email);
+      if (isAllowedEmail) {
+        request.user = {
+          id: config.ownerIdsList[0] || 5549476959,
+          first_name: email.split('@')[0],
+          username: email.split('@')[0],
+        };
+        return;
+      }
+      reply.code(403).send({ error: 'forbidden', message: 'Email is not an authorized office owner' });
+      return;
+    }
+
     reply.code(401).send({ error: 'unauthorized', message: 'Missing Authorization: tma <initData> header' });
     return;
   }

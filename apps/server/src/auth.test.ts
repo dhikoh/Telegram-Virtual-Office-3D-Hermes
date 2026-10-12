@@ -114,6 +114,17 @@ describe('Security & Telegram Auth (Section 5, Rules S1-S3)', () => {
     expect(body.role).toBe('owner');
   });
 
+  it('allows authorized owner email via cf-access-authenticated-user-email header', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/me',
+      headers: { 'cf-access-authenticated-user-email': 'dhiko.h@gmail.com' },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.role).toBe('owner');
+  });
+
   it('Rule S3: Config refuses to start in production if DEV_AUTH_BYPASS=1', () => {
     expect(() => {
       loadConfig({

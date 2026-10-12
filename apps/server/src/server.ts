@@ -34,16 +34,14 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
   app.decorate('db', options.db);
   app.decorate('dispatcher', dispatcher);
 
-  // Rule S8: Helmet with CSP allowing telegram.org scripts and Telegram Web iframe embedding
+  // Rule S8: Helmet with CSP allowing telegram.org scripts
   app.register(helmet, {
-    xFrameOptions: false,
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", 'https://telegram.org'],
         styleSrc: ["'self'", "'unsafe-inline'"],
         connectSrc: ["'self'"],
-        frameAncestors: ["'self'", 'https://web.telegram.org', 'https://*.telegram.org'],
       },
     },
   });

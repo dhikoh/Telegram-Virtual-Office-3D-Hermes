@@ -3,6 +3,7 @@ import { EnvSchema } from './env-schema.js';
 
 export type Config = z.infer<typeof EnvSchema> & {
   ownerIdsList: number[];
+  ownerEmailsList: string[];
 };
 
 export function loadConfig(env: Record<string, string | undefined> = process.env): Config {
@@ -40,9 +41,15 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     );
   }
 
+  const ownerEmailsList = (parsed.OWNER_EMAILS || '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+
   return {
     ...parsed,
     ownerIdsList,
+    ownerEmailsList,
   };
 }
 
