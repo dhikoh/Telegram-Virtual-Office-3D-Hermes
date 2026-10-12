@@ -1,11 +1,11 @@
-## 1. Current Phase: Phase 5 (Reports & KPIs) — COMPLETED
+## 1. Current Phase: Phase 6 (Recruitment Room & Agent Registration) — COMPLETED
 
-- **Status**: Phase 5 completed and verified (Reports screen with 8 department tabs, Recharts AreaChart sparklines, source badges for manual, imported, and unverified agent numbers, manual KPI entry modal, and anti-hallucination report generator modal with verified green banner and Zod validation).
-- **Next Phase**: Phase 6 (Recruitment Room & Agent Registration).
+- **Status**: Phase 6 completed and verified (Screen 6 More with Recruitment Room shortcut, 4-step recruitment wizard, deterministic SOUL.md generator with 9 standard sections, Hiring Package with verified VPS CLI commands, agent registration to Virtual Office, Agents Registry modal with live gateway health test, and Security Audit Log modal).
+- **Next Phase**: Phase 7 (Notifications, Settings & Final Polish).
 
 ---
 
-## 2. What Is Done (Phases 0, 1, 2, 3, 4 & 5)
+## 2. What Is Done (Phases 0, 1, 2, 3, 4, 5 & 6)
 
 ### Phase 0: Recon & Ledger
 1. Initialized Git repository for the project.
@@ -84,18 +84,29 @@
 5. Added unit tests for Phase 5 in `apps/server/src/server.test.ts` (32 total tests passing across monorepo).
 6. Validated live report generation and modal in mobile viewport via browser subagent, capturing artifact `phase5_anti_hallucination_report_success.png`.
 
+### Phase 6: Recruitment Room & Agent Registration
+1. Implemented 4-Step Recruitment Wizard (`apps/web/src/components/recruitment/`):
+   - **Step 1**: Predefined role templates for all 8 departments (with 4 default responsibilities each) plus a full Custom Agent option.
+   - **Step 2**: Comprehensive specification form with name, role, department, mission, tone, dynamic responsibilities, allowed tools, boundaries, and approval-required actions.
+   - **Step 3**: Deterministic `SOUL.md` generator and preview (`packages/shared/src/soul.ts`) containing all 9 standard sections with instant clipboard copy.
+   - **Step 4**: Hiring Package with VPS checklist, verified Phase 0 CLI instructions (`hermes profile create`, `SOUL.md` placement, port configuration, and gateway startup), registration form, draft persistence, and "Daftarkan & Rekrut Agen" action.
+2. Built Screen 6 More (`apps/web/src/screens/More.tsx`):
+   - Recruitment Room shortcut with violet neon glow.
+   - Agents Registry modal (`AgentsRegistryModal.tsx`) showing registered agent counts and live gateway health testing.
+   - Security Audit Log modal (`AuditLogModal.tsx`) displaying mutating system actions from `/api/audit`.
+   - Settings (Language ID/EN, Low-power mode toggle, Fullscreen, Haptic test).
+3. Connected 2D floor plan '+' HR door in `OfficeScreen` directly to the Recruitment Wizard.
+4. Created unit test suite `packages/shared/src/soul.test.ts` verifying all 9 sections, boundary/approval embeddings, 8 templates, and verified Phase 0 CLI commands (36 total tests passing).
+5. Validated complete recruitment and registration flow in mobile viewport (390x844) via browser subagent, recruiting agent Aura into the virtual office.
+
 ---
 
-## 3. Next Steps (Phase 6: Recruitment Room & Agent Registration)
+## 3. Next Steps (Phase 7: Notifications, Settings, & Polish)
 
-1. Implement Screen 6 More (`apps/web/src/screens/More.tsx`) with Recruitment Room entrance, Agents Registry, and Audit Logs.
-2. Build 4-Step Recruitment Wizard:
-   - Step 1: Predefined role template selector (8 departments).
-   - Step 2: Comprehensive character & capability spec form.
-   - Step 3: Deterministic SOUL.md generator with 9 standard sections (`packages/shared/src/soul.ts`).
-   - Step 4: Hiring package with verified VPS CLI instructions (`hermes profile create`, systemd setup) and register form (`/api/hiring/draft` & `/api/agents`).
-3. Add tests for SOUL.md generator and recruitment wizard.
-4. Run full regression gate (`npm run typecheck && npm test && npm run gap-check`).
+1. Server-side Telegram notifications via `sendMessage` for approvals, run failures, and report generation (`apps/server/src/services/notifications.ts`).
+2. Comprehensive settings screen and accessibility pass (contrast, touch targets >= 44px, screen readers).
+3. Complete State Matrix audit across all screens (loading, empty, error with retry, offline with auto-reconnect, success, low-power mode).
+4. Run regression gate (`npm run typecheck && npm test && npm run gap-check`).
 
 ---
 

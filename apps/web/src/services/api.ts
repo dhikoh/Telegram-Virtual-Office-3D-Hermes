@@ -4,7 +4,7 @@
  */
 
 import { tma } from './tma';
-import type { Agent, Task, Approval, Kpi, Report } from '@hermes-office/shared';
+import type { Agent, Task, Approval, Kpi, Report, HiringDraft, AuditLog } from '@hermes-office/shared';
 
 const API_BASE = '/api';
 
@@ -133,5 +133,12 @@ export const api = {
     request<Report[]>(department ? `/reports?department=${department}` : '/reports'),
   generateReport: (body: { agent_id: string; template: string; period: string }) =>
     request<Report>('/reports/generate', { method: 'POST', body: JSON.stringify(body) }),
-  getAudit: () => request<unknown[]>('/audit'),
+  createHiringDraft: (body: unknown) =>
+    request<HiringDraft>('/hiring/draft', { method: 'POST', body: JSON.stringify(body) }),
+  markHired: (id: string, agent?: unknown) =>
+    request<{ success: boolean; agent?: Agent }>(`/hiring/${id}/mark-hired`, {
+      method: 'POST',
+      body: JSON.stringify({ agent }),
+    }),
+  getAudit: () => request<AuditLog[]>('/audit'),
 };

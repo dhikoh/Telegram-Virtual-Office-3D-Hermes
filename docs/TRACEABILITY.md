@@ -88,11 +88,11 @@
 | **REQ-077** | Screen 4 (Inbox): Pending approvals first (full action text, haptics), errors, reports | 4 | apps/web/src/screens/Inbox.tsx | VERIFIED | Pending approvals first with full action payload, errors section, and completed tasks list verified |
 | **REQ-078** | Screen 5 (Reports): Department tabs, KPI sparklines (recharts), source badges, manual entry form | 5 | apps/web/src/screens/Reports.tsx | VERIFIED | Tested in browser subagent in 390x844 mobile viewport; 8 department tabs, Recharts AreaChart sparklines, source badges (manual, import, agent: unverified), manual KPI creation modal functional |
 | **REQ-079** | Screen 5 (Reports): Anti-hallucination agent prompt, strict zod JSON validation, retry, unverified badge | 5 | apps/server/src/routes/reports.ts | VERIFIED | Tested in server.test.ts (anti-hallucination prompt, rejection & retry, 422 on unvalidated schema, unverified source label) & browser verification in Reports.tsx |
-| **REQ-080** | Screen 6 (More): Agents registry, Recruitment room, Audit log, Settings | 6 | apps/web/src/screens/More.tsx | TODO | Planned Phases 6-7 |
-| **REQ-081** | Recruitment Wizard: Step 1 Template choice (8 predefined roles or custom) | 6 | apps/web/src/components/recruitment | TODO | Planned Phase 6 |
-| **REQ-082** | Recruitment Wizard: Step 2 Comprehensive specification form | 6 | apps/web/src/components/recruitment | TODO | Planned Phase 6 |
-| **REQ-083** | Recruitment Wizard: Step 3 Deterministic SOUL.md generation (9 standard sections) | 6 | packages/shared/src/soul.ts | TODO | Planned Phase 6 |
-| **REQ-084** | Recruitment Wizard: Step 4 Hiring Package (verified VPS commands, checklist, register form) | 6 | apps/web/src/components/recruitment | TODO | Planned Phase 6 |
+| **REQ-080** | Screen 6 (More): Agents registry, Recruitment room, Audit log, Settings | 6 | apps/web/src/screens/More.tsx | VERIFIED | MoreScreen rendered with Recruitment Room shortcut, Agents Registry modal, Audit Log modal, and Settings; verified in mobile viewport |
+| **REQ-081** | Recruitment Wizard: Step 1 Template choice (8 predefined roles or custom) | 6 | apps/web/src/components/recruitment/Step1Template.tsx | VERIFIED | 8 predefined templates + custom option verified in Step1Template.tsx and tested in soul.test.ts |
+| **REQ-082** | Recruitment Wizard: Step 2 Comprehensive specification form | 6 | apps/web/src/components/recruitment/Step2SpecForm.tsx | VERIFIED | Form with name, role, department, mission, tone, dynamic responsibilities, tools, boundaries, and approval policies in Step2SpecForm.tsx |
+| **REQ-083** | Recruitment Wizard: Step 3 Deterministic SOUL.md generation (9 standard sections) | 6 | packages/shared/src/soul.ts | VERIFIED | generateSoulMarkdown unit tested in soul.test.ts; preview rendered with copy action in Step3SoulPreview.tsx |
+| **REQ-084** | Recruitment Wizard: Step 4 Hiring Package (verified VPS commands, checklist, register form) | 6 | apps/web/src/components/recruitment/Step4HiringPackage.tsx | VERIFIED | generateHiringPackage unit tested in soul.test.ts; VPS checklist, verified Phase 0 commands, draft saving, and mark-hired registration verified in browser |
 | **REQ-085** | Server-side Telegram notifications via sendMessage for approvals, errors, reports | 7 | apps/server/src/services/notifications.ts | TODO | Planned Phase 7 |
 | **REQ-086** | Phase 0 Acceptance: Recon docs, VPS checks, Traceability ledger, Progress, Decisions, Stubs, Backlog | 0 | docs/ | VERIFIED | All 7 required docs created and verified in Phase 0 |
 | **REQ-087** | Phase 1 Acceptance: Monorepo scaffold, gap-check script, mock Hermes on :8642 | 1 | scripts/gap-check.ts, tools/mock-hermes | VERIFIED | Monorepo scaffolded, mock Hermes passing on :8642, gap-check active |
@@ -100,7 +100,7 @@
 | **REQ-089** | Phase 3 Acceptance: Web shell, Telegram integration, Office map SVG, avatar movements | 3 | apps/web | VERIFIED | Production build passes (15s); 360x740 browser verification passed with demo loading and avatar status movements |
 | **REQ-090** | Phase 4 Acceptance: Agent sheet, chat, Tasks Kanban, Inbox approvals | 4 | apps/web | VERIFIED | Agent sheet drawer, chat streaming, Tasks Kanban swipe, and Inbox approval flows fully verified |
 | **REQ-091** | Phase 5 Acceptance: Reports & KPIs, sparklines, anti-hallucination test | 5 | apps/web, apps/server | VERIFIED | Unit tests in server.test.ts, mock-hermes background run completion, and browser artifact phase5_anti_hallucination_report_success.png |
-| **REQ-092** | Phase 6 Acceptance: Recruitment wizard, SOUL.md generator tests, Hiring package | 6 | apps/web, apps/server | TODO | Planned Phase 6 |
+| **REQ-092** | Phase 6 Acceptance: Recruitment wizard, SOUL.md generator tests, Hiring package | 6 | apps/web, apps/server, packages/shared | VERIFIED | 4 unit tests in soul.test.ts passed; browser test verified complete 4-step wizard and registered agent Aura into virtual office |
 | **REQ-093** | Phase 7 Acceptance: Push notifications, settings, accessibility pass, states matrix | 7 | apps/web, apps/server | TODO | Planned Phase 7 |
 | **REQ-094** | Phase 8 Acceptance: Multi-stage Dockerfile, Coolify deploy guide, final audit, manual test script | 8 | Dockerfile, docs/DEPLOY_COOLIFY.md | TODO | Planned Phase 8 |
 | **REQ-095** | Rule R1: Work on ONE phase at a time; commit "phase-N: <summary>"; stop until owner replies "lanjut" | 0 | Process | VERIFIED | Enforced strictly across all phases |
@@ -116,11 +116,11 @@
 
 ---
 
-### Ledger Summary Counts (Phase 5)
+### Ledger Summary Counts (Phase 6)
 - **Total Requirements**: 104
-- **VERIFIED**: 89
+- **VERIFIED**: 95
 - **IMPLEMENTED-UNTESTED**: 0
-- **TODO**: 15
+- **TODO**: 9
 - **ASSUMED**: 0
 - **BLOCKED**: 0
 - **DEFERRED-BY-OWNER**: 0

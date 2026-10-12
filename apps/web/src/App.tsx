@@ -10,12 +10,14 @@ import { TasksScreen } from './screens/Tasks';
 import { InboxScreen } from './screens/Inbox';
 import { ReportsScreen } from './screens/Reports';
 import { MoreScreen } from './screens/More';
+import { RecruitmentWizard } from './components/recruitment/RecruitmentWizard';
 import { useOfficeStore } from './stores/office';
 import { tma } from './services/tma';
 import { initThemeListener } from './theme';
 
 export const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<NavTab>('office');
+  const [isRecruitmentOpen, setIsRecruitmentOpen] = useState(false);
   const { fetchInitialData, initStream } = useOfficeStore();
 
   useEffect(() => {
@@ -69,18 +71,26 @@ export const App: React.FC = () => {
       <div className="flex-1 w-full">
         {currentTab === 'office' && (
           <OfficeScreen
-            onOpenRecruitment={() => handleTabChange('more')}
+            onOpenRecruitment={() => setIsRecruitmentOpen(true)}
             onOpenInbox={() => handleTabChange('inbox')}
           />
         )}
         {currentTab === 'tasks' && <TasksScreen />}
         {currentTab === 'inbox' && <InboxScreen />}
         {currentTab === 'reports' && <ReportsScreen />}
-        {currentTab === 'more' && <MoreScreen onOpenRecruitment={() => handleTabChange('more')} />}
+        {currentTab === 'more' && (
+          <MoreScreen onOpenRecruitment={() => setIsRecruitmentOpen(true)} />
+        )}
       </div>
 
       {/* Persistent Bottom Nav */}
       <BottomNav currentTab={currentTab} onTabChange={handleTabChange} />
+
+      {/* Recruitment Room Modal */}
+      <RecruitmentWizard
+        isOpen={isRecruitmentOpen}
+        onClose={() => setIsRecruitmentOpen(false)}
+      />
     </div>
   );
 };
