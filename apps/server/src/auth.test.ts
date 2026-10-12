@@ -120,8 +120,11 @@ describe('Security & Telegram Auth (Section 5, Rules S1-S3)', () => {
         NODE_ENV: 'production',
         DEV_AUTH_BYPASS: '1',
         HERMES_MODE: 'real',
+        TELEGRAM_BOT_TOKEN: 'real-token-here',
+        OWNER_TELEGRAM_IDS: '111222333',
+        HERMES_KEY_DEFAULT: 'real-key-here',
       });
-    }).toThrow(/SECURITY VIOLATION \(Rule S3\)/);
+    }).toThrow(/SECURITY VIOLATION.*S3/);
   });
 
   it('Rule C3f: Config refuses to start in production if HERMES_MODE=mock', () => {
@@ -130,7 +133,10 @@ describe('Security & Telegram Auth (Section 5, Rules S1-S3)', () => {
         NODE_ENV: 'production',
         DEV_AUTH_BYPASS: '0',
         HERMES_MODE: 'mock',
+        TELEGRAM_BOT_TOKEN: 'real-token-here',
+        OWNER_TELEGRAM_IDS: '111222333',
+        HERMES_KEY_DEFAULT: 'real-key-here',
       });
-    }).toThrow(/SECURITY VIOLATION \(Rule C3f\)/);
+    }).toThrow(/SECURITY VIOLATION.*C3f/);
   });
 });
