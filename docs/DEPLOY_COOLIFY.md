@@ -95,6 +95,7 @@ Buka tab **Environment Variables** di Coolify dan masukkan variabel berikut:
 | `HERMES_MODE` | `real` | Mode produksi riil terhubung ke Hermes |
 | `HERMES_BASE_URL` | `http://host.docker.internal:8642` | URL gateway Hermes di VPS host |
 | `HERMES_KEY_DEFAULT` | `hermes_secret_token` | Token otentikasi Bearer Hermes API |
+| `HERMES_TIMEOUT_MS` | `30000` | Batas waktu timeout permintaan Hermes dalam milidetik (default 30000) |
 | `DEV_AUTH_BYPASS` | `0` | **Wajib 0** di produksi (Rule S3) |
 
 Klik **Save**.

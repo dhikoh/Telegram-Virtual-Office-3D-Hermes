@@ -4,15 +4,19 @@ import type {
   StartRunResponse,
   HermesRunStatus,
 } from './client.interface.js';
+import { HermesTimeoutError } from './client.interface.js';
 import type { HermesCapabilities } from '@hermes-office/shared';
+import { config } from '../../config.js';
 
 export class RealHermesClient implements HermesClient {
   private baseUrl: string;
   private apiKey: string;
+  private timeoutMs: number;
 
-  constructor(baseUrl: string, apiKey: string) {
+  constructor(baseUrl: string, apiKey: string, timeoutMs: number = config.HERMES_TIMEOUT_MS) {
     this.baseUrl = baseUrl.replace(/\/+$/, '');
     this.apiKey = apiKey;
+    this.timeoutMs = timeoutMs;
   }
 
   private headers(extra: Record<string, string> = {}): Record<string, string> {
@@ -23,8 +27,21 @@ export class RealHermesClient implements HermesClient {
     };
   }
 
+  private async fetchWithTimeout(url: string, init?: RequestInit): Promise<Response> {
+    const signal = init?.signal ?? AbortSignal.timeout(this.timeoutMs);
+    try {
+      return await fetch(url, { ...init, signal });
+    } catch (err: unknown) {
+      const error = err as { name?: string; message?: string };
+      if (error?.name === 'TimeoutError' || (error?.name === 'AbortError' && signal.aborted)) {
+        throw new HermesTimeoutError(`Hermes request timed out after ${this.timeoutMs}ms`);
+      }
+      throw err;
+    }
+  }
+
   public async capabilities(): Promise<HermesCapabilities> {
-    const res = await fetch(`${this.baseUrl}/v1/capabilities`, {
+    const res = await this.fetchWithTimeout(`${this.baseUrl}/v1/capabilities`, {
       headers: this.headers(),
     });
     if (!res.ok) throw new Error(`Hermes capabilities error: ${res.status} ${res.statusText}`);
@@ -32,7 +49,7 @@ export class RealHermesClient implements HermesClient {
   }
 
   public async startRun(params: StartRunParams): Promise<StartRunResponse> {
-    const res = await fetch(`${this.baseUrl}/v1/runs`, {
+    const res = await this.fetchWithTimeout(`${this.baseUrl}/v1/runs`, {
       method: 'POST',
       headers: this.headers(),
       body: JSON.stringify(params),
@@ -42,7 +59,7 @@ export class RealHermesClient implements HermesClient {
   }
 
   public async getRunStatus(runId: string): Promise<HermesRunStatus> {
-    const res = await fetch(`${this.baseUrl}/v1/runs/${runId}`, {
+    const res = await this.fetchWithTimeout(`${this.baseUrl}/v1/runs/${runId}`, {
       headers: this.headers(),
     });
     if (!res.ok) throw new Error(`Hermes getRunStatus error: ${res.status} ${res.statusText}`);
@@ -53,7 +70,7 @@ export class RealHermesClient implements HermesClient {
     runId: string,
     decision: 'once' | 'deny'
   ): Promise<{ status: string; decision: string }> {
-    const res = await fetch(`${this.baseUrl}/v1/runs/${runId}/approval`, {
+    const res = await this.fetchWithTimeout(`${this.baseUrl}/v1/runs/${runId}/approval`, {
       method: 'POST',
       headers: this.headers(),
       body: JSON.stringify({ decision }),
@@ -63,7 +80,7 @@ export class RealHermesClient implements HermesClient {
   }
 
   public async stopRun(runId: string): Promise<{ status: string }> {
-    const res = await fetch(`${this.baseUrl}/v1/runs/${runId}/stop`, {
+    const res = await this.fetchWithTimeout(`${this.baseUrl}/v1/runs/${runId}/stop`, {
       method: 'POST',
       headers: this.headers(),
     });
@@ -81,14 +98,24 @@ export class RealHermesClient implements HermesClient {
       signal: controller.signal,
     })
       .then(async (res) => {
-        if (!res.body) return;
+        if (!res.body) {
+          if (!controller.signal.aborted) {
+            onEvent('stream.dropped', { reason: 'No response body' });
+          }
+          return;
+        }
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
 
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            if (!controller.signal.aborted) {
+              onEvent('stream.dropped', { reason: 'Unexpected EOF mid-stream' });
+            }
+            break;
+          }
           buffer += decoder.decode(value, { stream: true });
           const parts = buffer.split('\n\n');
           buffer = parts.pop() || '';
@@ -106,8 +133,10 @@ export class RealHermesClient implements HermesClient {
           }
         }
       })
-      .catch(() => {
-        // stream closed
+      .catch((err) => {
+        if (!controller.signal.aborted) {
+          onEvent('stream.dropped', { error: String(err) });
+        }
       });
 
     return () => controller.abort();

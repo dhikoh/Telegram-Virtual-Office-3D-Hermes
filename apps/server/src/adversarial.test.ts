@@ -1,3 +1,4 @@
+import http from 'node:http';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import BetterSqlite3 from 'better-sqlite3';
@@ -6,6 +7,8 @@ import { runMigrations } from './db/migrator.js';
 import { createTelegramInitData } from './auth.test.js';
 import { AgentRepository } from './db/repositories/agents.js';
 import { ApprovalRepository } from './db/repositories/approvals.js';
+import { TaskRepository } from './db/repositories/tasks.js';
+import { AuditRepository } from './db/repositories/audit.js';
 import { MockHermesServer } from '@hermes-office/mock-hermes';
 
 describe('Adversarial & State Matrix Tests (Rule C5 & C9)', () => {
@@ -189,5 +192,264 @@ describe('Adversarial & State Matrix Tests (Rule C5 & C9)', () => {
 
     const allAgents = agentRepo.getAll();
     expect(allAgents.filter((a) => a.id.startsWith('swarm-agent-')).length).toBe(20);
+  });
+
+  it('Case 7: Hermes down (connection refused) returns 502, sets agent offline, task failed, logs audit, and server stays up', async () => {
+    const agentRepo = new AgentRepository(db);
+    const taskRepo = new TaskRepository(db);
+    const auditRepo = new AuditRepository(db);
+
+    const downAgentId = 'adv-agent-down';
+    agentRepo.create({
+      id: downAgentId,
+      name: 'Down Agent',
+      role: 'Worker',
+      department: 'support',
+      avatar: '🔌',
+      soul_summary: 'Down soul',
+      hermes_base_url: 'http://127.0.0.1:59999', // closed port
+      api_key_env: 'KEY',
+      hermes_profile: 'down-profile',
+      active: 1,
+      hired_at: Date.now(),
+      created_at: Date.now(),
+    });
+
+    const taskId = 'task-hermes-down';
+    taskRepo.create({
+      id: taskId,
+      title: 'Task for down hermes',
+      description: 'Will fail connection',
+      agent_id: downAgentId,
+      priority: 'high',
+      status: 'backlog',
+      run_id: null,
+      result_md: null,
+      due_at: null,
+      created_by: ownerUser.id,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+    });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/tasks/${taskId}/run`,
+      headers: { authorization: ownerAuth },
+    });
+
+    expect(res.statusCode).toBe(502);
+    const body = JSON.parse(res.body);
+    expect(body.error).toBe('run_failed');
+    expect(body.message).toContain('Execution failed');
+
+    // Agent status becomes offline
+    const dispatcher = (app as any).dispatcher;
+    expect(dispatcher.getAgentStatus(downAgentId).status).toBe('offline');
+
+    // Task becomes failed with reason
+    const updatedTask = taskRepo.getById(taskId);
+    expect(updatedTask?.status).toBe('failed');
+    expect(updatedTask?.result_md).toContain('Hermes connection error');
+
+    // Action is audit-logged
+    const logs = auditRepo.getAll(10);
+    const failedLog = logs.find((l) => l.action === 'task.run_failed' && l.target === taskId);
+    expect(failedLog).toBeDefined();
+
+    // Server stays up and responds normally
+    const health = await app.inject({ method: 'GET', url: '/api/health' });
+    expect(health.statusCode).toBe(200);
+  });
+
+  it('Case 8: Hermes slow (timeout) returns 504, sets task failed, no hanging requests or leaked timers', async () => {
+    // Start a slow mock server that delays response by 250ms
+    const slowServer = http.createServer((_req, res) => {
+      setTimeout(() => {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ run_id: 'run-slow-delayed', status: 'started' }));
+      }, 250);
+    });
+
+    await new Promise<void>((resolve) => slowServer.listen(0, '127.0.0.1', () => resolve()));
+    const port = (slowServer.address() as any).port;
+
+    const agentRepo = new AgentRepository(db);
+    const taskRepo = new TaskRepository(db);
+
+    const slowAgentId = 'adv-agent-slow';
+    agentRepo.create({
+      id: slowAgentId,
+      name: 'Slow Agent',
+      role: 'Worker',
+      department: 'support',
+      avatar: '🐢',
+      soul_summary: 'Slow soul',
+      hermes_base_url: `http://127.0.0.1:${port}`,
+      api_key_env: 'KEY',
+      hermes_profile: 'slow-profile',
+      active: 1,
+      hired_at: Date.now(),
+      created_at: Date.now(),
+    });
+
+    const taskId = 'task-hermes-slow';
+    taskRepo.create({
+      id: taskId,
+      title: 'Task for slow hermes',
+      description: 'Will timeout',
+      agent_id: slowAgentId,
+      priority: 'high',
+      status: 'backlog',
+      run_id: null,
+      result_md: null,
+      due_at: null,
+      created_by: ownerUser.id,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+    });
+
+    // Temporarily set HERMES_TIMEOUT_MS small (50ms)
+    const originalTimeout = (process.env as any).HERMES_TIMEOUT_MS;
+    process.env.HERMES_TIMEOUT_MS = '50';
+
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/tasks/${taskId}/run`,
+        headers: { authorization: ownerAuth },
+      });
+
+      expect(res.statusCode).toBe(504);
+      const body = JSON.parse(res.body);
+      expect(body.error).toBe('gateway_timeout');
+      expect(body.message).toContain('timed out');
+
+      // Task becomes failed
+      const updatedTask = taskRepo.getById(taskId);
+      expect(updatedTask?.status).toBe('failed');
+      expect(updatedTask?.result_md).toContain('timed out');
+    } finally {
+      if (originalTimeout !== undefined) {
+        process.env.HERMES_TIMEOUT_MS = originalTimeout;
+      } else {
+        delete (process.env as any).HERMES_TIMEOUT_MS;
+      }
+      slowServer.close();
+    }
+
+    // Server stays up
+    const health = await app.inject({ method: 'GET', url: '/api/health' });
+    expect(health.statusCode).toBe(200);
+  });
+
+  it('Case 9: SSE dropped mid-run retries with backoff and recovers cleanly without agent stuck in working', async () => {
+    // Start an SSE server that sends tool.started then abruptly closes connection without run.completed
+    const dropServer = http.createServer((req, res) => {
+      if (req.url === '/v1/runs' && req.method === 'POST') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ run_id: 'run-drop-test', status: 'started' }));
+        return;
+      }
+
+      if (req.url?.startsWith('/v1/runs/run-drop-test/events')) {
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        });
+        // Send tool.started
+        res.write('data: {"event":"tool.started","data":{"tool":"fetch_tool"}}\n\n');
+
+        // Drop the connection abruptly after 30ms
+        setTimeout(() => {
+          res.destroy(); // abrupt drop mid-run
+        }, 30);
+        return;
+      }
+
+      if (req.url?.startsWith('/v1/runs/run-drop-test')) {
+        // Recovery status endpoint
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(
+          JSON.stringify({
+            object: 'run',
+            run_id: 'run-drop-test',
+            status: 'completed',
+            output: 'Recovered run result successfully',
+          })
+        );
+        return;
+      }
+
+      res.writeHead(404);
+      res.end();
+    });
+
+    await new Promise<void>((resolve) => dropServer.listen(0, '127.0.0.1', () => resolve()));
+    const port = (dropServer.address() as any).port;
+
+    const agentRepo = new AgentRepository(db);
+    const taskRepo = new TaskRepository(db);
+    const dropAgentId = 'adv-agent-drop';
+
+    agentRepo.create({
+      id: dropAgentId,
+      name: 'Drop Agent',
+      role: 'Worker',
+      department: 'social',
+      avatar: '📡',
+      soul_summary: 'Drop soul',
+      hermes_base_url: `http://127.0.0.1:${port}`,
+      api_key_env: 'KEY',
+      hermes_profile: 'drop-profile',
+      active: 1,
+      hired_at: Date.now(),
+      created_at: Date.now(),
+    });
+
+    const taskId = 'task-drop-sse';
+    taskRepo.create({
+      id: taskId,
+      title: 'Task with dropping stream',
+      description: 'Will drop mid-run',
+      agent_id: dropAgentId,
+      priority: 'high',
+      status: 'backlog',
+      run_id: null,
+      result_md: null,
+      due_at: null,
+      created_by: ownerUser.id,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+    });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/tasks/${taskId}/run`,
+      headers: { authorization: ownerAuth },
+    });
+
+    expect(res.statusCode).toBe(200);
+
+    const dispatcher = (app as any).dispatcher;
+
+    // Agent entered working/thinking
+    expect(['thinking', 'working']).toContain(dispatcher.getAgentStatus(dropAgentId).status);
+
+    // Wait for stream to drop, retry, and status recovery to execute
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+
+    // Agent must NOT stay stuck in 'working' or 'thinking'
+    const finalStatus = dispatcher.getAgentStatus(dropAgentId).status;
+    expect(finalStatus).not.toBe('working');
+    expect(finalStatus).not.toBe('thinking');
+    expect(['idle', 'error', 'offline']).toContain(finalStatus);
+
+    // Task must not stay stuck in 'running'
+    const finalTask = taskRepo.getById(taskId);
+    expect(finalTask?.status).not.toBe('running');
+    expect(['done', 'failed']).toContain(finalTask?.status);
+
+    dropServer.close();
   });
 });

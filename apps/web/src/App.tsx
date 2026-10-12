@@ -11,6 +11,7 @@ import { InboxScreen } from './screens/Inbox';
 import { ReportsScreen } from './screens/Reports';
 import { MoreScreen } from './screens/More';
 import { RecruitmentWizard } from './components/recruitment/RecruitmentWizard';
+import { OfflineBanner } from './components/states/OfflineBanner';
 import { useOfficeStore } from './stores/office';
 import { tma } from './services/tma';
 import { initThemeListener } from './theme';
@@ -18,7 +19,7 @@ import { initThemeListener } from './theme';
 export const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<NavTab>('office');
   const [isRecruitmentOpen, setIsRecruitmentOpen] = useState(false);
-  const { fetchInitialData, initStream } = useOfficeStore();
+  const { fetchInitialData, initStream, streamStatus } = useOfficeStore();
 
   useEffect(() => {
     // 1. Initialize Telegram WebApp
@@ -67,6 +68,11 @@ export const App: React.FC = () => {
 
   return (
     <div className="w-full min-h-screen bg-office-bg text-office-text flex flex-col font-sans relative antialiased selection:bg-office-cyan selection:text-office-bg">
+      {/* Offline Banner when disconnected from live SSE */}
+      {(streamStatus === 'error' || streamStatus === 'disconnected') && (
+        <OfflineBanner onReconnect={() => initStream()} />
+      )}
+
       {/* Screen View */}
       <div className="flex-1 w-full">
         {currentTab === 'office' && (

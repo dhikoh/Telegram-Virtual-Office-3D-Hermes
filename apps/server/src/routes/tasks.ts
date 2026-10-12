@@ -69,8 +69,21 @@ export const taskRoutes: FastifyPluginAsync = async (fastify) => {
       const { run_id } = await dispatcher.runTask(id);
       auditRepo.logAction(request.user!.id, 'task.run', id, JSON.stringify({ run_id }));
       return { status: 'running', run_id };
-    } catch (err) {
-      return reply.code(502).send({ error: 'run_failed', message: `Execution failed: ${err}` });
+    } catch (err: unknown) {
+      const error = err as { name?: string; message?: string };
+      auditRepo.logAction(
+        request.user!.id,
+        'task.run_failed',
+        id,
+        JSON.stringify({ error: error?.message || String(err) })
+      );
+      if (error?.name === 'HermesTimeoutError') {
+        return reply.code(504).send({ error: 'gateway_timeout', message: error.message });
+      }
+      return reply.code(502).send({
+        error: 'run_failed',
+        message: `Execution failed: ${error?.message || err}`,
+      });
     }
   });
 

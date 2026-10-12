@@ -19,6 +19,7 @@ export const EnvSchema = z.object({
   HERMES_MODE: z.enum(['mock', 'real']).default('mock'),
   HERMES_BASE_URL: z.string().url().default('http://127.0.0.1:8642'),
   HERMES_KEY_DEFAULT: z.string().min(1),
+  HERMES_TIMEOUT_MS: z.coerce.number().default(30000),
   DEV_AUTH_BYPASS: booleanPreprocess.default(false),
   DB_PATH: z.string().default('./data/office.sqlite'),
 });

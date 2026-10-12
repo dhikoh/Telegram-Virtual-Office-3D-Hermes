@@ -45,9 +45,21 @@ export class OfficeDispatcher {
     if (!agent) throw new Error(`Agent ${task.agent_id} not found`);
 
     const client = getHermesClientForAgent(agent);
-    const { run_id } = await client.startRun({
-      input: task.description ? `${task.title}\n\n${task.description}` : task.title,
-    });
+    let run_id: string;
+
+    try {
+      const res = await client.startRun({
+        input: task.description ? `${task.title}\n\n${task.description}` : task.title,
+      });
+      run_id = res.run_id;
+    } catch (err: unknown) {
+      this.setAgentStatus(agent.id, 'offline');
+      this.taskRepo.update(taskId, {
+        status: 'failed',
+        result_md: `Hermes connection error: ${(err as Error)?.message || err}`,
+      });
+      throw err;
+    }
 
     this.taskRepo.update(taskId, {
       status: 'running',
@@ -56,13 +68,94 @@ export class OfficeDispatcher {
 
     this.setAgentStatus(agent.id, 'thinking');
 
-    // Subscribe to run events
-    const unsubscribe = await client.streamEvents(run_id, (event, rawData) => {
-      this.handleRunEvent(task.id, agent, run_id, event, rawData);
-    });
+    // Subscribe to run events with drop recovery
+    this.subscribeRunEvents(task.id, agent, run_id, client);
 
-    this.activeStreams.set(run_id, unsubscribe);
     return { run_id };
+  }
+
+  private subscribeRunEvents(
+    taskId: string,
+    agent: Agent,
+    runId: string,
+    client: ReturnType<typeof getHermesClientForAgent>
+  ): void {
+    let runFinished = false;
+    let retries = 0;
+    const maxRetries = 5;
+
+    const onEvent = (event: string, rawData: unknown) => {
+      if (event === 'stream.dropped') {
+        if (!runFinished) {
+          handleDrop();
+        }
+        return;
+      }
+      if (event === 'run.completed' || event === 'run.failed' || event === 'run.cancelled') {
+        runFinished = true;
+      }
+      this.handleRunEvent(taskId, agent, runId, event, rawData);
+    };
+
+    const attemptConnect = async () => {
+      try {
+        const unsubscribe = await client.streamEvents(runId, onEvent);
+        this.activeStreams.set(runId, () => {
+          runFinished = true;
+          unsubscribe();
+        });
+      } catch {
+        handleDrop();
+      }
+    };
+
+    const handleDrop = async () => {
+      if (runFinished) return;
+
+      if (retries < maxRetries) {
+        retries++;
+        const delay = Math.min(10 * Math.pow(2, retries - 1), 200);
+        setTimeout(async () => {
+          if (runFinished) return;
+          await attemptConnect();
+        }, delay);
+        return;
+      }
+
+      // Retries exhausted: recover final state via GET /v1/runs/{id}
+      try {
+        const statusObj = await client.getRunStatus(runId);
+        if (statusObj.status === 'completed') {
+          runFinished = true;
+          this.handleRunEvent(taskId, agent, runId, 'run.completed', {
+            output: statusObj.output || 'Tugas selesai.',
+          });
+          return;
+        }
+        if (statusObj.status === 'failed') {
+          runFinished = true;
+          this.handleRunEvent(taskId, agent, runId, 'run.failed', {
+            error: 'Hermes execution failed',
+          });
+          return;
+        }
+        if (statusObj.status === 'cancelled') {
+          runFinished = true;
+          this.handleRunEvent(taskId, agent, runId, 'run.cancelled', {});
+          return;
+        }
+      } catch {
+        // Status polling also failed
+      }
+
+      // If status could not be recovered, fail cleanly so agent never stays stuck
+      runFinished = true;
+      this.handleRunEvent(taskId, agent, runId, 'run.failed', {
+        error: 'SSE connection dropped mid-run and status could not be recovered',
+      });
+    };
+
+    attemptConnect();
   }
 
   public async stopTask(taskId: string): Promise<void> {

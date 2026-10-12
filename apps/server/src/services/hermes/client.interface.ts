@@ -7,6 +7,13 @@ export interface StartRunParams {
   conversationHistory?: unknown[];
 }
 
+export class HermesTimeoutError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'HermesTimeoutError';
+  }
+}
+
 export interface StartRunResponse {
   run_id: string;
   status: string;

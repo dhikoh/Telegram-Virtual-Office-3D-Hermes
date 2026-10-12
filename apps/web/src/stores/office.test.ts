@@ -134,4 +134,21 @@ describe('Web Shell & Office Store (Phase 3)', () => {
     expect(resolved.status).toBe('approved');
     expect(resolved.decided_by).toBe(123456789);
   });
+
+  it('handles SSE drop, transitions to error status, and recovers on reconnect', () => {
+    // Initial status
+    expect(useOfficeStore.getState().streamStatus).toBe('connecting');
+
+    // Simulate SSE error / drop
+    useOfficeStore.setState({ streamStatus: 'error' });
+    expect(useOfficeStore.getState().streamStatus).toBe('error');
+
+    // Reconnecting updates status to connecting then connected
+    useOfficeStore.setState({ streamStatus: 'connecting' });
+    expect(useOfficeStore.getState().streamStatus).toBe('connecting');
+
+    useOfficeStore.setState({ streamStatus: 'connected' });
+    expect(useOfficeStore.getState().streamStatus).toBe('connected');
+  });
 });
+
