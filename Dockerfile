@@ -1,10 +1,10 @@
 # ==============================================================================
 # Multi-Stage Dockerfile for Hermes Virtual Office
-# Stage 1: Build Web Frontend (Vite SPA)
+# Stage 1: Build Web Frontend & Server
 # Stage 2: Production Server Runner (Node 22 Slim, Non-root, SQLite on /data)
 # ==============================================================================
 
-FROM node:22-slim AS web-builder
+FROM node:22-slim AS builder
 WORKDIR /app
 ENV NODE_ENV=development
 
@@ -12,16 +12,19 @@ ENV NODE_ENV=development
 COPY package*.json ./
 COPY packages/shared/package*.json ./packages/shared/
 COPY apps/web/package*.json ./apps/web/
+COPY apps/server/package*.json ./apps/server/
 
 # Install dependencies including devDependencies (vite, typescript)
 RUN npm ci --include=dev
 
-# Copy shared package and web source code
+# Copy source code across all workspaces
 COPY packages/shared/ ./packages/shared/
 COPY apps/web/ ./apps/web/
+COPY apps/server/ ./apps/server/
 
-# Build shared types and frontend web bundle
+# Build shared types, frontend web bundle, and server
 RUN npm --workspace=packages/shared run build
+RUN npm --workspace=apps/server run build
 RUN npm --workspace=apps/web run build
 
 # ==============================================================================
@@ -40,6 +43,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     make \
     g++ \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy dependency manifests
@@ -50,13 +54,16 @@ COPY apps/server/package*.json ./apps/server/
 # Install production dependencies only
 RUN npm ci --omit=dev
 
-# Copy shared source and server source
-COPY packages/shared/ ./packages/shared/
-COPY apps/server/ ./apps/server/
+# Copy compiled artifacts from builder stage
+COPY packages/shared/package.json ./packages/shared/
+COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 
-# Copy compiled shared dist and built frontend from web-builder stage
-COPY --from=web-builder /app/packages/shared/dist ./packages/shared/dist
-COPY --from=web-builder /app/apps/web/dist ./apps/web/dist
+COPY apps/server/package.json ./apps/server/
+COPY --from=builder /app/apps/server/dist ./apps/server/dist
+COPY apps/server/src/db/migrations ./apps/server/dist/db/migrations
+COPY apps/server/src/db/migrations ./apps/server/src/db/migrations
+
+COPY --from=builder /app/apps/web/dist ./apps/web/dist
 
 # Create persistent data directory for SQLite
 RUN mkdir -p /data
@@ -70,7 +77,7 @@ USER appuser
 EXPOSE 3000
 
 # Health check verifying /api/health endpoint
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD node -e "fetch('http://localhost:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+HEALTHCHECK --interval=15s --timeout=5s --start-period=5s --retries=3 \
+  CMD curl -fsS http://localhost:3000/api/health || exit 1
 
-CMD ["node", "--experimental-strip-types", "apps/server/src/index.ts"]
+CMD ["node", "apps/server/dist/index.js"]
