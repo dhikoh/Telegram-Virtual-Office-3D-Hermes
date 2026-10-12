@@ -78,7 +78,13 @@ export async function authHook(request: FastifyRequest, reply: FastifyReply): Pr
     return;
   }
 
-  const authHeader = request.headers.authorization;
+  let authHeader = request.headers.authorization;
+  if (!authHeader && request.query && typeof (request.query as Record<string, unknown>).auth === 'string') {
+    const queryAuth = (request.query as Record<string, string>).auth.trim();
+    if (queryAuth) {
+      authHeader = queryAuth.startsWith('tma ') ? queryAuth : `tma ${queryAuth}`;
+    }
+  }
 
   // Rule S3: DEV_AUTH_BYPASS only in non-production
   if (config.DEV_AUTH_BYPASS && config.NODE_ENV !== 'production') {
