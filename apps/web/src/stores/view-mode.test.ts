@@ -60,4 +60,29 @@ describe('View Mode Store & 3D WebGL Fallback (Phase 9)', () => {
     // Selected agent must still be preserved
     expect(useOfficeStore.getState().selectedAgentId).toBe('agent-dev-1');
   });
+
+  it('retryWebGL clears the error and returns to 3D after a context loss (Rule REQ-117)', () => {
+    useViewModeStore.setState({ webGLSupported: true });
+    useViewModeStore.getState().setViewMode('3D');
+    useViewModeStore.getState().setWebGLError('Konteks WebGL terputus');
+
+    expect(useViewModeStore.getState().viewMode).toBe('2D');
+
+    useViewModeStore.getState().retryWebGL();
+
+    const state = useViewModeStore.getState();
+    expect(state.viewMode).toBe('3D');
+    expect(state.webGLError).toBeNull();
+  });
+
+  it('retryWebGL is a no-op when WebGL is genuinely unsupported (no dead loop)', () => {
+    useViewModeStore.setState({ webGLSupported: false });
+    useViewModeStore.getState().setWebGLError('Tidak didukung');
+
+    useViewModeStore.getState().retryWebGL();
+
+    const state = useViewModeStore.getState();
+    expect(state.viewMode).toBe('2D');
+    expect(state.webGLError).toBe('Tidak didukung');
+  });
 });

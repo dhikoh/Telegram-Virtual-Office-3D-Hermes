@@ -5,6 +5,7 @@
  */
 
 import { create } from 'zustand';
+import { useViewModeStore } from './view-mode';
 
 interface PowerState {
   isLowPower: boolean;
@@ -53,6 +54,21 @@ function updateDomClass(isLowPower: boolean): void {
 const initialLowPower = detectLowPower();
 updateDomClass(initialLowPower);
 
+/**
+ * ECO must actually disable 3D, not merely grey out the button (Rule 9.3).
+ * Turning ECO on while the 3D view is active forces the 2D fallback;
+ * turning ECO off leaves 2D alone so nothing flips under the user.
+ */
+function enforceViewModeForPower(isLowPower: boolean): void {
+  if (!isLowPower) return;
+  const view = useViewModeStore.getState();
+  if (view.viewMode === '3D') {
+    view.setViewMode('2D');
+  }
+}
+
+enforceViewModeForPower(initialLowPower);
+
 export const usePowerStore = create<PowerState>((set) => ({
   isLowPower: initialLowPower,
   autoDetected: typeof localStorage !== 'undefined' ? localStorage.getItem('hermes_low_power') === null : true,
@@ -63,14 +79,16 @@ export const usePowerStore = create<PowerState>((set) => ({
         localStorage.setItem('hermes_low_power', String(next));
       }
       updateDomClass(next);
+      enforceViewModeForPower(next);
       return { isLowPower: next, autoDetected: false };
     }),
-  setLowPower: (enabled: boolean) =>
+  setLowPower: (enabled) =>
     set(() => {
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem('hermes_low_power', String(enabled));
       }
       updateDomClass(enabled);
+      enforceViewModeForPower(enabled);
       return { isLowPower: enabled, autoDetected: false };
     }),
 }));

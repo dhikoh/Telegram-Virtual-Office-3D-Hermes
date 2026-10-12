@@ -1,6 +1,11 @@
 /**
  * Lazy-loaded 3D Office View Container (Rule 9.2, REQ-107, REQ-114 to REQ-117).
  * Capped DPR, frameloop="demand", quality tiers, pause when hidden, WebGL fallback.
+ *
+ * Recovery (Tahap 1.5): a lost WebGL context is not fatal. The first losses are
+ * healed by remounting <Canvas>, which allocates a fresh context. Only after
+ * MAX_RECOVERY_ATTEMPTS consecutive losses do we escalate to the 2D fallback,
+ * so a driver hiccup no longer locks the user out of 3D for the rest of the session.
  */
 
 import React, { useEffect, useRef, useState, useMemo } from 'react';
@@ -15,6 +20,9 @@ interface Office3DProps {
   isPaused?: boolean;
 }
 
+/** Context losses healed by remounting before we give up and fall back to 2D. */
+export const MAX_RECOVERY_ATTEMPTS = 2;
+
 export const Office3D: React.FC<Office3DProps> = ({
   onSelectAgent,
   onOpenRecruitment,
@@ -22,6 +30,10 @@ export const Office3D: React.FC<Office3DProps> = ({
 }) => {
   const { setWebGLError } = useViewModeStore();
   const [isTabHidden, setIsTabHidden] = useState(false);
+  // Bumping this key remounts <Canvas>, which tears down and rebuilds the GL context.
+  const [recoveryKey, setRecoveryKey] = useState(0);
+  const [recoveryNotice, setRecoveryNotice] = useState(false);
+  const lossCount = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Quality Tier detection (low vs medium) based on hardware capability (Rule REQ-114)
@@ -43,11 +55,32 @@ export const Office3D: React.FC<Office3DProps> = ({
     };
   }, []);
 
-  // WebGL context loss listener and error recovery (Rule REQ-117)
+  // WebGL context loss + recovery (Rule REQ-117)
   const handleCreated = ({ gl }: { gl: { domElement: HTMLCanvasElement } }) => {
-    gl.domElement.addEventListener('webglcontextlost', (e) => {
+    const dom = gl.domElement;
+
+    dom.addEventListener('webglcontextlost', (e) => {
+      // preventDefault keeps the context restorable instead of permanently dead.
       e.preventDefault();
-      setWebGLError('3D tidak tersedia di perangkat ini (Konteks WebGL terputus).');
+
+      lossCount.current += 1;
+
+      if (lossCount.current > MAX_RECOVERY_ATTEMPTS) {
+        setWebGLError('3D tidak tersedia di perangkat ini (Konteks WebGL terputus berulang).');
+        return;
+      }
+
+      // Give the driver a moment to restore on its own, then remount for a fresh context.
+      setRecoveryNotice(true);
+      window.setTimeout(() => {
+        setRecoveryNotice(false);
+        setRecoveryKey((k) => k + 1);
+      }, 400);
+    });
+
+    dom.addEventListener('webglcontextrestored', () => {
+      lossCount.current = 0;
+      setRecoveryNotice(false);
     });
   };
 
@@ -59,11 +92,13 @@ export const Office3D: React.FC<Office3DProps> = ({
       className="relative w-full max-w-[390px] mx-auto aspect-[380/420] rounded-xl overflow-hidden border border-office-border bg-office-bg shadow-2xl select-none"
     >
       <Canvas
+        key={recoveryKey}
         dpr={[1, 1.5]}
         frameloop={shouldPause ? 'never' : 'demand'}
         gl={{
           antialias: qualityTier !== 'low',
           powerPreference: 'low-power',
+          failIfMajorPerformanceCaveat: false,
         }}
         camera={{ position: [12, 16, 16], fov: 38 }}
         onCreated={handleCreated}
@@ -73,6 +108,16 @@ export const Office3D: React.FC<Office3DProps> = ({
           onOpenRecruitment={onOpenRecruitment}
         />
       </Canvas>
+
+      {/* Self-healing notice: shown only during the brief window of a remount */}
+      {recoveryNotice && (
+        <div className="absolute inset-0 flex items-center justify-center bg-office-bg/80 pointer-events-none">
+          <div className="flex items-center gap-2 text-[11px] text-office-warn font-mono">
+            <span className="w-4 h-4 rounded-full border-2 border-office-warn border-t-transparent animate-spin" />
+            Memulihkan tampilan 3D…
+          </div>
+        </div>
+      )}
 
       {/* Control overlay hint for touch gestures */}
       <div className="absolute bottom-2 left-2 pointer-events-none text-[10px] text-white/40 bg-black/40 px-2 py-0.5 rounded backdrop-blur-sm">

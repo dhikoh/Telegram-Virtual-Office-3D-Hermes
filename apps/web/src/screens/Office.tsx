@@ -35,7 +35,7 @@ export const OfficeScreen: React.FC<OfficeScreenProps> = ({ onOpenRecruitment, o
     setAgentStatus,
   } = useOfficeStore();
 
-  const { viewMode, webGLError, setWebGLError } = useViewModeStore();
+  const { viewMode, webGLError, setWebGLError, retryWebGL } = useViewModeStore();
 
   const [showSimPanel, setShowSimPanel] = useState(false);
 
@@ -75,15 +75,25 @@ export const OfficeScreen: React.FC<OfficeScreenProps> = ({ onOpenRecruitment, o
 
         {/* WebGL Context Loss / Incompatibility Fallback Banner (Rule 9.3 & REQ-117) */}
         {webGLError && (
-          <div className="w-full mb-3 p-3 rounded-xl bg-office-warn/15 border border-office-warn/40 flex items-center justify-between">
+          <div className="w-full mb-3 p-3 rounded-xl bg-office-warn/15 border border-office-warn/40 flex items-center justify-between gap-2">
             <span className="text-xs text-office-warn font-medium">{webGLError}</span>
-            <button
-              onClick={() => setWebGLError(null)}
-              type="button"
-              className="text-[11px] text-office-warn font-mono hover:underline px-2 py-0.5 rounded bg-office-warn/10"
-            >
-              Tutup
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {/* Rule REQ-117: recoverable failures must offer a manual retry */}
+              <button
+                onClick={() => retryWebGL()}
+                type="button"
+                className="text-[11px] text-office-bg font-semibold hover:underline px-2 py-1 rounded bg-office-warn min-h-[32px]"
+              >
+                Coba Lagi
+              </button>
+              <button
+                onClick={() => setWebGLError(null)}
+                type="button"
+                className="text-[11px] text-office-warn font-mono hover:underline px-2 py-0.5 rounded bg-office-warn/10"
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         )}
 

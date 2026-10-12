@@ -14,6 +14,7 @@ interface ViewModeState {
   webGLError: string | null;
   setViewMode: (mode: ViewMode) => void;
   setWebGLError: (error: string | null) => void;
+  retryWebGL: () => void;
 }
 
 function detectWebGL(): boolean {
@@ -56,5 +57,18 @@ export const useViewModeStore = create<ViewModeState>((set) => ({
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('hermes_view_mode', '2D');
     }
+  },
+
+  // Rule REQ-117 recovery: after a WebGL failure the user must be able to try 3D
+  // again without reloading the whole mini app. No-op when WebGL is genuinely
+  // unsupported, so we never bounce back into a known-dead loop.
+  retryWebGL: () => {
+    set((state) => {
+      if (!state.webGLSupported) return state;
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('hermes_view_mode', '3D');
+      }
+      return { viewMode: '3D', webGLError: null };
+    });
   },
 }));
