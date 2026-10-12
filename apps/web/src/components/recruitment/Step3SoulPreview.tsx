@@ -44,14 +44,14 @@ export const Step3SoulPreview: React.FC<Step3SoulPreviewProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <FileCode className="w-4 h-4 text-office-violet" />
-          <span className="text-xs font-bold text-white">Preview Berkas SOUL.md</span>
+          <span className="text-xs font-bold text-office-text">Preview Berkas SOUL.md</span>
         </div>
         <button
           type="button"
           onClick={handleCopy}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-mono text-office-cyan min-h-[36px]"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-office-hover hover:bg-office-hover text-xs font-mono text-office-accent-ink min-h-[36px]"
         >
-          {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+          {copied ? <Check className="w-3.5 h-3.5 text-office-success" /> : <Copy className="w-3.5 h-3.5" />}
           <span>{copied ? 'Tersalin!' : 'Salin SOUL.md'}</span>
         </button>
       </div>
@@ -61,15 +61,15 @@ export const Step3SoulPreview: React.FC<Step3SoulPreviewProps> = ({
       </div>
 
       {/* Rendered Preview Box */}
-      <div className="p-3.5 rounded-xl bg-black/80 border border-white/15 max-h-[55vh] overflow-y-auto text-xs font-mono">
+      <div className="p-3.5 rounded-xl bg-office-inset border border-office-border max-h-[55vh] overflow-y-auto text-xs font-mono">
         <MarkdownView content={soulMd} />
       </div>
 
-      <div className="flex gap-2 pt-2 border-t border-white/10">
+      <div className="flex gap-2 pt-2 border-t border-office-border">
         <button
           type="button"
           onClick={onBack}
-          className="flex-1 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-xs font-bold text-office-muted hover:text-white min-h-[44px] flex items-center justify-center gap-1.5"
+          className="flex-1 py-2.5 rounded-xl bg-office-elevated border border-office-border text-xs font-bold text-office-muted hover:text-office-text min-h-[44px] flex items-center justify-center gap-1.5"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Kembali</span>
@@ -77,7 +77,7 @@ export const Step3SoulPreview: React.FC<Step3SoulPreviewProps> = ({
         <button
           type="button"
           onClick={handleNext}
-          className="flex-1 py-2.5 rounded-xl bg-office-violet text-white text-xs font-bold hover:bg-violet-600 min-h-[44px] shadow-glow-violet flex items-center justify-center gap-1.5"
+          className="flex-1 py-2.5 rounded-xl bg-office-violet text-office-text text-xs font-bold hover:bg-violet-600 min-h-[44px] shadow-nu-raised flex items-center justify-center gap-1.5"
         >
           <span>Paket Penerimaan</span>
           <ArrowRight className="w-3.5 h-3.5" />

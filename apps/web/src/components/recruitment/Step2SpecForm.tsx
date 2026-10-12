@@ -70,7 +70,7 @@ export const Step2SpecForm: React.FC<Step2SpecFormProps> = ({
             type="text"
             value={avatar}
             onChange={(e) => setAvatar(e.target.value)}
-            className="w-full text-center text-lg px-2 py-2 rounded-xl bg-black/60 border border-white/15 text-white focus:outline-none focus:border-office-cyan min-h-[44px]"
+            className="w-full text-center text-lg px-2 py-2 rounded-xl bg-office-inset border border-office-border text-office-text focus:outline-none focus:border-office-accent min-h-[44px]"
             maxLength={4}
           />
         </div>
@@ -82,7 +82,7 @@ export const Step2SpecForm: React.FC<Step2SpecFormProps> = ({
             onChange={(e) => setName(e.target.value)}
             placeholder="Aura"
             required
-            className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs text-white focus:outline-none focus:border-office-cyan min-h-[44px]"
+            className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text focus:outline-none focus:border-office-accent min-h-[44px]"
           />
         </div>
       </div>
@@ -96,7 +96,7 @@ export const Step2SpecForm: React.FC<Step2SpecFormProps> = ({
             onChange={(e) => setRole(e.target.value)}
             placeholder="Social Media Manager"
             required
-            className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs text-white focus:outline-none focus:border-office-cyan min-h-[44px]"
+            className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text focus:outline-none focus:border-office-accent min-h-[44px]"
           />
         </div>
         <div>
@@ -104,7 +104,7 @@ export const Step2SpecForm: React.FC<Step2SpecFormProps> = ({
           <select
             value={department}
             onChange={(e) => setDepartment(e.target.value as Department)}
-            className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs text-white focus:outline-none focus:border-office-cyan min-h-[44px]"
+            className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text focus:outline-none focus:border-office-accent min-h-[44px]"
           >
             {DEPARTMENTS.map((d) => (
               <option key={d} value={d}>
@@ -122,7 +122,7 @@ export const Step2SpecForm: React.FC<Step2SpecFormProps> = ({
           onChange={(e) => setMission(e.target.value)}
           rows={2}
           required
-          className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-office-cyan min-h-[56px]"
+          className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text placeholder-slate-600 focus:outline-none focus:border-office-accent min-h-[56px]"
         />
       </div>
 
@@ -133,7 +133,7 @@ export const Step2SpecForm: React.FC<Step2SpecFormProps> = ({
           value={tone}
           onChange={(e) => setTone(e.target.value)}
           placeholder="Antusias, kreatif, komunikatif"
-          className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs text-white focus:outline-none focus:border-office-cyan min-h-[44px]"
+          className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text focus:outline-none focus:border-office-accent min-h-[44px]"
         />
       </div>
 
@@ -183,15 +183,15 @@ export const Step2SpecForm: React.FC<Step2SpecFormProps> = ({
                 onClick={() => toggleApprovalAction(action)}
                 className={`p-2 rounded-lg border text-[11px] cursor-pointer flex items-center gap-2 transition-all min-h-[44px] ${
                   isChecked
-                    ? 'bg-office-warn/15 border-office-warn/40 text-white'
-                    : 'bg-black/30 border-white/5 text-office-muted hover:text-white'
+                    ? 'bg-office-warn/15 border-office-warn/40 text-office-text'
+                    : 'bg-office-inset border-office-border text-office-muted hover:text-office-text'
                 }`}
               >
                 <div
                   className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
                     isChecked
-                      ? 'bg-office-warn border-office-warn text-slate-950 font-bold'
-                      : 'border-white/20'
+                      ? 'bg-office-warn border-office-warn text-office-muted font-bold'
+                      : 'border-office-border'
                   }`}
                 >
                   {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
@@ -210,7 +210,7 @@ export const Step2SpecForm: React.FC<Step2SpecFormProps> = ({
           value={reportingCadence}
           onChange={(e) => setReportingCadence(e.target.value)}
           placeholder="Harian dan Mingguan"
-          className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs text-white focus:outline-none focus:border-office-cyan min-h-[44px]"
+          className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text focus:outline-none focus:border-office-accent min-h-[44px]"
         />
       </div>
 
@@ -219,14 +219,14 @@ export const Step2SpecForm: React.FC<Step2SpecFormProps> = ({
         <button
           type="button"
           onClick={onBack}
-          className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-office-muted hover:text-white flex items-center justify-center gap-1.5 min-h-[44px]"
+          className="flex-1 py-2.5 rounded-xl bg-office-hover hover:bg-office-hover text-xs font-semibold text-office-muted hover:text-office-text flex items-center justify-center gap-1.5 min-h-[44px]"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Kembali</span>
         </button>
         <button
           type="submit"
-          className="flex-1 py-2.5 rounded-xl bg-office-violet text-white text-xs font-bold hover:bg-violet-600 flex items-center justify-center gap-1.5 shadow-glow-violet min-h-[44px]"
+          className="flex-1 py-2.5 rounded-xl bg-office-violet text-office-text text-xs font-bold hover:bg-violet-600 flex items-center justify-center gap-1.5 shadow-nu-raised min-h-[44px]"
         >
           <span>Lanjut ke Preview SOUL</span>
           <ArrowRight className="w-3.5 h-3.5" />

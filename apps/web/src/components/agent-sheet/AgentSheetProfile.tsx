@@ -28,16 +28,16 @@ export const AgentSheetProfile: React.FC<AgentSheetProfileProps> = ({ agent }) =
 
   return (
     <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
-      <div className="glass-panel rounded-xl p-3.5 border border-white/10 flex flex-col gap-2">
-        <span className="text-xs font-semibold text-office-cyan">Ringkasan Karakter (SOUL)</span>
-        <p className="text-xs text-office-text/90 leading-relaxed bg-black/40 p-2.5 rounded-lg border border-white/5">
+      <div className="glass-panel rounded-xl p-3.5 border border-office-border flex flex-col gap-2">
+        <span className="text-xs font-semibold text-office-accent-ink">Ringkasan Karakter (SOUL)</span>
+        <p className="text-xs text-office-text/90 leading-relaxed bg-office-inset p-2.5 rounded-lg border border-office-border">
           {agent.soul_summary || 'Tidak ada deskripsi jiwa (SOUL) tersimpan.'}
         </p>
       </div>
 
-      <div className="glass-panel rounded-xl p-3.5 border border-white/10 flex flex-col gap-2 text-xs">
-        <span className="text-xs font-semibold text-white">Spesifikasi Profile</span>
-        <div className="flex justify-between py-1 border-b border-white/5">
+      <div className="glass-panel rounded-xl p-3.5 border border-office-border flex flex-col gap-2 text-xs">
+        <span className="text-xs font-semibold text-office-text">Spesifikasi Profile</span>
+        <div className="flex justify-between py-1 border-b border-office-border">
           <span className="text-office-muted">Hermes Profile:</span>
           <span className="font-mono text-office-text">{agent.hermes_profile}</span>
         </div>
@@ -49,17 +49,17 @@ export const AgentSheetProfile: React.FC<AgentSheetProfileProps> = ({ agent }) =
         </div>
       </div>
 
-      <div className="glass-panel rounded-xl p-3.5 border border-white/10 flex flex-col gap-2.5">
+      <div className="glass-panel rounded-xl p-3.5 border border-office-border flex flex-col gap-2.5">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs font-semibold text-white">
-            <HeartPulse className="w-4 h-4 text-office-cyan" />
+          <div className="flex items-center gap-2 text-xs font-semibold text-office-text">
+            <HeartPulse className="w-4 h-4 text-office-accent-ink" />
             <span>Kesehatan Gateway Agen</span>
           </div>
           <button
             onClick={handleCheckHealth}
             disabled={healthStatus === 'checking'}
             type="button"
-            className="px-3 py-1.5 rounded-lg bg-office-cyan/10 hover:bg-office-cyan/20 border border-office-cyan/30 text-xs font-semibold text-office-cyan transition-colors min-h-[44px] flex items-center justify-center"
+            className="px-3 py-1.5 rounded-lg bg-office-accent/10 hover:bg-office-accent/20 border border-office-accent/30 text-xs font-semibold text-office-accent-ink transition-colors min-h-[44px] flex items-center justify-center"
           >
             {healthStatus === 'checking' ? 'Memeriksa...' : 'Uji Koneksi'}
           </button>

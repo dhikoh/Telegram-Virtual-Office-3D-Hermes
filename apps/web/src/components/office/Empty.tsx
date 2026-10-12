@@ -21,9 +21,9 @@ export const EmptyOffice: React.FC = () => {
 
   return (
     <div className="w-full max-w-sm mx-auto my-6 px-4">
-      <div className="glass-panel-glow rounded-2xl p-6 flex flex-col items-center text-center border border-office-cyan/30 bg-slate-900/80 shadow-2xl">
-        <div className="w-14 h-14 rounded-2xl bg-office-cyan/10 border border-office-cyan/30 flex items-center justify-center text-2xl mb-4 shadow-glow-cyan">
-          <Building2 className="w-7 h-7 text-office-cyan" />
+      <div className="glass-panel-glow rounded-2xl p-6 flex flex-col items-center text-center border border-office-accent/30 bg-office-elevated shadow-2xl">
+        <div className="w-14 h-14 rounded-2xl bg-office-accent/10 border border-office-accent/30 flex items-center justify-center text-2xl mb-4 shadow-nu-raised">
+          <Building2 className="w-7 h-7 text-office-accent-ink" />
         </div>
 
         <h2 className="text-lg font-bold text-office-text mb-2">
@@ -36,13 +36,13 @@ export const EmptyOffice: React.FC = () => {
 
         {/* Feature Highlights */}
         <div className="w-full grid grid-cols-2 gap-2 mb-6 text-left">
-          <div className="glass-panel rounded-lg p-2.5 border border-white/5 flex items-start gap-2">
-            <Zap className="w-4 h-4 text-office-cyan shrink-0 mt-0.5" />
+          <div className="glass-panel rounded-lg p-2.5 border border-office-border flex items-start gap-2">
+            <Zap className="w-4 h-4 text-office-accent-ink shrink-0 mt-0.5" />
             <span className="text-[11px] text-office-text/80 leading-snug">
               8 Divisi Agen Otonom
             </span>
           </div>
-          <div className="glass-panel rounded-lg p-2.5 border border-white/5 flex items-start gap-2">
+          <div className="glass-panel rounded-lg p-2.5 border border-office-border flex items-start gap-2">
             <ShieldCheck className="w-4 h-4 text-office-warn shrink-0 mt-0.5" />
             <span className="text-[11px] text-office-text/80 leading-snug">
               Gerbang Persetujuan CEO
@@ -55,7 +55,7 @@ export const EmptyOffice: React.FC = () => {
           onClick={handleLoadDemo}
           disabled={isLoading}
           type="button"
-          className="w-full py-3 px-4 rounded-xl bg-office-cyan text-office-bg font-semibold text-sm flex items-center justify-center gap-2 hover:bg-cyan-300 active:scale-95 transition-all shadow-glow-cyan min-h-[46px] disabled:opacity-50"
+          className="w-full py-3 px-4 rounded-xl bg-office-accent text-office-on-accent font-semibold text-sm flex items-center justify-center gap-2 hover:bg-cyan-300 active:scale-95 transition-all shadow-nu-raised min-h-[46px] disabled:opacity-50"
         >
           <Sparkles className="w-4 h-4" />
           <span>{isLoading ? t('office.loadingDemo') : t('office.loadDemo')}</span>

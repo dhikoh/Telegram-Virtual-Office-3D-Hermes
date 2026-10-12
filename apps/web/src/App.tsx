@@ -67,7 +67,7 @@ export const App: React.FC = () => {
   }, [currentTab]);
 
   return (
-    <div className="w-full min-h-screen bg-office-bg text-office-text flex flex-col font-sans relative antialiased selection:bg-office-cyan selection:text-office-bg">
+    <div className="w-full min-h-screen bg-office-surface text-office-text flex flex-col font-sans relative antialiased selection:bg-office-accent selection:text-office-on-accent">
       {/* Offline Banner when disconnected from live SSE */}
       {(streamStatus === 'error' || streamStatus === 'disconnected') && (
         <OfflineBanner onReconnect={() => initStream()} />

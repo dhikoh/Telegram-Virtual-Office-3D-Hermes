@@ -73,23 +73,23 @@ export const Step1Template: React.FC<Step1TemplateProps> = ({ onSelect, onCancel
           <div
             key={tpl.id}
             onClick={() => handleSelectTemplate(tpl)}
-            className="p-3 rounded-xl bg-slate-900/80 border border-white/10 hover:border-office-cyan/50 hover:bg-office-cyan/5 cursor-pointer transition-all flex flex-col gap-1.5"
+            className="p-3 rounded-xl bg-office-elevated border border-office-border hover:border-office-accent/50 hover:bg-office-accent/5 cursor-pointer transition-all flex flex-col gap-1.5"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-xl">{tpl.avatar}</span>
-                <span className="text-xs font-bold text-white">{tpl.role}</span>
+                <span className="text-xs font-bold text-office-text">{tpl.role}</span>
               </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-office-cyan">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-office-hover text-office-accent-ink">
                 {tpl.department}
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
+            <p className="text-[11px] text-office-muted line-clamp-2 leading-relaxed">
               {tpl.mission}
             </p>
             <div className="pt-1 flex items-center justify-between text-[10px] text-office-muted">
               <span>4 tanggung jawab standar</span>
-              <ArrowRight className="w-3 h-3 text-office-cyan" />
+              <ArrowRight className="w-3 h-3 text-office-accent-ink" />
             </div>
           </div>
         ))}
@@ -101,9 +101,9 @@ export const Step1Template: React.FC<Step1TemplateProps> = ({ onSelect, onCancel
         >
           <div className="flex items-center gap-2">
             <UserPlus className="w-5 h-5 text-office-violet" />
-            <span className="text-xs font-bold text-white">Agen Kustom (Buat Baru)</span>
+            <span className="text-xs font-bold text-office-text">Agen Kustom (Buat Baru)</span>
           </div>
-          <p className="text-[11px] text-slate-400">
+          <p className="text-[11px] text-office-muted">
             Tentukan peran, misi, alat bantu, dan batasan operasional unik dari awal.
           </p>
           <div className="pt-1 flex items-center justify-between text-[10px] text-office-violet font-bold">
@@ -113,11 +113,11 @@ export const Step1Template: React.FC<Step1TemplateProps> = ({ onSelect, onCancel
         </div>
       </div>
 
-      <div className="flex gap-2 pt-2 border-t border-white/10">
+      <div className="flex gap-2 pt-2 border-t border-office-border">
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-xs font-bold text-office-muted hover:text-white min-h-[44px]"
+          className="flex-1 py-2.5 rounded-xl bg-office-elevated border border-office-border text-xs font-bold text-office-muted hover:text-office-text min-h-[44px]"
         >
           Batal
         </button>

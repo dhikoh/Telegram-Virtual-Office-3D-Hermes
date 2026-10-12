@@ -46,12 +46,12 @@ export const SpecListEditor: React.FC<SpecListEditorProps> = ({
             }
           }}
           placeholder={placeholder}
-          className="flex-1 bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-office-muted/50 focus:outline-none focus:border-office-cyan min-h-[44px]"
+          className="flex-1 bg-office-inset border border-office-border rounded-xl px-3 py-2 text-xs text-office-text placeholder:text-office-muted/50 focus:outline-none focus:border-office-accent min-h-[44px]"
         />
         <button
           type="button"
           onClick={handleAdd}
-          className="px-3 rounded-xl bg-office-cyan/15 hover:bg-office-cyan/25 text-office-cyan text-xs font-semibold flex items-center gap-1 border border-office-cyan/30 min-h-[44px] min-w-[44px] justify-center"
+          className="px-3 rounded-xl bg-office-accent/15 hover:bg-office-accent/25 text-office-accent-ink text-xs font-semibold flex items-center gap-1 border border-office-accent/30 min-h-[44px] min-w-[44px] justify-center"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>Tambah</span>
@@ -64,7 +64,7 @@ export const SpecListEditor: React.FC<SpecListEditorProps> = ({
           {items.map((item, idx) => (
             <span
               key={item + idx}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-office-cyan/10 border border-office-cyan/20 text-office-cyan text-[11px] font-mono"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-office-accent/10 border border-office-accent/20 text-office-accent-ink text-[11px] font-mono"
             >
               <span>{item}</span>
               <button
@@ -82,7 +82,7 @@ export const SpecListEditor: React.FC<SpecListEditorProps> = ({
           {items.map((item, idx) => (
             <div
               key={item + idx}
-              className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5 text-xs text-white min-h-[40px]"
+              className="flex items-center justify-between p-2 rounded-xl bg-office-hover border border-office-border text-xs text-office-text min-h-[40px]"
             >
               <span className="flex-1 pr-2 leading-relaxed text-[11px]">{item}</span>
               <button

@@ -103,8 +103,8 @@ export const AgentSheetChat: React.FC<AgentSheetChatProps> = ({ agent }) => {
             <div
               className={`rounded-2xl p-3 text-xs leading-relaxed ${
                 m.role === 'user'
-                  ? 'bg-office-cyan text-office-bg font-medium rounded-br-none shadow-glow-cyan'
-                  : 'glass-panel bg-white/5 text-office-text border border-white/10 rounded-bl-none'
+                  ? 'bg-office-accent text-office-on-accent font-medium rounded-br-none shadow-nu-raised'
+                  : 'glass-panel bg-office-hover text-office-text border border-office-border rounded-bl-none'
               }`}
             >
               <MarkdownView content={m.content} />
@@ -115,7 +115,7 @@ export const AgentSheetChat: React.FC<AgentSheetChatProps> = ({ agent }) => {
           </div>
         ))}
         {isStreaming && (
-          <div className="self-start flex items-center gap-1 text-[11px] text-office-cyan font-mono animate-pulse pl-2">
+          <div className="self-start flex items-center gap-1 text-[11px] text-office-accent-ink font-mono animate-pulse pl-2">
             <span>{agent.name} sedang mengetik...</span>
           </div>
         )}
@@ -130,7 +130,7 @@ export const AgentSheetChat: React.FC<AgentSheetChatProps> = ({ agent }) => {
             onClick={() => handleSendMessage(pill)}
             disabled={isStreaming}
             type="button"
-            className="px-2.5 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] text-office-muted hover:text-white whitespace-nowrap shrink-0 transition-colors min-h-[36px]"
+            className="px-2.5 py-1.5 rounded-full bg-office-hover hover:bg-office-hover border border-office-border text-[10px] text-office-muted hover:text-office-text whitespace-nowrap shrink-0 transition-colors min-h-[36px]"
           >
             {pill}
           </button>
@@ -138,7 +138,7 @@ export const AgentSheetChat: React.FC<AgentSheetChatProps> = ({ agent }) => {
       </div>
 
       {/* Chat Input Bar */}
-      <div className="p-2.5 border-t border-white/10 bg-slate-900/80 flex items-center gap-2">
+      <div className="p-2.5 border-t border-office-border bg-office-elevated flex items-center gap-2">
         <input
           type="text"
           value={inputMessage}
@@ -148,14 +148,14 @@ export const AgentSheetChat: React.FC<AgentSheetChatProps> = ({ agent }) => {
           }}
           placeholder={`Instruksi untuk ${agent.name}...`}
           disabled={isStreaming}
-          className="flex-1 bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-xs text-white placeholder:text-office-muted/50 focus:outline-none focus:border-office-cyan min-h-[44px]"
+          className="flex-1 bg-office-inset border border-office-border rounded-xl px-3 py-2 text-xs text-office-text placeholder:text-office-muted/50 focus:outline-none focus:border-office-accent min-h-[44px]"
         />
         <button
           onClick={() => handleSendMessage()}
           disabled={!inputMessage.trim() || isStreaming}
           type="button"
           aria-label="Kirim instruksi chat"
-          className="w-11 h-11 rounded-xl bg-office-cyan text-office-bg font-bold flex items-center justify-center hover:bg-cyan-300 disabled:opacity-40 transition-all shadow-glow-cyan shrink-0 min-h-[44px] min-w-[44px]"
+          className="w-11 h-11 rounded-xl bg-office-accent text-office-on-accent font-bold flex items-center justify-center hover:bg-cyan-300 disabled:opacity-40 transition-all shadow-nu-raised shrink-0 min-h-[44px] min-w-[44px]"
         >
           <Send className="w-4 h-4" />
         </button>

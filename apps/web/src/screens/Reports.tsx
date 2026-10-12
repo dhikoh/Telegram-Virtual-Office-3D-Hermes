@@ -66,10 +66,10 @@ export const ReportsScreen: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen p-4 pb-24 max-w-md mx-auto w-full select-none">
       {/* Header */}
-      <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10">
+      <div className="flex items-center justify-between pb-3 mb-3 border-b border-office-border">
         <div className="flex items-center gap-2">
-          <BarChart3 className="w-5 h-5 text-office-cyan" />
-          <h1 className="text-base font-bold text-white">{t('nav.reports')}</h1>
+          <BarChart3 className="w-5 h-5 text-office-accent-ink" />
+          <h1 className="text-base font-bold text-office-text">{t('nav.reports')}</h1>
         </div>
 
         <div className="flex items-center gap-2">
@@ -79,9 +79,9 @@ export const ReportsScreen: React.FC = () => {
               setIsManualModalOpen(true);
             }}
             type="button"
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-xs text-white min-h-[44px]"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-office-hover hover:bg-office-hover border border-office-border text-xs text-office-text min-h-[44px]"
           >
-            <Plus className="w-3.5 h-3.5 text-office-cyan" />
+            <Plus className="w-3.5 h-3.5 text-office-accent-ink" />
             <span>KPI</span>
           </button>
 
@@ -91,7 +91,7 @@ export const ReportsScreen: React.FC = () => {
               setIsReportModalOpen(true);
             }}
             type="button"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-office-violet text-white text-xs font-semibold shadow-glow-violet hover:bg-violet-600 min-h-[44px]"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-office-violet text-office-text text-xs font-semibold shadow-nu-raised hover:bg-violet-600 min-h-[44px]"
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span>Buat Laporan</span>
@@ -110,8 +110,8 @@ export const ReportsScreen: React.FC = () => {
               type="button"
               className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all min-h-[44px] ${
                 isActive
-                  ? 'bg-office-cyan text-slate-950 shadow-glow-cyan'
-                  : 'bg-white/5 text-office-muted hover:text-white border border-white/5'
+                  ? 'bg-office-accent text-office-muted shadow-nu-raised'
+                  : 'bg-office-hover text-office-muted hover:text-office-text border border-office-border'
               }`}
             >
               <span>{DEPARTMENT_ICONS[dept]}</span>
@@ -131,13 +131,13 @@ export const ReportsScreen: React.FC = () => {
         </div>
 
         {departmentKpis.length === 0 ? (
-          <div className="glass-panel rounded-2xl p-6 text-center border border-white/5 flex flex-col items-center gap-2">
+          <div className="glass-panel rounded-2xl p-6 text-center border border-office-border flex flex-col items-center gap-2">
             <TrendingUp className="w-6 h-6 text-office-muted/40" />
             <span className="text-xs text-office-muted">Belum ada data KPI untuk departemen ini.</span>
             <button
               onClick={() => setIsManualModalOpen(true)}
               type="button"
-              className="mt-1 text-xs text-office-cyan font-bold underline min-h-[44px] flex items-center"
+              className="mt-1 text-xs text-office-accent-ink font-bold underline min-h-[44px] flex items-center"
             >
               + Tambah KPI pertama
             </button>
@@ -157,19 +157,19 @@ export const ReportsScreen: React.FC = () => {
               return (
                 <div
                   key={kpi.id}
-                  className="glass-panel rounded-2xl p-3 border border-white/10 flex flex-col justify-between relative overflow-hidden"
+                  className="glass-panel rounded-2xl p-3 border border-office-border flex flex-col justify-between relative overflow-hidden"
                 >
                   <div className="flex items-start justify-between gap-1 z-10">
-                    <span className="text-[11px] font-semibold text-slate-300 leading-tight line-clamp-1">
+                    <span className="text-[11px] font-semibold text-office-muted leading-tight line-clamp-1">
                       {kpi.label}
                     </span>
                     <span
                       className={`text-[9px] px-1.5 py-0.5 rounded font-mono uppercase tracking-wider ${
                         kpi.source === 'agent'
-                          ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                          ? 'bg-office-warn/20 text-office-warn border border-office-warn/30'
                           : kpi.source === 'import'
                           ? 'bg-sky-500/20 text-sky-400'
-                          : 'bg-emerald-500/20 text-emerald-400'
+                          : 'bg-office-success/20 text-office-success'
                       }`}
                     >
                       {kpi.source === 'agent' ? 'Unverified' : kpi.source}
@@ -177,7 +177,7 @@ export const ReportsScreen: React.FC = () => {
                   </div>
 
                   <div className="my-2 z-10">
-                    <div className="text-base font-bold font-mono text-white">
+                    <div className="text-base font-bold font-mono text-office-text">
                       {kpi.value.toLocaleString()} <span className="text-[10px] text-office-muted font-sans">{kpi.unit}</span>
                     </div>
                     <div className="flex items-center gap-1 text-[9px] text-office-muted font-mono mt-0.5">
@@ -193,9 +193,9 @@ export const ReportsScreen: React.FC = () => {
                         <Area
                           type="monotone"
                           dataKey="val"
-                          stroke="#22D3EE"
+                          stroke="#F59E0B"
                           strokeWidth={1.5}
-                          fill="#22D3EE"
+                          fill="#F59E0B"
                           fillOpacity={0.15}
                         />
                       </AreaChart>
@@ -218,7 +218,7 @@ export const ReportsScreen: React.FC = () => {
         </div>
 
         {departmentReports.length === 0 ? (
-          <div className="glass-panel rounded-2xl p-5 text-center border border-white/5 text-xs text-office-muted">
+          <div className="glass-panel rounded-2xl p-5 text-center border border-office-border text-xs text-office-muted">
             Belum ada laporan yang dihasilkan untuk {activeDept}.
           </div>
         ) : (
@@ -229,14 +229,14 @@ export const ReportsScreen: React.FC = () => {
                 tma.hapticImpact('light');
                 setViewingReport(rep);
               }}
-              className="glass-panel rounded-xl p-3 border border-white/10 hover:border-office-violet/50 cursor-pointer flex items-center justify-between transition-all min-h-[48px]"
+              className="glass-panel rounded-xl p-3 border border-office-border hover:border-office-violet/50 cursor-pointer flex items-center justify-between transition-all min-h-[48px]"
             >
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-office-violet/20 text-office-violet">
                   <FileText className="w-4 h-4" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-xs font-bold text-white capitalize">
+                  <span className="text-xs font-bold text-office-text capitalize">
                     {rep.template.replace(/_/g, ' ')}
                   </span>
                   <span className="text-[10px] text-office-muted font-mono">

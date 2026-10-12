@@ -123,7 +123,7 @@ Tahap 4 baru mengerjakan ini. Keputusan detail (palet warna, jumlah frame) dibua
 | 0 | Kumpul referensi | ✅ selesai |
 | 1 | Dokumen arah ini + keputusan palet | ✅ selesai |
 | 1.5 | Perbaikan WebGL: pulihkan context, retry manual, ECO benar-benar matikan 3D | ✅ 181 test hijau, gap-check 8/8 |
-| 2 | Design system neumorphic (tombol, chip, card, nav, modal) | Semua komponen memakai token baru; test hijau |
+| 2 | Design system neumorphic (tombol, chip, card, nav, modal) | ✅ 184 test hijau (guard tema baru), gap-check 8/8 — token `office-surface/panel/inset/accent`, shadow `nu-*`, sweep 598 literal gelap di 37 file |
 | 3 | Dunia 2.5D: material, bayangan kontak, cahaya, kamera | Ada screenshot before/after; chunk ≤ 228 KB |
 | 3.5 | Modul kehidupan ambien (strip jalan + pejalan kaki), satu modul → dua renderer | Test unit modul hijau; jalan di 2D dan 2.5D |
 | 4 | Diorama Ruang Kaca: kamera dekat, dinding belakang, jendela ke jalan | Screenshot before/after; chunk ≤ 228 KB |

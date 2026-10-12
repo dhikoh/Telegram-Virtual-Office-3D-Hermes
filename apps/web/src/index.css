@@ -3,14 +3,26 @@
 @tailwind utilities;
 
 :root {
+  /* Tahap 2 — light neumorphic ground. The app owns its surface; Telegram
+     themeParams still arrive via applyTheme() and stay available to any
+     component that wants them, but they no longer paint the shell. */
+  --office-app-bg: #EEF2F7;
+  --office-app-text: #1F2937;
+  --nu-shadow-up: -6px -6px 12px rgba(255, 255, 255, 0.9),
+    6px 6px 14px rgba(163, 177, 198, 0.42);
+  --nu-shadow-up-lg: -8px -8px 18px rgba(255, 255, 255, 0.95),
+    10px 10px 24px rgba(163, 177, 198, 0.5);
+  --nu-shadow-inset: inset 3px 3px 7px rgba(163, 177, 198, 0.5),
+    inset -3px -3px 7px rgba(255, 255, 255, 0.95);
+
   /* Telegram theme fallback defaults */
-  --tg-theme-bg-color: #070B14;
-  --tg-theme-text-color: #F8FAFC;
-  --tg-theme-hint-color: #94A3B8;
-  --tg-theme-link-color: #22D3EE;
-  --tg-theme-button-color: #22D3EE;
-  --tg-theme-button-text-color: #070B14;
-  --tg-theme-secondary-bg-color: #0F172A;
+  --tg-theme-bg-color: #EEF2F7;
+  --tg-theme-text-color: #1F2937;
+  --tg-theme-hint-color: #64748B;
+  --tg-theme-link-color: #B45309;
+  --tg-theme-button-color: #F59E0B;
+  --tg-theme-button-text-color: #1F2937;
+  --tg-theme-secondary-bg-color: #E4EBF4;
 
   /* Safe area insets */
   --safe-area-top: env(safe-area-inset-top, 0px);
@@ -22,8 +34,8 @@
 /* System font enforcement (Rule REQ-024) */
 body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background-color: var(--tg-theme-bg-color, #070B14);
-  color: var(--tg-theme-text-color, #F8FAFC);
+  background-color: var(--office-app-bg);
+  color: var(--office-app-text);
   min-height: 100vh;
   min-height: 100dvh;
   padding-top: var(--safe-area-top);
@@ -35,29 +47,42 @@ body {
   touch-action: manipulation;
 }
 
-/* Futuristic Neon Floor Grid (Rule REQ-065) */
+/* Soft Floor Grid (Rule REQ-065) — light revision for Tahap 2 */
 .office-grid {
-  background-color: #070B14;
-  background-image: 
-    linear-gradient(rgba(34, 211, 238, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(34, 211, 238, 0.05) 1px, transparent 1px);
+  background-color: var(--office-app-bg);
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.14) 1px, transparent 1px);
   background-size: 24px 24px;
 }
 
-/* Glass Surface Utility (Rule REQ-065) */
+/* Surface Utilities (Rule REQ-065)
+   Neumorphic revision: panels share the page tone and are lifted by a dual
+   shadow (light top-left, dark bottom-right) instead of a glowing border.
+   Class names are kept so existing markup resolves to the new system. */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--office-app-bg);
+  box-shadow: var(--nu-shadow-up);
 }
 
 .glass-panel-glow {
-  background: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(34, 211, 238, 0.2);
-  box-shadow: 0 0 20px -5px rgba(34, 211, 238, 0.2);
+  background: #F5F9FD;
+  box-shadow: var(--nu-shadow-up-lg);
+}
+
+/* Pressed well: code blocks, active segments, sliders, progress tracks. */
+.nu-inset {
+  background: #E4EBF4;
+  box-shadow: var(--nu-shadow-inset);
+}
+
+/* Any control can adopt press feedback by adding .nu-press. */
+.nu-press {
+  transition: box-shadow 0.14s ease, transform 0.14s ease;
+}
+.nu-press:active {
+  transform: translateY(1px);
+  box-shadow: var(--nu-shadow-inset);
 }
 
 /* Status ring keyframes */

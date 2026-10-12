@@ -69,17 +69,17 @@ export const GenerateReportModal: React.FC<GenerateReportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-slate-950 border border-office-violet/40 rounded-2xl w-full max-w-sm p-5 shadow-2xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between pb-2 border-b border-white/10">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-office-inset backdrop-blur-md p-4 animate-in fade-in duration-200">
+      <div className="bg-office-elevated border border-office-violet/40 rounded-2xl w-full max-w-sm p-5 shadow-2xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between pb-2 border-b border-office-border">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-office-violet" />
-            <h3 className="text-sm font-bold text-white">Buat Laporan Agen ({activeDept})</h3>
+            <h3 className="text-sm font-bold text-office-text">Buat Laporan Agen ({activeDept})</h3>
           </div>
           <button
             onClick={handleClose}
             type="button"
-            className="text-office-muted hover:text-white p-1 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="text-office-muted hover:text-office-text p-1 min-h-[44px] min-w-[44px] flex items-center justify-center"
           >
             <X className="w-4 h-4" />
           </button>
@@ -88,8 +88,8 @@ export const GenerateReportModal: React.FC<GenerateReportModalProps> = ({
         {!generatedReport ? (
           <div className="flex flex-col gap-3">
             {/* Anti-Hallucination Information Banner */}
-            <div className="rounded-xl p-3 bg-office-cyan/10 border border-office-cyan/30 flex items-start gap-2.5 text-xs text-office-cyan">
-              <ShieldCheck className="w-5 h-5 shrink-0 text-office-cyan" />
+            <div className="rounded-xl p-3 bg-office-accent/10 border border-office-accent/30 flex items-start gap-2.5 text-xs text-office-accent-ink">
+              <ShieldCheck className="w-5 h-5 shrink-0 text-office-accent-ink" />
               <div className="leading-relaxed">
                 <span className="font-bold block">Jaminan Anti-Halusinasi (Rule REQ-079)</span>
                 Agen diinstruksikan menganalisis <strong className="underline">hanya</strong> angka KPI yang tercatat di basis data terverifikasi.
@@ -106,12 +106,12 @@ export const GenerateReportModal: React.FC<GenerateReportModalProps> = ({
                     onClick={() => setSelectedTemplate(tpl.id)}
                     className={`p-2.5 rounded-xl border text-xs cursor-pointer transition-all min-h-[44px] flex flex-col justify-center ${
                       selectedTemplate === tpl.id
-                        ? 'bg-office-violet/20 border-office-violet text-white shadow-glow-violet'
-                        : 'bg-black/50 border-white/10 text-office-muted hover:text-white'
+                        ? 'bg-office-violet/20 border-office-violet text-office-text shadow-nu-raised'
+                        : 'bg-office-inset border-office-border text-office-muted hover:text-office-text'
                     }`}
                   >
                     <span className="font-bold block">{tpl.label}</span>
-                    <span className="text-[10px] text-slate-400">{tpl.desc}</span>
+                    <span className="text-[10px] text-office-muted">{tpl.desc}</span>
                   </div>
                 ))}
               </div>
@@ -125,14 +125,14 @@ export const GenerateReportModal: React.FC<GenerateReportModalProps> = ({
                 value={reportPeriod}
                 onChange={(e) => setReportPeriod(e.target.value)}
                 placeholder="2026-Q3"
-                className="w-full px-3 py-2 rounded-xl bg-black/70 border border-white/15 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-office-violet font-mono min-h-[44px]"
+                className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text placeholder-slate-600 focus:outline-none focus:border-office-violet font-mono min-h-[44px]"
               />
             </div>
 
             {/* Agent Responsible */}
             <div>
               <label className="text-[11px] text-office-muted block mb-1">Agen Penanggung Jawab</label>
-              <div className="p-2.5 rounded-xl bg-black/60 border border-white/10 flex items-center gap-2 text-xs text-white min-h-[44px]">
+              <div className="p-2.5 rounded-xl bg-office-inset border border-office-border flex items-center gap-2 text-xs text-office-text min-h-[44px]">
                 <span>{departmentAgents[0]?.avatar || '🤖'}</span>
                 <span className="font-bold">{departmentAgents[0]?.name || 'Agen Divisi'}</span>
                 <span className="text-[10px] text-office-muted">({departmentAgents[0]?.role})</span>
@@ -150,7 +150,7 @@ export const GenerateReportModal: React.FC<GenerateReportModalProps> = ({
               <button
                 type="button"
                 onClick={handleClose}
-                className="flex-1 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-xs font-bold text-office-muted hover:text-white min-h-[44px]"
+                className="flex-1 py-2.5 rounded-xl bg-office-elevated border border-office-border text-xs font-bold text-office-muted hover:text-office-text min-h-[44px]"
               >
                 Batal
               </button>
@@ -158,7 +158,7 @@ export const GenerateReportModal: React.FC<GenerateReportModalProps> = ({
                 type="button"
                 onClick={handleGenerateReport}
                 disabled={isGenerating}
-                className="flex-1 py-2.5 rounded-xl bg-office-violet text-white text-xs font-bold hover:bg-violet-600 min-h-[44px] shadow-glow-violet disabled:opacity-50 flex items-center justify-center gap-1.5"
+                className="flex-1 py-2.5 rounded-xl bg-office-violet text-office-text text-xs font-bold hover:bg-violet-600 min-h-[44px] shadow-nu-raised disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
                 {isGenerating ? (
                   <>
@@ -177,7 +177,7 @@ export const GenerateReportModal: React.FC<GenerateReportModalProps> = ({
         ) : (
           /* Generated Report View */
           <div className="flex flex-col gap-3">
-            <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center gap-2 text-xs text-emerald-400">
+            <div className="p-3 rounded-xl bg-office-success/15 border border-office-success/40 flex items-center gap-2 text-xs text-office-success">
               <ShieldCheck className="w-4 h-4 shrink-0" />
               <span className="font-bold">Laporan Lolos Verifikasi Anti-Halusinasi</span>
             </div>
@@ -189,7 +189,7 @@ export const GenerateReportModal: React.FC<GenerateReportModalProps> = ({
             <button
               type="button"
               onClick={handleClose}
-              className="w-full py-2.5 rounded-xl bg-slate-900 border border-white/15 text-xs font-bold text-white hover:bg-slate-800 min-h-[44px]"
+              className="w-full py-2.5 rounded-xl bg-office-elevated border border-office-border text-xs font-bold text-office-text hover:bg-office-inset min-h-[44px]"
             >
               Tutup Laporan
             </button>

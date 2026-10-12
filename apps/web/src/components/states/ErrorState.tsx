@@ -20,7 +20,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
       <div className="w-12 h-12 rounded-2xl bg-office-red/10 border border-office-red/30 flex items-center justify-center text-office-red mb-1">
         <AlertTriangle className="w-6 h-6" />
       </div>
-      <h3 className="text-sm font-semibold text-white">Gagal Memuat Data</h3>
+      <h3 className="text-sm font-semibold text-office-text">Gagal Memuat Data</h3>
       <p className="text-xs max-w-xs text-office-red/90 leading-relaxed font-mono">{message}</p>
       {onRetry && (
         <button

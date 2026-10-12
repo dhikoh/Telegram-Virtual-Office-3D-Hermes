@@ -108,10 +108,10 @@ class TmaService {
 
         // Apply dark theme header and background
         if (typeof this.webApp.setHeaderColor === 'function') {
-          this.webApp.setHeaderColor('#070B14');
+          this.webApp.setHeaderColor('#EEF2F7');
         }
         if (typeof this.webApp.setBackgroundColor === 'function') {
-          this.webApp.setBackgroundColor('#070B14');
+          this.webApp.setBackgroundColor('#EEF2F7');
         }
       }
     } catch {

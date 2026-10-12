@@ -12,19 +12,19 @@ export const TaskResultModal: React.FC<TaskResultModalProps> = ({ task, onClose 
   if (!task) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 animate-in fade-in">
-      <div className="glass-panel-glow w-full max-w-md max-h-[80vh] rounded-2xl p-5 bg-slate-950 border border-office-cyan/40 shadow-2xl flex flex-col">
-        <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
+    <div className="fixed inset-0 z-50 bg-office-inset backdrop-blur-sm flex items-center justify-center p-3 animate-in fade-in">
+      <div className="glass-panel-glow w-full max-w-md max-h-[80vh] rounded-2xl p-5 bg-office-elevated border border-office-accent/40 shadow-2xl flex flex-col">
+        <div className="flex items-center justify-between pb-3 border-b border-office-border mb-3">
           <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-office-cyan" />
-            <h2 className="text-sm font-bold text-white truncate max-w-[240px]">
+            <FileText className="w-4 h-4 text-office-accent-ink" />
+            <h2 className="text-sm font-bold text-office-text truncate max-w-[240px]">
               {task.title}
             </h2>
           </div>
           <button
             onClick={onClose}
             type="button"
-            className="p-1 text-office-muted hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="p-1 text-office-muted hover:text-office-text min-h-[44px] min-w-[44px] flex items-center justify-center"
           >
             <X className="w-4 h-4" />
           </button>
@@ -38,11 +38,11 @@ export const TaskResultModal: React.FC<TaskResultModalProps> = ({ task, onClose 
           )}
         </div>
 
-        <div className="pt-3 border-t border-white/10 mt-3 flex justify-end">
+        <div className="pt-3 border-t border-office-border mt-3 flex justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-office-cyan text-office-bg font-semibold text-xs shadow-glow-cyan min-h-[44px]"
+            className="px-4 py-2 rounded-xl bg-office-accent text-office-on-accent font-semibold text-xs shadow-nu-raised min-h-[44px]"
           >
             Tutup
           </button>

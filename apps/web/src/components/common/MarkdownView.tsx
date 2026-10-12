@@ -25,11 +25,11 @@ export const MarkdownView: React.FC<MarkdownViewProps> = ({ content, className =
       if (inCodeBlock) {
         // End of code block
         elements.push(
-          <div key={`code-${index}`} className="my-2 rounded-lg bg-black/60 border border-white/10 p-3 overflow-x-auto">
+          <div key={`code-${index}`} className="my-2 rounded-lg bg-office-inset border border-office-border p-3 overflow-x-auto">
             {codeLanguage && (
-              <div className="text-[10px] text-office-cyan font-mono mb-1">{codeLanguage}</div>
+              <div className="text-[10px] text-office-accent-ink font-mono mb-1">{codeLanguage}</div>
             )}
-            <pre className="font-mono text-xs text-office-cyan/90 leading-relaxed whitespace-pre">
+            <pre className="font-mono text-xs text-office-accent-ink/90 leading-relaxed whitespace-pre">
               {codeBlockContent.join('\n')}
             </pre>
           </div>
@@ -53,7 +53,7 @@ export const MarkdownView: React.FC<MarkdownViewProps> = ({ content, className =
     // Headers
     if (line.startsWith('# ')) {
       elements.push(
-        <h1 key={index} className="text-base font-bold text-white mt-3 mb-1.5 border-b border-white/10 pb-1">
+        <h1 key={index} className="text-base font-bold text-office-text mt-3 mb-1.5 border-b border-office-border pb-1">
           {formatInline(line.substring(2))}
         </h1>
       );
@@ -61,7 +61,7 @@ export const MarkdownView: React.FC<MarkdownViewProps> = ({ content, className =
     }
     if (line.startsWith('## ')) {
       elements.push(
-        <h2 key={index} className="text-sm font-bold text-office-cyan mt-2.5 mb-1">
+        <h2 key={index} className="text-sm font-bold text-office-accent-ink mt-2.5 mb-1">
           {formatInline(line.substring(3))}
         </h2>
       );
@@ -80,7 +80,7 @@ export const MarkdownView: React.FC<MarkdownViewProps> = ({ content, className =
     if (line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
       elements.push(
         <div key={index} className="flex items-start gap-2 my-0.5 pl-2 text-xs text-office-text/90">
-          <span className="text-office-cyan mt-1">•</span>
+          <span className="text-office-accent-ink mt-1">•</span>
           <span>{formatInline(line.trim().substring(2))}</span>
         </div>
       );
@@ -90,7 +90,7 @@ export const MarkdownView: React.FC<MarkdownViewProps> = ({ content, className =
     // Blockquote
     if (line.startsWith('> ')) {
       elements.push(
-        <blockquote key={index} className="border-l-2 border-office-cyan/60 pl-2.5 my-1.5 text-xs text-office-muted italic bg-white/5 py-1 rounded-r">
+        <blockquote key={index} className="border-l-2 border-office-accent/60 pl-2.5 my-1.5 text-xs text-office-muted italic bg-office-hover py-1 rounded-r">
           {formatInline(line.substring(2))}
         </blockquote>
       );
@@ -129,13 +129,13 @@ function formatInline(text: string): React.ReactNode {
     const token = match[0];
     if (token.startsWith('**') && token.endsWith('**')) {
       parts.push(
-        <strong key={match.index} className="font-semibold text-white">
+        <strong key={match.index} className="font-semibold text-office-text">
           {token.substring(2, token.length - 2)}
         </strong>
       );
     } else if (token.startsWith('`') && token.endsWith('`')) {
       parts.push(
-        <code key={match.index} className="font-mono text-[11px] bg-black/40 text-office-cyan px-1 py-0.5 rounded border border-white/10">
+        <code key={match.index} className="font-mono text-[11px] bg-office-inset text-office-accent-ink px-1 py-0.5 rounded border border-office-border">
           {token.substring(1, token.length - 1)}
         </code>
       );

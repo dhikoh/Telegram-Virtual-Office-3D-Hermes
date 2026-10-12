@@ -57,20 +57,20 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 animate-in fade-in">
+    <div className="fixed inset-0 z-50 bg-office-inset backdrop-blur-sm flex items-center justify-center p-3 animate-in fade-in">
       <form
         onSubmit={handleSubmit}
-        className="glass-panel-glow w-full max-w-sm rounded-2xl p-5 bg-slate-950 border border-office-cyan/40 shadow-2xl flex flex-col"
+        className="glass-panel-glow w-full max-w-sm rounded-2xl p-5 bg-office-elevated border border-office-accent/40 shadow-2xl flex flex-col"
       >
-        <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
-          <h2 className="text-sm font-bold text-white flex items-center gap-2">
-            <Plus className="w-4 h-4 text-office-cyan" />
+        <div className="flex items-center justify-between pb-3 border-b border-office-border mb-3">
+          <h2 className="text-sm font-bold text-office-text flex items-center gap-2">
+            <Plus className="w-4 h-4 text-office-accent-ink" />
             <span>Buat Tugas Baru</span>
           </h2>
           <button
             onClick={onClose}
             type="button"
-            className="p-1 text-office-muted hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="p-1 text-office-muted hover:text-office-text min-h-[44px] min-w-[44px] flex items-center justify-center"
           >
             <X className="w-4 h-4" />
           </button>
@@ -86,7 +86,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               placeholder="Contoh: Analisis tren viral hashtag #AI..."
-              className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-white placeholder:text-office-muted/40 focus:outline-none focus:border-office-cyan min-h-[44px]"
+              className="w-full bg-office-inset border border-office-border rounded-xl px-3 py-2 text-office-text placeholder:text-office-muted/40 focus:outline-none focus:border-office-accent min-h-[44px]"
             />
           </div>
 
@@ -97,7 +97,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               value={newDescription}
               onChange={(e) => setNewDescription(e.target.value)}
               placeholder="Instruksi detail untuk agen..."
-              className="w-full bg-black/60 border border-white/15 rounded-xl p-2.5 text-white placeholder:text-office-muted/40 focus:outline-none focus:border-office-cyan resize-none"
+              className="w-full bg-office-inset border border-office-border rounded-xl p-2.5 text-office-text placeholder:text-office-muted/40 focus:outline-none focus:border-office-accent resize-none"
             />
           </div>
 
@@ -106,10 +106,10 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             <select
               value={selectedAgentId}
               onChange={(e) => setSelectedAgentId(e.target.value)}
-              className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-office-cyan min-h-[44px]"
+              className="w-full bg-office-inset border border-office-border rounded-xl px-3 py-2 text-office-text focus:outline-none focus:border-office-accent min-h-[44px]"
             >
               {agents.map((ag) => (
-                <option key={ag.id} value={ag.id} className="bg-slate-900 text-white">
+                <option key={ag.id} value={ag.id} className="bg-office-elevated text-office-text">
                   {ag.avatar} {ag.name} ({ag.role} - {ag.department})
                 </option>
               ))}
@@ -126,8 +126,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                   onClick={() => setNewPriority(p)}
                   className={`py-1.5 rounded-lg text-[10px] font-mono uppercase font-semibold transition-all min-h-[44px] flex items-center justify-center ${
                     newPriority === p
-                      ? 'bg-office-cyan text-office-bg shadow-glow-cyan'
-                      : 'bg-white/5 text-office-muted hover:text-white'
+                      ? 'bg-office-accent text-office-on-accent shadow-nu-raised'
+                      : 'bg-office-hover text-office-muted hover:text-office-text'
                   }`}
                 >
                   {p}
@@ -137,18 +137,18 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
           </div>
         </div>
 
-        <div className="flex gap-2 mt-4 pt-3 border-t border-white/10">
+        <div className="flex gap-2 mt-4 pt-3 border-t border-office-border">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-office-muted hover:text-white min-h-[44px]"
+            className="flex-1 py-2.5 rounded-xl bg-office-hover hover:bg-office-hover text-xs font-semibold text-office-muted hover:text-office-text min-h-[44px]"
           >
             Batal
           </button>
           <button
             type="submit"
             disabled={!newTitle.trim() || isSubmitting}
-            className="flex-1 py-2.5 rounded-xl bg-office-cyan text-office-bg text-xs font-bold hover:bg-cyan-300 disabled:opacity-40 transition-all shadow-glow-cyan min-h-[44px]"
+            className="flex-1 py-2.5 rounded-xl bg-office-accent text-office-on-accent text-xs font-bold hover:bg-cyan-300 disabled:opacity-40 transition-all shadow-nu-raised min-h-[44px]"
           >
             {isSubmitting ? 'Menyimpan...' : 'Simpan Tugas'}
           </button>

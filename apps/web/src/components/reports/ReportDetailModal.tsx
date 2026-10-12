@@ -15,17 +15,17 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   if (!report) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-slate-950 border border-white/20 rounded-2xl w-full max-w-sm p-5 shadow-2xl flex flex-col gap-4 max-h-[90vh]">
-        <div className="flex items-center justify-between pb-2 border-b border-white/10">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-office-inset backdrop-blur-md p-4 animate-in fade-in duration-200">
+      <div className="bg-office-elevated border border-office-border rounded-2xl w-full max-w-sm p-5 shadow-2xl flex flex-col gap-4 max-h-[90vh]">
+        <div className="flex items-center justify-between pb-2 border-b border-office-border">
           <div className="flex items-center gap-2">
             <FileText className="w-4 h-4 text-office-violet" />
-            <h3 className="text-sm font-bold text-white">Laporan: {report.template}</h3>
+            <h3 className="text-sm font-bold text-office-text">Laporan: {report.template}</h3>
           </div>
           <button
             onClick={onClose}
             type="button"
-            className="text-office-muted hover:text-white p-1 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="text-office-muted hover:text-office-text p-1 min-h-[44px] min-w-[44px] flex items-center justify-center"
           >
             <X className="w-4 h-4" />
           </button>
@@ -45,7 +45,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
         <button
           type="button"
           onClick={onClose}
-          className="w-full py-2.5 rounded-xl bg-slate-900 border border-white/15 text-xs font-bold text-white hover:bg-slate-800 min-h-[44px]"
+          className="w-full py-2.5 rounded-xl bg-office-elevated border border-office-border text-xs font-bold text-office-text hover:bg-office-inset min-h-[44px]"
         >
           Tutup
         </button>

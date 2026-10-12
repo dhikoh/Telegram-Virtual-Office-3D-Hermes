@@ -22,10 +22,10 @@ export const ViewModeCard: React.FC = () => {
   };
 
   return (
-    <div className="glass-panel rounded-xl p-3.5 border border-white/10 flex flex-col gap-2.5 select-none">
+    <div className="glass-panel rounded-xl p-3.5 border border-office-border flex flex-col gap-2.5 select-none">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-xs font-semibold text-office-text">
-          <Box className="w-4 h-4 text-office-cyan" />
+          <Box className="w-4 h-4 text-office-accent-ink" />
           <span>Tampilan Denah Kantor</span>
         </div>
         <span className="text-[10px] font-mono text-office-muted">
@@ -39,8 +39,8 @@ export const ViewModeCard: React.FC = () => {
           type="button"
           className={`py-2 px-3 rounded-lg text-xs font-medium transition-all min-h-[44px] flex flex-col items-center justify-center ${
             viewMode === '2D'
-              ? 'bg-office-cyan text-office-bg font-bold shadow-glow-cyan'
-              : 'bg-white/5 text-office-muted hover:text-white'
+              ? 'bg-office-accent text-office-on-accent font-bold shadow-nu-raised'
+              : 'bg-office-hover text-office-muted hover:text-office-text'
           }`}
         >
           <span>2D Flat</span>
@@ -53,10 +53,10 @@ export const ViewModeCard: React.FC = () => {
           type="button"
           className={`py-2 px-3 rounded-lg text-xs font-medium transition-all min-h-[44px] flex flex-col items-center justify-center ${
             viewMode === '3D'
-              ? 'bg-office-cyan text-office-bg font-bold shadow-glow-cyan'
+              ? 'bg-office-accent text-office-on-accent font-bold shadow-nu-raised'
               : is3DDisabled
-              ? 'bg-white/5 text-white/20 cursor-not-allowed opacity-40 border border-white/5'
-              : 'bg-white/5 text-office-muted hover:text-white'
+              ? 'bg-office-hover text-office-muted/20 cursor-not-allowed opacity-40 border border-office-border'
+              : 'bg-office-hover text-office-muted hover:text-office-text'
           }`}
         >
           <span>3D Isometrik</span>

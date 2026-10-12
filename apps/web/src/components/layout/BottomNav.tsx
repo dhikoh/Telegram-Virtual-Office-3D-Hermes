@@ -42,7 +42,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange })
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-office-bg/95 backdrop-blur-lg border-t border-office-border px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-1">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-office-surface/95 backdrop-blur-lg border-t border-office-border px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-1">
       <div className="flex items-center justify-around max-w-md mx-auto">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -55,7 +55,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange })
               type="button"
               className={`flex-1 flex flex-col items-center justify-center min-h-[48px] min-w-[48px] py-1 rounded-lg transition-all relative ${
                 isActive
-                  ? 'text-office-cyan font-medium'
+                  ? 'text-office-accent-ink font-medium'
                   : 'text-office-muted hover:text-office-text active:scale-95'
               }`}
             >
@@ -66,14 +66,14 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange })
                   }`}
                 />
                 {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className="absolute -top-1.5 -right-2 bg-office-warn text-office-bg font-mono text-[9px] font-bold px-1 rounded-full min-w-[14px] text-center shadow-glow-warn animate-pulse">
+                  <span className="absolute -top-1.5 -right-2 bg-office-warn text-office-on-accent font-mono text-[9px] font-bold px-1 rounded-full min-w-[14px] text-center shadow-nu-raised animate-pulse">
                     {tab.badge}
                   </span>
                 )}
               </div>
               <span className="text-[10px] mt-1 tracking-tight leading-none">{tab.label}</span>
               {isActive && (
-                <span className="absolute bottom-0 w-6 h-0.5 bg-office-cyan rounded-full shadow-[0_0_8px_#22D3EE]" />
+                <span className="absolute bottom-0 w-6 h-0.5 bg-office-accent rounded-full shadow-nu-flat" />
               )}
             </button>
           );

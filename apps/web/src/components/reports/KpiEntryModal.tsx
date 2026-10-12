@@ -62,17 +62,17 @@ export const KpiEntryModal: React.FC<KpiEntryModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-slate-950 border border-office-cyan/40 rounded-2xl w-full max-w-sm p-5 shadow-2xl flex flex-col gap-4">
-        <div className="flex items-center justify-between pb-2 border-b border-white/10">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-office-inset backdrop-blur-md p-4 animate-in fade-in duration-200">
+      <div className="bg-office-elevated border border-office-accent/40 rounded-2xl w-full max-w-sm p-5 shadow-2xl flex flex-col gap-4">
+        <div className="flex items-center justify-between pb-2 border-b border-office-border">
           <div className="flex items-center gap-2">
-            <Plus className="w-4 h-4 text-office-cyan" />
-            <h3 className="text-sm font-bold text-white">Input KPI Manual ({activeDept})</h3>
+            <Plus className="w-4 h-4 text-office-accent-ink" />
+            <h3 className="text-sm font-bold text-office-text">Input KPI Manual ({activeDept})</h3>
           </div>
           <button
             onClick={onClose}
             type="button"
-            className="text-office-muted hover:text-white p-1 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="text-office-muted hover:text-office-text p-1 min-h-[44px] min-w-[44px] flex items-center justify-center"
           >
             <X className="w-4 h-4" />
           </button>
@@ -87,7 +87,7 @@ export const KpiEntryModal: React.FC<KpiEntryModalProps> = ({
               onChange={(e) => setKpiKey(e.target.value)}
               placeholder="mrr"
               required
-              className="w-full px-3 py-2 rounded-xl bg-black/70 border border-white/15 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-office-cyan font-mono min-h-[44px]"
+              className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text placeholder-slate-600 focus:outline-none focus:border-office-accent font-mono min-h-[44px]"
             />
           </div>
 
@@ -99,7 +99,7 @@ export const KpiEntryModal: React.FC<KpiEntryModalProps> = ({
               onChange={(e) => setKpiLabel(e.target.value)}
               placeholder="Monthly Recurring Revenue"
               required
-              className="w-full px-3 py-2 rounded-xl bg-black/70 border border-white/15 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-office-cyan min-h-[44px]"
+              className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text placeholder-slate-600 focus:outline-none focus:border-office-accent min-h-[44px]"
             />
           </div>
 
@@ -113,7 +113,7 @@ export const KpiEntryModal: React.FC<KpiEntryModalProps> = ({
                 onChange={(e) => setKpiValue(e.target.value)}
                 placeholder="125000"
                 required
-                className="w-full px-3 py-2 rounded-xl bg-black/70 border border-white/15 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-office-cyan font-mono min-h-[44px]"
+                className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text placeholder-slate-600 focus:outline-none focus:border-office-accent font-mono min-h-[44px]"
               />
             </div>
             <div>
@@ -123,7 +123,7 @@ export const KpiEntryModal: React.FC<KpiEntryModalProps> = ({
                 value={kpiUnit}
                 onChange={(e) => setKpiUnit(e.target.value)}
                 placeholder="USD / % / deals"
-                className="w-full px-3 py-2 rounded-xl bg-black/70 border border-white/15 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-office-cyan font-mono min-h-[44px]"
+                className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text placeholder-slate-600 focus:outline-none focus:border-office-accent font-mono min-h-[44px]"
               />
             </div>
           </div>
@@ -136,7 +136,7 @@ export const KpiEntryModal: React.FC<KpiEntryModalProps> = ({
                 value={kpiPeriod}
                 onChange={(e) => setKpiPeriod(e.target.value)}
                 placeholder="2026-Q3"
-                className="w-full px-3 py-2 rounded-xl bg-black/70 border border-white/15 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-office-cyan font-mono min-h-[44px]"
+                className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text placeholder-slate-600 focus:outline-none focus:border-office-accent font-mono min-h-[44px]"
               />
             </div>
             <div>
@@ -144,7 +144,7 @@ export const KpiEntryModal: React.FC<KpiEntryModalProps> = ({
               <select
                 value={kpiSource}
                 onChange={(e) => setKpiSource(e.target.value as KpiSource)}
-                className="w-full px-3 py-2 rounded-xl bg-black/70 border border-white/15 text-xs text-white focus:outline-none focus:border-office-cyan min-h-[44px]"
+                className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text focus:outline-none focus:border-office-accent min-h-[44px]"
               >
                 <option value="manual">Manual</option>
                 <option value="import">Imported</option>
@@ -160,7 +160,7 @@ export const KpiEntryModal: React.FC<KpiEntryModalProps> = ({
               value={kpiNote}
               onChange={(e) => setKpiNote(e.target.value)}
               placeholder="Buku kas / rekening koran Q3"
-              className="w-full px-3 py-2 rounded-xl bg-black/70 border border-white/15 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-office-cyan min-h-[44px]"
+              className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text placeholder-slate-600 focus:outline-none focus:border-office-accent min-h-[44px]"
             />
           </div>
 
@@ -168,14 +168,14 @@ export const KpiEntryModal: React.FC<KpiEntryModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-xs font-bold text-office-muted hover:text-white min-h-[44px]"
+              className="flex-1 py-2.5 rounded-xl bg-office-elevated border border-office-border text-xs font-bold text-office-muted hover:text-office-text min-h-[44px]"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 py-2.5 rounded-xl bg-office-cyan text-slate-950 text-xs font-bold hover:bg-cyan-300 min-h-[44px] shadow-glow-cyan disabled:opacity-50"
+              className="flex-1 py-2.5 rounded-xl bg-office-accent text-office-muted text-xs font-bold hover:bg-cyan-300 min-h-[44px] shadow-nu-raised disabled:opacity-50"
             >
               {isSubmitting ? 'Menyimpan...' : 'Simpan KPI'}
             </button>

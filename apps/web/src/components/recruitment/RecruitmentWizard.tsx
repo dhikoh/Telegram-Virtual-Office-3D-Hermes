@@ -46,25 +46,25 @@ export const RecruitmentWizard: React.FC<RecruitmentWizardProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-slate-950 border border-office-violet/40 rounded-2xl w-full max-w-md p-5 shadow-2xl flex flex-col gap-3.5 max-h-[92vh] overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-office-inset backdrop-blur-md p-4 animate-in fade-in duration-200">
+      <div className="bg-office-elevated border border-office-violet/40 rounded-2xl w-full max-w-md p-5 shadow-2xl flex flex-col gap-3.5 max-h-[92vh] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between pb-2.5 border-b border-white/10">
+        <div className="flex items-center justify-between pb-2.5 border-b border-office-border">
           <div className="flex items-center gap-2">
             <UserPlus className="w-4 h-4 text-office-violet" />
-            <h3 className="text-sm font-bold text-white">Ruang Rekrutmen Agen (HR)</h3>
+            <h3 className="text-sm font-bold text-office-text">Ruang Rekrutmen Agen (HR)</h3>
           </div>
           <button
             onClick={onClose}
             type="button"
-            className="text-office-muted hover:text-white p-1"
+            className="text-office-muted hover:text-office-text p-1"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Step Indicator */}
-        <div className="flex items-center justify-between px-2 py-1.5 bg-black/50 rounded-xl border border-white/10 text-[10px]">
+        <div className="flex items-center justify-between px-2 py-1.5 bg-office-inset rounded-xl border border-office-border text-[10px]">
           {[
             { num: 1, label: 'Template' },
             { num: 2, label: 'Spesifikasi' },
@@ -75,19 +75,19 @@ export const RecruitmentWizard: React.FC<RecruitmentWizardProps> = ({
               key={s.num}
               className={`flex items-center gap-1.5 ${
                 step === s.num
-                  ? 'text-office-cyan font-bold'
+                  ? 'text-office-accent-ink font-bold'
                   : step > s.num
-                  ? 'text-emerald-400'
+                  ? 'text-office-success'
                   : 'text-office-muted'
               }`}
             >
               <div
                 className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-mono ${
                   step === s.num
-                    ? 'bg-office-cyan text-slate-950 font-bold'
+                    ? 'bg-office-accent text-office-muted font-bold'
                     : step > s.num
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                    : 'bg-white/10 text-office-muted'
+                    ? 'bg-office-success/20 text-office-success border border-office-success/40'
+                    : 'bg-office-hover text-office-muted'
                 }`}
               >
                 {step > s.num ? '✓' : s.num}

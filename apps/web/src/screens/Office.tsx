@@ -82,7 +82,7 @@ export const OfficeScreen: React.FC<OfficeScreenProps> = ({ onOpenRecruitment, o
               <button
                 onClick={() => retryWebGL()}
                 type="button"
-                className="text-[11px] text-office-bg font-semibold hover:underline px-2 py-1 rounded bg-office-warn min-h-[32px]"
+                className="text-[11px] text-office-on-accent font-semibold hover:underline px-2 py-1 rounded bg-office-warn min-h-[32px]"
               >
                 Coba Lagi
               </button>
@@ -100,7 +100,7 @@ export const OfficeScreen: React.FC<OfficeScreenProps> = ({ onOpenRecruitment, o
         {/* State Matrix: Loading indicator */}
         {isLoading && agents.length === 0 && (
           <div className="w-full py-16 flex flex-col items-center justify-center">
-            <div className="w-8 h-8 rounded-full border-2 border-office-cyan border-t-transparent animate-spin mb-3" />
+            <div className="w-8 h-8 rounded-full border-2 border-office-accent border-t-transparent animate-spin mb-3" />
             <span className="text-xs text-office-muted font-mono">
               {t('office.loadingDemo')}
             </span>
@@ -122,7 +122,7 @@ export const OfficeScreen: React.FC<OfficeScreenProps> = ({ onOpenRecruitment, o
               <button
                 onClick={() => setShowSimPanel(!showSimPanel)}
                 type="button"
-                className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-office-cyan border border-white/10"
+                className="text-[10px] font-mono px-2 py-0.5 rounded bg-office-hover hover:bg-office-hover text-office-accent-ink border border-office-border"
               >
                 {showSimPanel ? 'Hide Controls' : 'Simulate Status'}
               </button>
@@ -130,8 +130,8 @@ export const OfficeScreen: React.FC<OfficeScreenProps> = ({ onOpenRecruitment, o
 
             {/* Simulation Controller Drawer */}
             {showSimPanel && (
-              <div className="w-full mb-3 p-2.5 rounded-xl bg-slate-900/90 border border-office-cyan/30 flex flex-col gap-2 text-xs">
-                <span className="text-[11px] font-semibold text-office-cyan">
+              <div className="w-full mb-3 p-2.5 rounded-xl bg-office-elevated border border-office-accent/30 flex flex-col gap-2 text-xs">
+                <span className="text-[11px] font-semibold text-office-accent-ink">
                   Status Simulator (Phase 3 Acceptance Testing)
                 </span>
                 <div className="flex flex-wrap gap-1.5">
@@ -149,7 +149,7 @@ export const OfficeScreen: React.FC<OfficeScreenProps> = ({ onOpenRecruitment, o
                         }
                       }}
                       type="button"
-                      className="px-2 py-1 rounded bg-black/60 border border-white/10 text-[10px] font-mono text-office-text hover:border-office-cyan active:scale-95"
+                      className="px-2 py-1 rounded bg-office-inset border border-office-border text-[10px] font-mono text-office-text hover:border-office-accent active:scale-95"
                     >
                       {st}
                     </button>
@@ -165,8 +165,8 @@ export const OfficeScreen: React.FC<OfficeScreenProps> = ({ onOpenRecruitment, o
             {viewMode === '3D' ? (
               <React.Suspense
                 fallback={
-                  <div className="w-full max-w-[390px] aspect-[380/420] flex flex-col items-center justify-center rounded-xl border border-office-border bg-office-bg">
-                    <div className="w-8 h-8 rounded-full border-2 border-office-cyan border-t-transparent animate-spin mb-2" />
+                  <div className="w-full max-w-[390px] aspect-[380/420] flex flex-col items-center justify-center rounded-xl border border-office-border bg-office-surface">
+                    <div className="w-8 h-8 rounded-full border-2 border-office-accent border-t-transparent animate-spin mb-2" />
                     <span className="text-xs text-office-muted font-mono">Memuat Tampilan 3D...</span>
                   </div>
                 }

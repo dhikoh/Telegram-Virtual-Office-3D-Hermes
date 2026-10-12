@@ -26,12 +26,12 @@ export const AskOffice: React.FC<AskOfficeProps> = ({ onClick }) => {
     <button
       onClick={handleClick}
       type="button"
-      className={`fixed bottom-20 right-4 z-30 flex items-center gap-2 px-3.5 py-2.5 rounded-full bg-slate-900/90 text-office-cyan border border-office-cyan/40 backdrop-blur-md shadow-glow-cyan active:scale-95 transition-all min-h-[44px] ${
-        isLowPower ? '' : 'hover:border-office-cyan animate-pulse-ring'
+      className={`fixed bottom-20 right-4 z-30 flex items-center gap-2 px-3.5 py-2.5 rounded-full bg-office-elevated text-office-accent-ink border border-office-accent/40 backdrop-blur-md shadow-nu-raised active:scale-95 transition-all min-h-[44px] ${
+        isLowPower ? '' : 'hover:border-office-accent animate-pulse-ring'
       }`}
     >
-      <div className="w-6 h-6 rounded-full bg-office-cyan/20 flex items-center justify-center">
-        <Sparkles className="w-3.5 h-3.5 text-office-cyan" />
+      <div className="w-6 h-6 rounded-full bg-office-accent/20 flex items-center justify-center">
+        <Sparkles className="w-3.5 h-3.5 text-office-accent-ink" />
       </div>
       <span className="text-xs font-semibold tracking-wide">
         {t('office.askOffice')}

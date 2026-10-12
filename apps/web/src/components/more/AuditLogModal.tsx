@@ -39,25 +39,25 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-slate-950 border border-white/20 rounded-2xl w-full max-w-md p-5 shadow-2xl flex flex-col gap-4 max-h-[85vh] overflow-hidden">
-        <div className="flex items-center justify-between pb-2 border-b border-white/10">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-office-inset backdrop-blur-md p-4 animate-in fade-in duration-200">
+      <div className="bg-office-elevated border border-office-border rounded-2xl w-full max-w-md p-5 shadow-2xl flex flex-col gap-4 max-h-[85vh] overflow-hidden">
+        <div className="flex items-center justify-between pb-2 border-b border-office-border">
           <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-office-cyan" />
-            <h3 className="text-sm font-bold text-white">Log Audit Keamanan (Rule S9)</h3>
+            <Shield className="w-4 h-4 text-office-accent-ink" />
+            <h3 className="text-sm font-bold text-office-text">Log Audit Keamanan (Rule S9)</h3>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={fetchLogs}
               disabled={isLoading}
-              className="text-office-muted hover:text-white p-1"
+              className="text-office-muted hover:text-office-text p-1"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             </button>
             <button
               onClick={onClose}
               type="button"
-              className="text-office-muted hover:text-white p-1"
+              className="text-office-muted hover:text-office-text p-1"
             >
               <X className="w-4 h-4" />
             </button>
@@ -73,10 +73,10 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
             logs.map((log) => (
               <div
                 key={log.id}
-                className="p-2.5 rounded-xl bg-black/60 border border-white/10 flex flex-col gap-1 text-xs"
+                className="p-2.5 rounded-xl bg-office-inset border border-office-border flex flex-col gap-1 text-xs"
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-mono font-bold text-office-cyan text-[11px]">
+                  <span className="font-mono font-bold text-office-accent-ink text-[11px]">
                     {log.action}
                   </span>
                   <div className="flex items-center gap-1 text-[10px] text-office-muted font-mono">
@@ -84,9 +84,9 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
                     <span>{new Date(log.ts).toLocaleTimeString('id-ID')}</span>
                   </div>
                 </div>
-                <div className="flex items-center justify-between text-[11px] text-slate-300">
+                <div className="flex items-center justify-between text-[11px] text-office-muted">
                   <span className="truncate max-w-[200px]">Target: {log.target}</span>
-                  <span className="text-[10px] text-slate-400 flex items-center gap-1 font-mono">
+                  <span className="text-[10px] text-office-muted flex items-center gap-1 font-mono">
                     <User className="w-3 h-3" />
                     <span>UID: {log.telegram_user_id}</span>
                   </span>
@@ -99,7 +99,7 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
         <button
           type="button"
           onClick={onClose}
-          className="w-full py-2.5 rounded-xl bg-slate-900 border border-white/10 text-xs font-bold text-office-muted hover:text-white min-h-[44px]"
+          className="w-full py-2.5 rounded-xl bg-office-elevated border border-office-border text-xs font-bold text-office-muted hover:text-office-text min-h-[44px]"
         >
           Tutup
         </button>

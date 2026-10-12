@@ -143,16 +143,16 @@ export const Step4HiringPackage: React.FC<Step4HiringPackageProps> = ({
   if (hiredSuccess) {
     return (
       <div className="flex flex-col items-center justify-center p-8 gap-4 text-center animate-in zoom-in-95 duration-200">
-        <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500 flex items-center justify-center text-3xl shadow-glow-cyan">
+        <div className="w-16 h-16 rounded-full bg-office-success/20 border border-office-success flex items-center justify-center text-3xl shadow-nu-raised">
           {spec.avatar || '🎉'}
         </div>
         <div className="flex flex-col gap-1">
-          <h3 className="text-base font-bold text-white">Selamat Datang di Tim!</h3>
+          <h3 className="text-base font-bold text-office-text">Selamat Datang di Tim!</h3>
           <p className="text-xs text-office-muted">
-            Agen <strong className="text-white">{spec.name}</strong> ({spec.role}) telah resmi didaftarkan ke Virtual Office departemen <span className="text-office-cyan font-bold">{spec.department.toUpperCase()}</span>.
+            Agen <strong className="text-office-text">{spec.name}</strong> ({spec.role}) telah resmi didaftarkan ke Virtual Office departemen <span className="text-office-accent-ink font-bold">{spec.department.toUpperCase()}</span>.
           </p>
         </div>
-        <div className="flex items-center gap-2 text-xs text-emerald-400">
+        <div className="flex items-center gap-2 text-xs text-office-success">
           <CheckCircle2 className="w-4 h-4" />
           <span>Profil & Kredensial Tersimpan Aman</span>
         </div>
@@ -166,7 +166,7 @@ export const Step4HiringPackage: React.FC<Step4HiringPackageProps> = ({
       <div className="rounded-xl p-3 bg-office-violet/10 border border-office-violet/30 flex items-start gap-2.5 text-xs text-office-violet">
         <ShieldCheck className="w-4 h-4 shrink-0 text-office-violet mt-0.5" />
         <div className="leading-relaxed">
-          <span className="font-bold block text-white">Paket Penerimaan VPS (Rule REQ-084)</span>
+          <span className="font-bold block text-office-text">Paket Penerimaan VPS (Rule REQ-084)</span>
           Perintah CLI diverifikasi dari dokumentasi resmi Hermes. Mini App tidak pernah mengeksekusi shell langsung di VPS (Rule S6).
         </div>
       </div>
@@ -181,13 +181,13 @@ export const Step4HiringPackage: React.FC<Step4HiringPackageProps> = ({
               onClick={() => toggleCheck(idx)}
               className={`p-2 rounded-lg border text-xs cursor-pointer flex items-center gap-2 transition-all ${
                 checkedItems[idx]
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                  : 'bg-black/40 border-white/10 text-office-muted hover:text-white'
+                  ? 'bg-office-success/10 border-office-success/30 text-office-success'
+                  : 'bg-office-inset border-office-border text-office-muted hover:text-office-text'
               }`}
             >
               <div
                 className={`w-4 h-4 rounded flex items-center justify-center border ${
-                  checkedItems[idx] ? 'bg-emerald-500 border-emerald-500 text-slate-950 font-bold' : 'border-white/20'
+                  checkedItems[idx] ? 'bg-office-success border-office-success text-office-muted font-bold' : 'border-office-border'
                 }`}
               >
                 {checkedItems[idx] && <Check className="w-3 h-3" />}
@@ -202,28 +202,28 @@ export const Step4HiringPackage: React.FC<Step4HiringPackageProps> = ({
       <div>
         <div className="flex items-center justify-between mb-1.5">
           <div className="flex items-center gap-1.5">
-            <Terminal className="w-3.5 h-3.5 text-office-cyan" />
-            <label className="text-[11px] font-bold text-white">Instruksi Terminal VPS</label>
+            <Terminal className="w-3.5 h-3.5 text-office-accent-ink" />
+            <label className="text-[11px] font-bold text-office-text">Instruksi Terminal VPS</label>
           </div>
           <button
             type="button"
             onClick={handleCopyCommands}
-            className="flex items-center gap-1 px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-[10px] font-mono text-office-cyan"
+            className="flex items-center gap-1 px-2.5 py-1 rounded bg-office-hover hover:bg-office-hover text-[10px] font-mono text-office-accent-ink"
           >
-            {copiedCommands ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+            {copiedCommands ? <Check className="w-3 h-3 text-office-success" /> : <Copy className="w-3 h-3" />}
             <span>{copiedCommands ? 'Tersalin' : 'Salin Perintah'}</span>
           </button>
         </div>
-        <div className="p-3 rounded-xl bg-black/90 border border-white/15 text-[11px] font-mono max-h-48 overflow-y-auto">
+        <div className="p-3 rounded-xl bg-office-inset border border-office-border text-[11px] font-mono max-h-48 overflow-y-auto">
           <MarkdownView content={pkg.commands_md} />
         </div>
       </div>
 
       {/* Registration Form */}
-      <div className="p-3 rounded-xl bg-black/50 border border-white/10 flex flex-col gap-2.5">
+      <div className="p-3 rounded-xl bg-office-inset border border-office-border flex flex-col gap-2.5">
         <div className="flex items-center gap-1.5">
-          <Server className="w-3.5 h-3.5 text-office-cyan" />
-          <span className="text-xs font-bold text-white">Formulir Registrasi Kantor Virtual</span>
+          <Server className="w-3.5 h-3.5 text-office-accent-ink" />
+          <span className="text-xs font-bold text-office-text">Formulir Registrasi Kantor Virtual</span>
         </div>
 
         <div>
@@ -233,7 +233,7 @@ export const Step4HiringPackage: React.FC<Step4HiringPackageProps> = ({
             value={baseUrl}
             onChange={(e) => setBaseUrl(e.target.value)}
             placeholder="Kosongkan untuk default server"
-            className="w-full px-3 py-1.5 rounded-lg bg-black/80 border border-white/15 text-xs text-white font-mono focus:outline-none focus:border-office-cyan"
+            className="w-full px-3 py-1.5 rounded-lg bg-office-inset border border-office-border text-xs text-office-text font-mono focus:outline-none focus:border-office-accent"
           />
         </div>
 
@@ -243,24 +243,24 @@ export const Step4HiringPackage: React.FC<Step4HiringPackageProps> = ({
             type="text"
             value={hermesProfile}
             onChange={(e) => setHermesProfile(e.target.value)}
-            className="w-full px-3 py-1.5 rounded-lg bg-black/80 border border-white/15 text-xs text-white font-mono focus:outline-none focus:border-office-cyan"
+            className="w-full px-3 py-1.5 rounded-lg bg-office-inset border border-office-border text-xs text-office-text font-mono focus:outline-none focus:border-office-accent"
           />
         </div>
       </div>
 
       {draftSuccess && (
-        <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-400 text-center">
+        <div className="p-2 rounded-lg bg-office-success/10 border border-office-success/30 text-xs text-office-success text-center">
           Draft penerimaan berhasil disimpan di server!
         </div>
       )}
 
       {/* Action Buttons */}
-      <div className="flex flex-col gap-2 pt-2 border-t border-white/10">
+      <div className="flex flex-col gap-2 pt-2 border-t border-office-border">
         <div className="flex gap-2">
           <button
             type="button"
             onClick={onBack}
-            className="flex-1 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-xs font-bold text-office-muted hover:text-white min-h-[44px] flex items-center justify-center gap-1.5"
+            className="flex-1 py-2.5 rounded-xl bg-office-elevated border border-office-border text-xs font-bold text-office-muted hover:text-office-text min-h-[44px] flex items-center justify-center gap-1.5"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Kembali</span>
@@ -269,9 +269,9 @@ export const Step4HiringPackage: React.FC<Step4HiringPackageProps> = ({
             type="button"
             onClick={handleSaveDraft}
             disabled={isDrafting}
-            className="flex-1 py-2.5 rounded-xl bg-slate-800 border border-white/15 text-xs font-bold text-white hover:bg-slate-700 min-h-[44px] flex items-center justify-center gap-1.5"
+            className="flex-1 py-2.5 rounded-xl bg-office-inset border border-office-border text-xs font-bold text-office-text hover:bg-office-inset min-h-[44px] flex items-center justify-center gap-1.5"
           >
-            <Save className="w-3.5 h-3.5 text-office-cyan" />
+            <Save className="w-3.5 h-3.5 text-office-accent-ink" />
             <span>{isDrafting ? 'Menyimpan...' : 'Simpan Draft'}</span>
           </button>
         </div>
@@ -280,7 +280,7 @@ export const Step4HiringPackage: React.FC<Step4HiringPackageProps> = ({
           type="button"
           onClick={handleMarkHired}
           disabled={isSubmitting}
-          className="w-full py-3 rounded-xl bg-gradient-to-r from-office-cyan to-office-violet text-slate-950 font-bold text-xs hover:opacity-90 min-h-[48px] shadow-glow-cyan flex items-center justify-center gap-2"
+          className="w-full py-3 rounded-xl bg-gradient-to-r from-office-accent to-office-violet text-office-muted font-bold text-xs hover:opacity-90 min-h-[48px] shadow-nu-raised flex items-center justify-center gap-2"
         >
           <Sparkles className="w-4 h-4" />
           <span>{isSubmitting ? 'Mendaftarkan Agen...' : 'Daftarkan & Rekrut Agen'}</span>

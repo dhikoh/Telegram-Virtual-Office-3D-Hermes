@@ -47,17 +47,17 @@ export const AgentsRegistryModal: React.FC<AgentsRegistryModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-slate-950 border border-office-cyan/40 rounded-2xl w-full max-w-md p-5 shadow-2xl flex flex-col gap-4 max-h-[85vh] overflow-hidden">
-        <div className="flex items-center justify-between pb-2 border-b border-white/10">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-office-inset backdrop-blur-md p-4 animate-in fade-in duration-200">
+      <div className="bg-office-elevated border border-office-accent/40 rounded-2xl w-full max-w-md p-5 shadow-2xl flex flex-col gap-4 max-h-[85vh] overflow-hidden">
+        <div className="flex items-center justify-between pb-2 border-b border-office-border">
           <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-office-cyan" />
-            <h3 className="text-sm font-bold text-white">Registri Agen ({agents.length})</h3>
+            <Users className="w-4 h-4 text-office-accent-ink" />
+            <h3 className="text-sm font-bold text-office-text">Registri Agen ({agents.length})</h3>
           </div>
           <button
             onClick={onClose}
             type="button"
-            className="text-office-muted hover:text-white p-1"
+            className="text-office-muted hover:text-office-text p-1"
           >
             <X className="w-4 h-4" />
           </button>
@@ -72,7 +72,7 @@ export const AgentsRegistryModal: React.FC<AgentsRegistryModalProps> = ({
             agents.map((agent) => (
               <div
                 key={agent.id}
-                className="p-3 rounded-xl bg-black/60 border border-white/10 flex items-center justify-between gap-3"
+                className="p-3 rounded-xl bg-office-inset border border-office-border flex items-center justify-between gap-3"
               >
                 <div
                   className="flex items-center gap-2.5 flex-1 cursor-pointer"
@@ -86,8 +86,8 @@ export const AgentsRegistryModal: React.FC<AgentsRegistryModalProps> = ({
                   <span className="text-2xl">{agent.avatar || '🤖'}</span>
                   <div className="flex flex-col">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-white">{agent.name}</span>
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/10 text-office-cyan">
+                      <span className="text-xs font-bold text-office-text">{agent.name}</span>
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-office-hover text-office-accent-ink">
                         {agent.department}
                       </span>
                     </div>
@@ -97,7 +97,7 @@ export const AgentsRegistryModal: React.FC<AgentsRegistryModalProps> = ({
 
                 <div className="flex items-center gap-1.5">
                   {healthStatus[agent.id] === 'ok' && (
-                    <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
+                    <span className="text-[10px] font-mono text-office-success flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       <span>Online</span>
                     </span>
@@ -113,9 +113,9 @@ export const AgentsRegistryModal: React.FC<AgentsRegistryModalProps> = ({
                     onClick={() => handleTestHealth(agent.id)}
                     disabled={testingId === agent.id}
                     title="Uji Koneksi Gateway"
-                    className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-office-muted hover:text-office-cyan transition-colors min-h-[36px]"
+                    className="p-2 rounded-lg bg-office-hover hover:bg-office-hover text-office-muted hover:text-office-accent-ink transition-colors min-h-[36px]"
                   >
-                    <RefreshCw className={`w-3.5 h-3.5 ${testingId === agent.id ? 'animate-spin text-office-cyan' : ''}`} />
+                    <RefreshCw className={`w-3.5 h-3.5 ${testingId === agent.id ? 'animate-spin text-office-accent-ink' : ''}`} />
                   </button>
                 </div>
               </div>
@@ -126,7 +126,7 @@ export const AgentsRegistryModal: React.FC<AgentsRegistryModalProps> = ({
         <button
           type="button"
           onClick={onClose}
-          className="w-full py-2.5 rounded-xl bg-slate-900 border border-white/10 text-xs font-bold text-office-muted hover:text-white min-h-[44px]"
+          className="w-full py-2.5 rounded-xl bg-office-elevated border border-office-border text-xs font-bold text-office-muted hover:text-office-text min-h-[44px]"
         >
           Tutup
         </button>

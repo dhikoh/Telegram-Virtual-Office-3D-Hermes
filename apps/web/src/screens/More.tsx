@@ -72,7 +72,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
   return (
     <div className="flex flex-col min-h-screen p-4 pb-24 max-w-md mx-auto w-full select-none">
       <div className="flex items-center gap-2 mb-4">
-        <Settings className="w-5 h-5 text-office-cyan" />
+        <Settings className="w-5 h-5 text-office-accent-ink" />
         <h1 className="text-lg font-bold text-office-text">{t('nav.more')}</h1>
       </div>
 
@@ -87,15 +87,15 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
           <button
             onClick={openRecruitment}
             type="button"
-            className="glass-panel rounded-xl p-3.5 border border-office-violet/40 bg-office-violet/10 hover:bg-office-violet/20 flex items-center justify-between text-xs text-office-text transition-all min-h-[52px] shadow-glow-violet"
+            className="glass-panel rounded-xl p-3.5 border border-office-violet/40 bg-office-violet/10 hover:bg-office-violet/20 flex items-center justify-between text-xs text-office-text transition-all min-h-[52px] shadow-nu-raised"
           >
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-office-violet/20 text-office-violet">
                 <UserPlus className="w-5 h-5" />
               </div>
               <div className="flex flex-col text-left">
-                <span className="font-bold text-white text-sm">Ruang Rekrutmen Agen (HR)</span>
-                <span className="text-[11px] text-slate-400">
+                <span className="font-bold text-office-text text-sm">Ruang Rekrutmen Agen (HR)</span>
+                <span className="text-[11px] text-office-muted">
                   Buat profil SOUL.md & instruksi VPS baru
                 </span>
               </div>
@@ -110,14 +110,14 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
               setIsRegistryOpen(true);
             }}
             type="button"
-            className="glass-panel rounded-xl p-3.5 border border-white/10 hover:bg-white/5 flex items-center justify-between text-xs text-office-text transition-all min-h-[48px]"
+            className="glass-panel rounded-xl p-3.5 border border-office-border hover:bg-office-hover flex items-center justify-between text-xs text-office-text transition-all min-h-[48px]"
           >
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-office-cyan/15 text-office-cyan">
+              <div className="p-2 rounded-lg bg-office-accent/15 text-office-accent-ink">
                 <Users className="w-4 h-4" />
               </div>
               <div className="flex flex-col text-left">
-                <span className="font-semibold text-white">Registri Agen Kantor</span>
+                <span className="font-semibold text-office-text">Registri Agen Kantor</span>
                 <span className="text-[10px] text-office-muted">
                   {agents.length} agen aktif • Cek status & koneksi gateway
                 </span>
@@ -133,14 +133,14 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
               setIsAuditOpen(true);
             }}
             type="button"
-            className="glass-panel rounded-xl p-3.5 border border-white/10 hover:bg-white/5 flex items-center justify-between text-xs text-office-text transition-all min-h-[48px]"
+            className="glass-panel rounded-xl p-3.5 border border-office-border hover:bg-office-hover flex items-center justify-between text-xs text-office-text transition-all min-h-[48px]"
           >
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-slate-800 text-slate-300">
+              <div className="p-2 rounded-lg bg-office-inset text-office-muted">
                 <Shield className="w-4 h-4" />
               </div>
               <div className="flex flex-col text-left">
-                <span className="font-semibold text-white">Log Audit Keamanan</span>
+                <span className="font-semibold text-office-text">Log Audit Keamanan</span>
                 <span className="text-[10px] text-office-muted">
                   Riwayat aksi mutasi sistem & otentikasi
                 </span>
@@ -157,9 +157,9 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
           </span>
 
           {/* Language Selection Card (Rule REQ-099) */}
-          <div className="glass-panel rounded-xl p-3.5 border border-white/10 flex flex-col gap-2.5">
+          <div className="glass-panel rounded-xl p-3.5 border border-office-border flex flex-col gap-2.5">
             <div className="flex items-center gap-2 text-xs font-semibold text-office-text">
-              <Globe className="w-4 h-4 text-office-cyan" />
+              <Globe className="w-4 h-4 text-office-accent-ink" />
               <span>{t('lang.switch')}</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -168,8 +168,8 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
                 type="button"
                 className={`py-2 px-3 rounded-lg text-xs font-medium transition-all min-h-[44px] ${
                   i18n.language === 'id'
-                    ? 'bg-office-cyan text-office-bg font-bold shadow-glow-cyan'
-                    : 'bg-white/5 text-office-muted hover:text-white'
+                    ? 'bg-office-accent text-office-on-accent font-bold shadow-nu-raised'
+                    : 'bg-office-hover text-office-muted hover:text-office-text'
                 }`}
               >
                 {t('lang.id')}
@@ -179,8 +179,8 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
                 type="button"
                 className={`py-2 px-3 rounded-lg text-xs font-medium transition-all min-h-[44px] ${
                   i18n.language === 'en'
-                    ? 'bg-office-cyan text-office-bg font-bold shadow-glow-cyan'
-                    : 'bg-white/5 text-office-muted hover:text-white'
+                    ? 'bg-office-accent text-office-on-accent font-bold shadow-nu-raised'
+                    : 'bg-office-hover text-office-muted hover:text-office-text'
                 }`}
               >
                 {t('lang.en')}
@@ -189,11 +189,11 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
           </div>
 
           {/* Low-Power Mode Card (Rule REQ-067) */}
-          <div className="glass-panel rounded-xl p-3.5 border border-white/10 flex items-center justify-between">
+          <div className="glass-panel rounded-xl p-3.5 border border-office-border flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div
                 className={`p-2 rounded-lg ${
-                  isLowPower ? 'bg-office-warn/20 text-office-warn' : 'bg-white/5 text-office-muted'
+                  isLowPower ? 'bg-office-warn/20 text-office-warn' : 'bg-office-hover text-office-muted'
                 }`}
               >
                 <Zap className="w-4 h-4" />
@@ -209,11 +209,11 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
               onClick={handleTogglePower}
               type="button"
               className={`w-12 h-6 rounded-full transition-colors relative p-0.5 min-h-[44px] flex items-center ${
-                isLowPower ? 'bg-office-warn' : 'bg-slate-700'
+                isLowPower ? 'bg-office-warn' : 'bg-office-inset'
               }`}
             >
               <div
-                className={`w-5 h-5 rounded-full bg-white transition-transform ${
+                className={`w-5 h-5 rounded-full bg-office-panel transition-transform ${
                   isLowPower ? 'translate-x-6' : 'translate-x-0'
                 }`}
               />
@@ -227,17 +227,17 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
           <TelegramNotificationsCard />
 
           {/* Telegram WebApp Controls */}
-          <div className="glass-panel rounded-xl p-3.5 border border-white/10 flex flex-col gap-2.5">
+          <div className="glass-panel rounded-xl p-3.5 border border-office-border flex flex-col gap-2.5">
             <span className="text-xs font-semibold text-office-text">Integrasi Telegram</span>
             <div className="flex flex-col gap-2">
               <button
                 onClick={handleFullscreen}
                 type="button"
                 aria-label="Layar Penuh Telegram"
-                className="w-full py-2.5 px-3 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-between text-xs text-office-text min-h-[44px]"
+                className="w-full py-2.5 px-3 rounded-lg bg-office-hover hover:bg-office-hover flex items-center justify-between text-xs text-office-text min-h-[44px]"
               >
                 <div className="flex items-center gap-2">
-                  <Maximize className="w-4 h-4 text-office-cyan" />
+                  <Maximize className="w-4 h-4 text-office-accent-ink" />
                   <span>Layar Penuh (Telegram v8.0+)</span>
                 </div>
                 <span className="text-[10px] font-mono text-office-muted">Aktifkan</span>
@@ -252,7 +252,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
                       onClick={() => testHaptic(style)}
                       type="button"
                       aria-label={`Uji getar ${style}`}
-                      className="px-3 py-2 rounded bg-white/5 hover:bg-white/10 text-[10px] font-mono text-office-cyan border border-white/10 min-h-[44px] min-w-[44px] flex items-center justify-center active:scale-95 transition-transform"
+                      className="px-3 py-2 rounded bg-office-hover hover:bg-office-hover text-[10px] font-mono text-office-accent-ink border border-office-border min-h-[44px] min-w-[44px] flex items-center justify-center active:scale-95 transition-transform"
                     >
                       {style}
                     </button>
