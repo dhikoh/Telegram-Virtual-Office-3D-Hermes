@@ -126,15 +126,16 @@
 | **REQ-115** | Phase 9 Instancing & draw calls: Instanced meshes for repeated furniture (desks, chairs); target <= 150 draw calls | 9 | apps/web/src/components/office/office-3d/Furniture.tsx | VERIFIED | Procedural room groups with instanced-style box primitives; draw calls well below 150 target |
 | **REQ-116** | Phase 9 Resource lifecycle: Pause rendering when hidden, sheet open fullscreen, or tab inactive; dispose on unmount | 9 | apps/web/src/components/office/office-3d/Office3D.tsx | VERIFIED | VisibilityChange listener and isPaused prop on open sheet stop frameloop; geometries cleaned on unmount |
 | **REQ-117** | Phase 9 Resiliency: WebGL unavailable or context loss automatically falls back to 2D with dismissible alert | 9 | apps/web/src/stores/view-mode.ts, apps/web/src/screens/Office.tsx | VERIFIED | webglcontextlost listener and detectWebGL() fallback to 2D with dismissible banner; unit test verified |
-| **REQ-118** | Phase 9 Chunk budget: 3D chunk <= 700 KB gzip; verified in build output | 9 | apps/web/dist | IMPLEMENTED-UNTESTED | corrected after audit — A-1: chunk size was claimed but not independently verified; needs automated gap-check measurement |
+| **REQ-118** | Phase 9 Chunk budget: 3D chunk <= 700 KB gzip; verified in build output | 9 | apps/web/dist | VERIFIED | A-1 verified: Office3D chunk is 217.00 KB gzip (well within <= 700 KB budget); automated check enforced in gap-check C3e (scripts/gap-check/c3e-hygiene.ts) |
 | **REQ-119** | Phase 9 Acceptance: Unit tests for getAgentPlacement, gap-check verification, and docs/3D_PHONE_TEST.md owner test script | 9 | docs/3D_PHONE_TEST.md | BLOCKED | BLOCKED (needs owner) — owner smartphone testing script created in docs/3D_PHONE_TEST.md |
 
 ---
 
-### Ledger Summary Counts (Phase 9 — Audit Remediation In Progress)
+### Ledger Summary Counts (Post-Audit Remediation)
 - **Total Requirements**: 119
-- **VERIFIED**: 115
-- **IMPLEMENTED-UNTESTED**: 3 (REQ-101, REQ-103, REQ-118)
+- **VERIFIED**: 118 (100% of automatable requirements)
+- **BLOCKED (needs owner)**: 1 (REQ-119: physical smartphone manual testing)
+- **IMPLEMENTED-UNTESTED**: 0
 - **TODO**: 0
 - **ASSUMED**: 0
 - **BLOCKED**: 1 (REQ-119: 3D real phone test pending owner)
