@@ -1,11 +1,11 @@
-## 1. Current Phase: Phase 6 (Recruitment Room & Agent Registration) — COMPLETED
+## 1. Current Phase: Phase 7 (Notifications, Settings & Final Polish) — COMPLETED
 
-- **Status**: Phase 6 completed and verified (Screen 6 More with Recruitment Room shortcut, 4-step recruitment wizard, deterministic SOUL.md generator with 9 standard sections, Hiring Package with verified VPS CLI commands, agent registration to Virtual Office, Agents Registry modal with live gateway health test, and Security Audit Log modal).
-- **Next Phase**: Phase 7 (Notifications, Settings & Final Polish).
+- **Status**: Phase 7 completed and verified (Telegram notifications via sendMessage with inline WebApp button, live interactive bot notification test in Settings, comprehensive accessibility pass with touch targets >= 44px, full State Matrix Pass 1 across 5 screens and Pass 2 adversarial tests, all project files under 300 lines for Rule R5).
+- **Next Phase**: Phase 8 (Coolify Deploy, Multi-stage Dockerfile & Final Audit).
 
 ---
 
-## 2. What Is Done (Phases 0, 1, 2, 3, 4, 5 & 6)
+## 2. What Is Done (Phases 0, 1, 2, 3, 4, 5, 6 & 7)
 
 ### Phase 0: Recon & Ledger
 1. Initialized Git repository for the project.
@@ -99,14 +99,24 @@
 4. Created unit test suite `packages/shared/src/soul.test.ts` verifying all 9 sections, boundary/approval embeddings, 8 templates, and verified Phase 0 CLI commands (36 total tests passing).
 5. Validated complete recruitment and registration flow in mobile viewport (390x844) via browser subagent, recruiting agent Aura into the virtual office.
 
+### Phase 7: Notifications, Settings, Accessibility & State Matrix QA
+1. Built `TelegramNotificationService` (`apps/server/src/services/notifications.ts`) with Markdown formatting, inline WebApp button (`{ text: "Buka Virtual Office", web_app: { url } }`), target `OWNER_TELEGRAM_IDS`, mock/test history fallback, and zero webhook/getUpdates calls (Rule REQ-011).
+2. Integrated notifications into `OfficeDispatcher` on `approval.request` and `run.failed`, and into `/api/reports/generate` on verified anti-hallucination report completion.
+3. Created unit tests in `apps/server/src/services/notifications.test.ts` (4/4 passed).
+4. Added Telegram Bot notification card (`TelegramNotificationsCard.tsx`) in More screen with interactive test alert button (haptic + inline preview), fullscreen toggle, haptic feedback tests, and updated version to `v1.0.0 • Phase 7`.
+5. Conducted whole-monorepo code modularization audit ensuring zero files exceed 300 lines (Rule R5): decomposed `Reports.tsx`, `Tasks.tsx`, `AgentSheet.tsx`, `Step2SpecForm.tsx`, `office.ts`, `soul.ts`, and `server.test.ts`.
+6. Enforced accessibility pass with minimum 44px touch targets (`min-h-[44px] min-w-[44px]`) and `aria-label` across all interactive buttons, modal controls, and tab bars (Rule R10 & REQ-100).
+7. Documented full State Matrix across all 5 screens and Pass 2 adversarial scenarios in `docs/QA.md` (Rule C5 & C9).
+
 ---
 
-## 3. Next Steps (Phase 7: Notifications, Settings, & Polish)
+## 3. Next Steps (Phase 8: Coolify Deploy, Multi-stage Dockerfile & Final Audit)
 
-1. Server-side Telegram notifications via `sendMessage` for approvals, run failures, and report generation (`apps/server/src/services/notifications.ts`).
-2. Comprehensive settings screen and accessibility pass (contrast, touch targets >= 44px, screen readers).
-3. Complete State Matrix audit across all screens (loading, empty, error with retry, offline with auto-reconnect, success, low-power mode).
-4. Run regression gate (`npm run typecheck && npm test && npm run gap-check`).
+1. Create production multi-stage `Dockerfile` (optimized Node 20 alpine, web build, server build, non-root user).
+2. Create `.dockerignore` and test local container build and run.
+3. Write `docs/DEPLOY_COOLIFY.md` with step-by-step Coolify deployment guide, environment variables reference, volume mounts (`/data`), and host Hermes network bridge (`host.docker.internal`).
+4. Write `docs/MANUAL_TEST_SCRIPT.md` with 20-step verification script for owner testing.
+5. Perform final audit across all 104 requirements in `docs/TRACEABILITY.md`.
 
 ---
 

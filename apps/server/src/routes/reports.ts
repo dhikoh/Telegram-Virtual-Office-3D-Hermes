@@ -9,6 +9,7 @@ import { KpiRepository } from '../db/repositories/kpis.js';
 import { AgentRepository } from '../db/repositories/agents.js';
 import { AuditRepository } from '../db/repositories/audit.js';
 import { getHermesClientForAgent } from '../services/hermes/index.js';
+import { telegramNotifications } from '../services/notifications.js';
 
 export const reportRoutes: FastifyPluginAsync = async (fastify) => {
   const db = (fastify as any).db; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -139,6 +140,11 @@ ${kpiSummary || 'No KPI entries currently available.'}`;
     if (!validatedAnalysis) {
       return reply.code(422).send({ error: 'validation_failed', report, message: 'Report failed anti-hallucination validation' });
     }
+
+    telegramNotifications.notifyReportReady(
+      { id: reportId, department: agent.department, template, period },
+      agent.name
+    ).catch(() => {});
 
     return reply.code(201).send(report);
   });

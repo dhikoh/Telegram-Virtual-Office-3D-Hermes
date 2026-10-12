@@ -25,6 +25,7 @@ import { changeLanguage } from '../i18n';
 import { RecruitmentWizard } from '../components/recruitment/RecruitmentWizard';
 import { AgentsRegistryModal } from '../components/more/AgentsRegistryModal';
 import { AuditLogModal } from '../components/more/AuditLogModal';
+import { TelegramNotificationsCard } from '../components/more/TelegramNotificationsCard';
 
 interface MoreScreenProps {
   onOpenRecruitment?: () => void;
@@ -218,6 +219,9 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
             </button>
           </div>
 
+          {/* Telegram Notifications Settings Card (Rule REQ-085 & REQ-093) */}
+          <TelegramNotificationsCard />
+
           {/* Telegram WebApp Controls */}
           <div className="glass-panel rounded-xl p-3.5 border border-white/10 flex flex-col gap-2.5">
             <span className="text-xs font-semibold text-office-text">Integrasi Telegram</span>
@@ -225,6 +229,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
               <button
                 onClick={handleFullscreen}
                 type="button"
+                aria-label="Layar Penuh Telegram"
                 className="w-full py-2.5 px-3 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-between text-xs text-office-text min-h-[44px]"
               >
                 <div className="flex items-center gap-2">
@@ -236,13 +241,14 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
 
               <div className="flex items-center justify-between pt-1">
                 <span className="text-xs text-office-muted">Uji Haptic Feedback:</span>
-                <div className="flex gap-1.5">
+                <div className="flex gap-2">
                   {(['light', 'medium', 'heavy'] as const).map((style) => (
                     <button
                       key={style}
                       onClick={() => testHaptic(style)}
                       type="button"
-                      className="px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 text-[10px] font-mono text-office-cyan border border-white/10 min-h-[32px]"
+                      aria-label={`Uji getar ${style}`}
+                      className="px-3 py-2 rounded bg-white/5 hover:bg-white/10 text-[10px] font-mono text-office-cyan border border-white/10 min-h-[44px] min-w-[44px] flex items-center justify-center active:scale-95 transition-transform"
                     >
                       {style}
                     </button>
@@ -255,7 +261,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
 
         {/* App Version Info */}
         <div className="text-center py-4 text-[10px] font-mono text-office-muted/60">
-          Hermes Virtual Office v0.1.0 • Phase 6 Recruitment
+          Hermes Virtual Office v1.0.0 • Phase 7 (Notifications & Polish)
         </div>
       </div>
 

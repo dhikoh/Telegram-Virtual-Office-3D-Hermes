@@ -3,25 +3,22 @@
  * 4 Tabs: Chat (streaming), Activity (live tool progress + history), Tasks, Profile.
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   X,
   MessageSquare,
   Activity,
   CheckSquare,
   User,
-  Send,
   Square,
-  CheckCircle,
-  AlertCircle,
   Wrench,
-  HeartPulse,
 } from 'lucide-react';
 import type { OfficeAgent } from '../../stores/office';
 import { useOfficeStore } from '../../stores/office';
 import { api } from '../../services/api';
 import { tma } from '../../services/tma';
-import { MarkdownView } from '../common/MarkdownView';
+import { AgentSheetChat } from './AgentSheetChat';
+import { AgentSheetProfile } from './AgentSheetProfile';
 
 interface AgentSheetProps {
   agent: OfficeAgent;
@@ -31,115 +28,13 @@ interface AgentSheetProps {
 
 type SheetTab = 'chat' | 'activity' | 'tasks' | 'profile';
 
-interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: string;
-}
-
 export const AgentSheet: React.FC<AgentSheetProps> = ({ agent, onClose, onOpenTaskCreate }) => {
   const { tasks, ticker, setAgentStatus } = useOfficeStore();
   const [activeTab, setActiveTab] = useState<SheetTab>('chat');
 
-  // Chat State
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'welcome',
-      role: 'assistant',
-      content: `Halo, saya **${agent.name}** (${agent.role}). Siap membantu operasional divisi **${agent.department}**. Ada yang bisa saya bantu?`,
-      timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-    },
-  ]);
-  const [inputMessage, setInputMessage] = useState('');
-  const [isStreaming, setIsStreaming] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Profile Health State
-  const [healthStatus, setHealthStatus] = useState<'idle' | 'checking' | 'healthy' | 'error'>('idle');
-  const [healthMessage, setHealthMessage] = useState<string | null>(null);
-
-  // Auto scroll to bottom of chat
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isStreaming]);
-
   // Tasks assigned to this agent
   const agentTasks = tasks.filter((task) => task.agent_id === agent.id);
   const runningTask = agentTasks.find((task) => task.status === 'running');
-
-  // Send message with SSE streaming
-  const handleSendMessage = async (textToSend?: string) => {
-    const text = (textToSend || inputMessage).trim();
-    if (!text || isStreaming) return;
-
-    tma.hapticImpact('light');
-    const userMsg: ChatMessage = {
-      id: `msg-${Date.now()}`,
-      role: 'user',
-      content: text,
-      timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-    };
-
-    const assistantMsgId = `reply-${Date.now()}`;
-    const newMessages = [...messages, userMsg];
-    setMessages([
-      ...newMessages,
-      {
-        id: assistantMsgId,
-        role: 'assistant',
-        content: '',
-        timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-      },
-    ]);
-    setInputMessage('');
-    setIsStreaming(true);
-
-    // Format chat history for API
-    const historyPayload = newMessages.map((m) => ({
-      role: m.role,
-      content: m.content,
-    }));
-
-    await api.streamChat(
-      agent.id,
-      historyPayload,
-      (delta) => {
-        setMessages((prev) =>
-          prev.map((m) => (m.id === assistantMsgId ? { ...m, content: m.content + delta } : m))
-        );
-      },
-      () => {
-        setIsStreaming(false);
-        tma.hapticNotification('success');
-      },
-      (err) => {
-        setIsStreaming(false);
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantMsgId
-              ? { ...m, content: m.content || `⚠️ Galat komunikasi agen: ${err.message}` }
-              : m
-          )
-        );
-      }
-    );
-  };
-
-  // Check agent health
-  const handleCheckHealth = async () => {
-    setHealthStatus('checking');
-    try {
-      const res = await api.getAgentHealth(agent.id);
-      setHealthStatus(res.status === 'healthy' ? 'healthy' : 'error');
-      setHealthMessage(res.status === 'healthy' ? 'Gateway aktif & siap melayani tugas' : 'Gateway merespons dengan kendala');
-      tma.hapticNotification('success');
-    } catch (err: unknown) {
-      setHealthStatus('error');
-      setHealthMessage(err instanceof Error ? err.message : 'Gateway tidak terjangkau');
-      tma.hapticNotification('error');
-    }
-  };
 
   // Stop running task
   const handleStopTask = async (taskId: string) => {
@@ -189,7 +84,8 @@ export const AgentSheet: React.FC<AgentSheetProps> = ({ agent, onClose, onOpenTa
           <button
             onClick={onClose}
             type="button"
-            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-office-muted hover:text-white transition-colors"
+            aria-label="Tutup Lembar Agen"
+            className="w-11 h-11 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-office-muted hover:text-white transition-colors min-h-[44px] min-w-[44px]"
           >
             <X className="w-4 h-4" />
           </button>
@@ -227,83 +123,11 @@ export const AgentSheet: React.FC<AgentSheetProps> = ({ agent, onClose, onOpenTa
         </div>
 
         {/* Tab 1: Chat */}
-        {activeTab === 'chat' && (
-          <div className="flex-1 flex flex-col justify-between overflow-hidden">
-            {/* Messages Scroll Area */}
-            <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2.5">
-              {messages.map((m) => (
-                <div
-                  key={m.id}
-                  className={`flex flex-col max-w-[85%] ${
-                    m.role === 'user' ? 'self-end items-end' : 'self-start items-start'
-                  }`}
-                >
-                  <div
-                    className={`rounded-2xl p-3 text-xs leading-relaxed ${
-                      m.role === 'user'
-                        ? 'bg-office-cyan text-office-bg font-medium rounded-br-none shadow-glow-cyan'
-                        : 'glass-panel bg-white/5 text-office-text border border-white/10 rounded-bl-none'
-                    }`}
-                  >
-                    <MarkdownView content={m.content} />
-                  </div>
-                  <span className="text-[9px] font-mono text-office-muted/70 mt-1 px-1">
-                    {m.timestamp}
-                  </span>
-                </div>
-              ))}
-              {isStreaming && (
-                <div className="self-start flex items-center gap-1 text-[11px] text-office-cyan font-mono animate-pulse pl-2">
-                  <span>{agent.name} sedang mengetik...</span>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Quick Prompts */}
-            <div className="px-3 py-1 flex gap-1.5 overflow-x-auto no-scrollbar">
-              {['Status tugas saat ini?', 'Analisis performa minggu ini', 'Cek anomali divisi'].map((pill) => (
-                <button
-                  key={pill}
-                  onClick={() => handleSendMessage(pill)}
-                  disabled={isStreaming}
-                  type="button"
-                  className="px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] text-office-muted hover:text-white whitespace-nowrap shrink-0 transition-colors"
-                >
-                  {pill}
-                </button>
-              ))}
-            </div>
-
-            {/* Chat Input Bar */}
-            <div className="p-2.5 border-t border-white/10 bg-slate-900/80 flex items-center gap-2">
-              <input
-                type="text"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSendMessage();
-                }}
-                placeholder={`Instruksi untuk ${agent.name}...`}
-                disabled={isStreaming}
-                className="flex-1 bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-xs text-white placeholder:text-office-muted/50 focus:outline-none focus:border-office-cyan min-h-[44px]"
-              />
-              <button
-                onClick={() => handleSendMessage()}
-                disabled={!inputMessage.trim() || isStreaming}
-                type="button"
-                className="w-11 h-11 rounded-xl bg-office-cyan text-office-bg font-bold flex items-center justify-center hover:bg-cyan-300 disabled:opacity-40 transition-all shadow-glow-cyan shrink-0"
-              >
-                <Send className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
+        {activeTab === 'chat' && <AgentSheetChat agent={agent} />}
 
         {/* Tab 2: Activity */}
         {activeTab === 'activity' && (
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
-            {/* Live tool status banner */}
             <div className="glass-panel rounded-xl p-3 border border-white/10 bg-slate-900 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div
@@ -327,7 +151,6 @@ export const AgentSheet: React.FC<AgentSheetProps> = ({ agent, onClose, onOpenTa
               </span>
             </div>
 
-            {/* Live Activity Ticker List */}
             <span className="text-xs font-semibold text-office-muted mt-1">Aktivitas Terkini Kantor</span>
             <div className="flex flex-col gap-2">
               {ticker.slice(0, 10).map((t) => (
@@ -353,7 +176,7 @@ export const AgentSheet: React.FC<AgentSheetProps> = ({ agent, onClose, onOpenTa
                       onOpenTaskCreate(agent.id);
                     }}
                     type="button"
-                    className="text-[11px] font-medium text-office-cyan hover:underline"
+                    className="text-[11px] font-medium text-office-cyan hover:underline min-h-[44px] flex items-center"
                   >
                     + Buat Tugas Baru
                   </button>
@@ -389,7 +212,7 @@ export const AgentSheet: React.FC<AgentSheetProps> = ({ agent, onClose, onOpenTa
                         <button
                           onClick={() => handleStopTask(task.id)}
                           type="button"
-                          className="flex items-center gap-1 text-office-danger hover:underline"
+                          className="flex items-center gap-1 text-office-danger hover:underline min-h-[44px]"
                         >
                           <Square className="w-3 h-3" /> Hentikan
                         </button>
@@ -406,7 +229,7 @@ export const AgentSheet: React.FC<AgentSheetProps> = ({ agent, onClose, onOpenTa
                 <button
                   onClick={() => handleStopTask(runningTask.id)}
                   type="button"
-                  className="px-3 py-1.5 rounded-lg bg-office-danger text-white text-xs font-semibold flex items-center gap-1"
+                  className="px-3 py-1.5 rounded-lg bg-office-danger text-white text-xs font-semibold flex items-center gap-1 min-h-[44px]"
                 >
                   <Square className="w-3 h-3" /> Stop Task
                 </button>
@@ -416,64 +239,7 @@ export const AgentSheet: React.FC<AgentSheetProps> = ({ agent, onClose, onOpenTa
         )}
 
         {/* Tab 4: Profile */}
-        {activeTab === 'profile' && (
-          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
-            {/* Identity & Soul */}
-            <div className="glass-panel rounded-xl p-3.5 border border-white/10 flex flex-col gap-2">
-              <span className="text-xs font-semibold text-office-cyan">Ringkasan Karakter (SOUL)</span>
-              <p className="text-xs text-office-text/90 leading-relaxed bg-black/40 p-2.5 rounded-lg border border-white/5">
-                {agent.soul_summary || 'Tidak ada deskripsi jiwa (SOUL) tersimpan.'}
-              </p>
-            </div>
-
-            {/* Profile Configurations */}
-            <div className="glass-panel rounded-xl p-3.5 border border-white/10 flex flex-col gap-2 text-xs">
-              <span className="text-xs font-semibold text-white">Spesifikasi Profile</span>
-              <div className="flex justify-between py-1 border-b border-white/5">
-                <span className="text-office-muted">Hermes Profile:</span>
-                <span className="font-mono text-office-text">{agent.hermes_profile}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-white/5">
-                <span className="text-office-muted">Base URL:</span>
-                <span className="font-mono text-office-text truncate max-w-[200px]">{agent.hermes_base_url}</span>
-              </div>
-              <div className="flex justify-between py-1">
-                <span className="text-office-muted">Kunci API Env:</span>
-                <span className="font-mono text-office-text">{agent.api_key_env}</span>
-              </div>
-            </div>
-
-            {/* Health Checker Card */}
-            <div className="glass-panel rounded-xl p-3.5 border border-white/10 flex flex-col gap-2.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-semibold text-white">
-                  <HeartPulse className="w-4 h-4 text-office-cyan" />
-                  <span>Kesehatan Gateway Agen</span>
-                </div>
-                <button
-                  onClick={handleCheckHealth}
-                  disabled={healthStatus === 'checking'}
-                  type="button"
-                  className="px-2.5 py-1 rounded bg-office-cyan/10 hover:bg-office-cyan/20 border border-office-cyan/30 text-[10px] font-semibold text-office-cyan transition-colors min-h-[32px]"
-                >
-                  {healthStatus === 'checking' ? 'Memeriksa...' : 'Uji Koneksi'}
-                </button>
-              </div>
-              {healthMessage && (
-                <div
-                  className={`p-2 rounded-lg text-xs font-mono flex items-center gap-2 ${
-                    healthStatus === 'healthy'
-                      ? 'bg-office-success/10 text-office-success border border-office-success/30'
-                      : 'bg-office-danger/10 text-office-danger border border-office-danger/30'
-                  }`}
-                >
-                  {healthStatus === 'healthy' ? <CheckCircle className="w-3.5 h-3.5 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 shrink-0" />}
-                  <span>{healthMessage}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        {activeTab === 'profile' && <AgentSheetProfile agent={agent} />}
       </div>
     </div>
   );

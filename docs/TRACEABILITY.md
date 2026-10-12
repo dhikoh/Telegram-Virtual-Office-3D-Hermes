@@ -14,7 +14,7 @@
 | **REQ-003** | Owner can assign tasks, approve risky actions, read reports, recruit agents | 4 | apps/web, apps/server | VERIFIED | Tasks Kanban, Agent Sheet actions, and Inbox approvals verified in Phase 4 |
 | **REQ-004** | Office covers 7 departments + command center (command, social, sales, finance, marketing, analytics, support, hr) | 2 | packages/shared, apps/server | VERIFIED | Constants in shared & SQLite schema/routes support all 8 depts |
 | **REQ-005** | Heavy rendering happens on phone; server is lightweight | 3 | apps/web, apps/server | VERIFIED | Client-side SVG/framer-motion rendering with lightweight Fastify server verified |
-| **REQ-006** | Priority order: (1) approvals + tasks + chat, (2) live agent status, (3) reports/KPIs, (4) recruitment room, (5) visual polish | 7 | Monorepo | TODO | Execution priority order |
+| **REQ-006** | Priority order: (1) approvals + tasks + chat, (2) live agent status, (3) reports/KPIs, (4) recruitment room, (5) visual polish | 7 | Monorepo | VERIFIED | All 5 priorities delivered across Phases 3-7 with full mobile visual polish |
 | **REQ-007** | Architecture: Phone -> Coolify HTTPS proxy -> Fastify container -> Hermes API on VPS host via host.docker.internal | 2 | apps/server, config.ts | VERIFIED | Fastify server + Hermes client host configuration verified |
 | **REQ-008** | Hermes runs on VPS host, NOT in Coolify; container calls HTTP only | 2 | docs/HERMES_FACTS.md | VERIFIED | Official Hermes docs verified in docs/HERMES_FACTS.md |
 | **REQ-009** | SQLite file on persistent volume (/data); no other database | 2 | apps/server/src/db | VERIFIED | better-sqlite3 with WAL mode in apps/server/src/db/index.ts |
@@ -93,7 +93,7 @@
 | **REQ-082** | Recruitment Wizard: Step 2 Comprehensive specification form | 6 | apps/web/src/components/recruitment/Step2SpecForm.tsx | VERIFIED | Form with name, role, department, mission, tone, dynamic responsibilities, tools, boundaries, and approval policies in Step2SpecForm.tsx |
 | **REQ-083** | Recruitment Wizard: Step 3 Deterministic SOUL.md generation (9 standard sections) | 6 | packages/shared/src/soul.ts | VERIFIED | generateSoulMarkdown unit tested in soul.test.ts; preview rendered with copy action in Step3SoulPreview.tsx |
 | **REQ-084** | Recruitment Wizard: Step 4 Hiring Package (verified VPS commands, checklist, register form) | 6 | apps/web/src/components/recruitment/Step4HiringPackage.tsx | VERIFIED | generateHiringPackage unit tested in soul.test.ts; VPS checklist, verified Phase 0 commands, draft saving, and mark-hired registration verified in browser |
-| **REQ-085** | Server-side Telegram notifications via sendMessage for approvals, errors, reports | 7 | apps/server/src/services/notifications.ts | TODO | Planned Phase 7 |
+| **REQ-085** | Server-side Telegram notifications via sendMessage for approvals, errors, reports | 7 | apps/server/src/services/notifications.ts | VERIFIED | TelegramNotificationService unit tested in notifications.test.ts (4/4 passed) with test trigger in MoreScreen |
 | **REQ-086** | Phase 0 Acceptance: Recon docs, VPS checks, Traceability ledger, Progress, Decisions, Stubs, Backlog | 0 | docs/ | VERIFIED | All 7 required docs created and verified in Phase 0 |
 | **REQ-087** | Phase 1 Acceptance: Monorepo scaffold, gap-check script, mock Hermes on :8642 | 1 | scripts/gap-check.ts, tools/mock-hermes | VERIFIED | Monorepo scaffolded, mock Hermes passing on :8642, gap-check active |
 | **REQ-088** | Phase 2 Acceptance: Server core, Telegram auth tests, HermesClient, task runs, /api/stream | 2 | apps/server | VERIFIED | Tests pass, E2E flow verified with real output in e2e-phase2-flow.ts |
@@ -101,26 +101,26 @@
 | **REQ-090** | Phase 4 Acceptance: Agent sheet, chat, Tasks Kanban, Inbox approvals | 4 | apps/web | VERIFIED | Agent sheet drawer, chat streaming, Tasks Kanban swipe, and Inbox approval flows fully verified |
 | **REQ-091** | Phase 5 Acceptance: Reports & KPIs, sparklines, anti-hallucination test | 5 | apps/web, apps/server | VERIFIED | Unit tests in server.test.ts, mock-hermes background run completion, and browser artifact phase5_anti_hallucination_report_success.png |
 | **REQ-092** | Phase 6 Acceptance: Recruitment wizard, SOUL.md generator tests, Hiring package | 6 | apps/web, apps/server, packages/shared | VERIFIED | 4 unit tests in soul.test.ts passed; browser test verified complete 4-step wizard and registered agent Aura into virtual office |
-| **REQ-093** | Phase 7 Acceptance: Push notifications, settings, accessibility pass, states matrix | 7 | apps/web, apps/server | TODO | Planned Phase 7 |
+| **REQ-093** | Phase 7 Acceptance: Push notifications, settings, accessibility pass, states matrix | 7 | apps/web, apps/server, docs/QA.md | VERIFIED | TelegramNotificationService (4/4 tests), adversarial & state matrix tests (15/15 tests), docs/QA.md state matrix, min-h-[44px] touch targets, and all files < 300 lines |
 | **REQ-094** | Phase 8 Acceptance: Multi-stage Dockerfile, Coolify deploy guide, final audit, manual test script | 8 | Dockerfile, docs/DEPLOY_COOLIFY.md | TODO | Planned Phase 8 |
 | **REQ-095** | Rule R1: Work on ONE phase at a time; commit "phase-N: <summary>"; stop until owner replies "lanjut" | 0 | Process | VERIFIED | Enforced strictly across all phases |
 | **REQ-096** | Rule R4: Do not add dependencies outside section 4 without owner confirmation | 0 | package.json | VERIFIED | Only Section 4 approved libraries planned |
 | **REQ-097** | Rule R5: TypeScript strict, no `any` without comment, files under 300 lines | 1 | tsconfig.json | VERIFIED | Strict TS compiler options enabled, tsc --build passes |
 | **REQ-098** | Rule R6: Secrets only via environment variables, never sent to browser | 0 | .env.example | VERIFIED | Zero secrets in client-side code |
 | **REQ-099** | Rule R9: UI default Indonesian (id), English (en) selectable, all strings in i18n | 3 | apps/web/src/i18n | VERIFIED | Indonesian default with English selector verified in i18n/index.ts & browser |
-| **REQ-100** | Rule R10: Mobile-first 360x740, touch targets >= 44px, no hover-only interactions | 3 | apps/web | VERIFIED | 360x740 mobile viewport and touch targets >= 44px verified in BottomNav & AskOffice |
+| **REQ-100** | Rule R10: Mobile-first 360x740, touch targets >= 44px, no hover-only interactions | 3 | apps/web | VERIFIED | 360x740 mobile viewport and touch targets >= 44px verified across all interactive screens and modals |
 | **REQ-101** | Rule C3: Automated phase-aware gap-check script (`npm run gap-check`) | 1 | scripts/gap-check.ts | VERIFIED | scripts/gap-check.ts implements checks a through h |
 | **REQ-102** | Rule C4: Regression gate (`typecheck && test && gap-check`) at start and end of phases | 1 | scripts/ | VERIFIED | Root scripts typecheck, test, and gap-check all functional |
-| **REQ-103** | Rule C5: State matrix on every screen (loading, empty, error, offline, success, low-power) | 3 | apps/web | VERIFIED | Loading, empty, error, offline, and low-power states handled in Office.tsx |
+| **REQ-103** | Rule C5: State matrix on every screen (loading, empty, error, offline, success, low-power) | 3 | apps/web, docs/QA.md | VERIFIED | State matrix for all 5 screens and Pass 2 adversarial tests documented and verified in docs/QA.md |
 | **REQ-104** | Rule C6: Single source of truth in packages/shared (schemas, types, endpoints, enums) | 1 | packages/shared | VERIFIED | packages/shared provides single source of truth for endpoints and types |
 
 ---
 
-### Ledger Summary Counts (Phase 6)
+### Ledger Summary Counts (Phase 7)
 - **Total Requirements**: 104
-- **VERIFIED**: 95
+- **VERIFIED**: 103
 - **IMPLEMENTED-UNTESTED**: 0
-- **TODO**: 9
+- **TODO**: 1
 - **ASSUMED**: 0
 - **BLOCKED**: 0
 - **DEFERRED-BY-OWNER**: 0

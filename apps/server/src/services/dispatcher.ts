@@ -5,6 +5,7 @@ import { TaskRepository } from '../db/repositories/tasks.js';
 import { ApprovalRepository } from '../db/repositories/approvals.js';
 import { getHermesClientForAgent } from './hermes/index.js';
 import { streamManager } from './stream.js';
+import { telegramNotifications } from './notifications.js';
 
 export class OfficeDispatcher {
   private agentRepo: AgentRepository;
@@ -128,11 +129,12 @@ export class OfficeDispatcher {
 
       case 'approval.request': {
         const approvalId = `appr_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+        const summary = data.summary || 'Persetujuan diperlukan untuk eksekusi aksi agen';
         this.approvalRepo.create({
           id: approvalId,
           run_id: runId,
           agent_id: agent.id,
-          summary: data.summary || 'Persetujuan diperlukan untuk eksekusi aksi agen',
+          summary,
           payload_json: JSON.stringify(data.payload || {}),
           status: 'pending',
           decided_by: null,
@@ -147,6 +149,10 @@ export class OfficeDispatcher {
           data: { approval_id: approvalId, run_id: runId },
           timestamp: Date.now(),
         });
+        telegramNotifications.notifyApprovalPending(
+          { id: approvalId, run_id: runId, summary },
+          agent.name
+        ).catch(() => {});
         break;
       }
 
@@ -159,14 +165,22 @@ export class OfficeDispatcher {
         this.activeStreams.delete(runId);
         break;
 
-      case 'run.failed':
+      case 'run.failed': {
+        const task = this.taskRepo.getById(taskId);
+        const errMsg = data.error || 'Eksekusi tugas gagal.';
         this.taskRepo.update(taskId, {
           status: 'failed',
-          result_md: data.error || 'Eksekusi tugas gagal.',
+          result_md: errMsg,
         });
         this.setAgentStatus(agent.id, 'error');
         this.activeStreams.delete(runId);
+        telegramNotifications.notifyRunFailed(
+          { id: taskId, title: task?.title || 'Tugas' },
+          agent.name,
+          errMsg
+        ).catch(() => {});
         break;
+      }
 
       case 'run.cancelled':
         this.taskRepo.update(taskId, { status: 'cancelled' });

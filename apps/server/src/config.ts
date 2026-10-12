@@ -6,6 +6,7 @@ const ConfigSchema = z.object({
   HOST: z.string().default('0.0.0.0'),
   TELEGRAM_BOT_TOKEN: z.string().default('mock_telegram_bot_token'),
   OWNER_TELEGRAM_IDS: z.string().default('123456789,987654321'),
+  APP_URL: z.string().default('https://t.me/hermes_office_bot/app'),
   HERMES_MODE: z.enum(['mock', 'real']).default('mock'),
   HERMES_BASE_URL: z.string().url().default('http://127.0.0.1:8642'),
   HERMES_KEY_DEFAULT: z.string().default('mock-secret-key'),

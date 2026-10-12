@@ -12,14 +12,14 @@ import {
   Play,
   RotateCw,
   FileText,
-  X,
   AlertTriangle,
 } from 'lucide-react';
-import type { Task, TaskPriority, TaskStatus } from '@hermes-office/shared';
+import type { Task, TaskStatus } from '@hermes-office/shared';
 import { useOfficeStore } from '../stores/office';
 import { api } from '../services/api';
 import { tma } from '../services/tma';
-import { MarkdownView } from '../components/common/MarkdownView';
+import { CreateTaskModal } from '../components/tasks/CreateTaskModal';
+import { TaskResultModal } from '../components/tasks/TaskResultModal';
 
 const COLUMNS: { id: TaskStatus; label: string; color: string }[] = [
   { id: 'backlog', label: 'Backlog', color: 'border-slate-600/40 text-slate-300' },
@@ -32,19 +32,10 @@ export const TasksScreen: React.FC = () => {
   const { t } = useTranslation();
   const { tasks, agents, fetchInitialData } = useOfficeStore();
 
-  // Task creation modal state
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [newTitle, setNewTitle] = useState('');
-  const [newDescription, setNewDescription] = useState('');
-  const [selectedAgentId, setSelectedAgentId] = useState(agents[0]?.id || '');
-  const [newPriority, setNewPriority] = useState<TaskPriority>('normal');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Result viewer modal state
   const [viewingTask, setViewingTask] = useState<Task | null>(null);
   const [runningTaskId, setRunningTaskId] = useState<string | null>(null);
 
-  // Group tasks by status
   const tasksByStatus: Record<TaskStatus, Task[]> = {
     backlog: tasks.filter((t) => t.status === 'backlog' || t.status === 'queued'),
     running: tasks.filter((t) => t.status === 'running'),
@@ -55,13 +46,11 @@ export const TasksScreen: React.FC = () => {
     cancelled: tasks.filter((t) => t.status === 'cancelled'),
   };
 
-  // Run a task now
   const handleRunTask = async (taskId: string) => {
     tma.hapticImpact('medium');
     setRunningTaskId(taskId);
     try {
       await api.runTask(taskId);
-      tma.hapticNotification('success');
       await fetchInitialData();
     } catch {
       tma.hapticNotification('error');
@@ -70,53 +59,9 @@ export const TasksScreen: React.FC = () => {
     }
   };
 
-  // Create new task
-  const handleCreateTask = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTitle.trim() || !selectedAgentId || isSubmitting) return;
-
-    tma.hapticImpact('heavy');
-    setIsSubmitting(true);
-    try {
-      await api.createTask({
-        id: `task-${Date.now()}`,
-        title: newTitle.trim(),
-        description: newDescription.trim(),
-        agent_id: selectedAgentId,
-        priority: newPriority,
-        status: 'backlog',
-        created_at: Date.now(),
-        updated_at: Date.now(),
-      });
-
-      setNewTitle('');
-      setNewDescription('');
-      setCreateModalOpen(false);
-      tma.hapticNotification('success');
-      await fetchInitialData();
-    } catch {
-      tma.hapticNotification('error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const getPriorityBadge = (priority: TaskPriority) => {
-    switch (priority) {
-      case 'urgent':
-        return <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-office-danger/20 text-office-danger font-bold">URGENT</span>;
-      case 'high':
-        return <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-office-warn/20 text-office-warn font-semibold">HIGH</span>;
-      case 'low':
-        return <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">LOW</span>;
-      default:
-        return <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-office-cyan/15 text-office-cyan font-medium">NORMAL</span>;
-    }
-  };
-
   return (
-    <div className="flex flex-col min-h-screen pb-24 select-none">
-      {/* Screen Header */}
+    <div className="flex flex-col min-h-screen pb-20 select-none">
+      {/* Top Header */}
       <div className="p-4 pb-2 flex items-center justify-between border-b border-white/10 bg-office-bg/90 backdrop-blur-md sticky top-0 z-30">
         <div className="flex items-center gap-2">
           <CheckSquare className="w-5 h-5 text-office-cyan" />
@@ -129,11 +74,11 @@ export const TasksScreen: React.FC = () => {
         <button
           onClick={() => {
             tma.hapticImpact('light');
-            setSelectedAgentId(agents[0]?.id || '');
             setCreateModalOpen(true);
           }}
           type="button"
-          className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-office-cyan text-office-bg font-semibold text-xs shadow-glow-cyan min-h-[38px] active:scale-95 transition-all"
+          aria-label="Buat Tugas Baru"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-office-cyan text-office-bg font-semibold text-xs shadow-glow-cyan min-h-[44px] active:scale-95 transition-all"
         >
           <Plus className="w-4 h-4" />
           <span>Buat Tugas</span>
@@ -180,53 +125,60 @@ export const TasksScreen: React.FC = () => {
                             : 'bg-white/5 border-white/10 hover:border-white/20'
                         }`}
                       >
-                        {/* Header: Title and Priority */}
-                        <div className="flex items-start justify-between gap-1.5 mb-1.5">
-                          <h3 className="text-xs font-semibold text-white leading-snug line-clamp-2">
+                        <div className="flex items-start justify-between gap-2 mb-1.5">
+                          <span className="font-semibold text-xs text-white leading-tight">
                             {task.title}
-                          </h3>
-                          {getPriorityBadge(task.priority)}
+                          </span>
+                          <span
+                            className={`font-mono text-[9px] uppercase px-1.5 py-0.5 rounded ${
+                              task.priority === 'urgent'
+                                ? 'bg-office-danger/20 text-office-danger'
+                                : task.priority === 'high'
+                                ? 'bg-office-warn/20 text-office-warn'
+                                : 'bg-white/10 text-office-muted'
+                            }`}
+                          >
+                            {task.priority}
+                          </span>
                         </div>
 
-                        {/* Description */}
                         {task.description && (
-                          <p className="text-[11px] text-office-muted mb-2 line-clamp-2 leading-relaxed">
+                          <p className="text-[11px] text-office-muted mb-2 line-clamp-2">
                             {task.description}
                           </p>
                         )}
 
-                        {/* Assigned Agent Chip & Footer */}
                         <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sm">{assignedAgent?.avatar || '🤖'}</span>
-                            <span className="text-[10px] font-medium text-office-text/80 truncate max-w-[100px]">
-                              {assignedAgent?.name || task.agent_id}
+                          <div className="flex items-center gap-1.5 text-[10px] text-office-muted">
+                            <span>{assignedAgent?.avatar || '🤖'}</span>
+                            <span className="truncate max-w-[100px]">
+                              {assignedAgent?.name || 'Unassigned'}
                             </span>
                           </div>
 
-                          {/* Action Buttons based on status */}
                           {task.status === 'backlog' && (
                             <button
                               onClick={() => handleRunTask(task.id)}
                               disabled={isRunningThis}
                               type="button"
-                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-office-cyan text-office-bg font-semibold text-[10px] shadow-glow-cyan hover:bg-cyan-300 min-h-[30px] active:scale-95 transition-all"
+                              aria-label={`Jalankan tugas ${task.title}`}
+                              className="flex items-center gap-1 px-3 py-2 rounded-lg bg-office-cyan text-office-bg font-semibold text-xs shadow-glow-cyan hover:bg-cyan-300 min-h-[44px] active:scale-95 transition-all"
                             >
-                              <Play className="w-3 h-3 fill-current" />
+                              <Play className="w-3.5 h-3.5 fill-current" />
                               <span>{isRunningThis ? 'Menjalankan...' : 'Jalankan'}</span>
                             </button>
                           )}
 
                           {task.status === 'running' && (
-                            <div className="flex items-center gap-1 text-[10px] text-office-cyan font-mono animate-pulse">
+                            <div className="flex items-center gap-1 text-[10px] text-office-cyan font-mono animate-pulse min-h-[44px]">
                               <RotateCw className="w-3 h-3 animate-spin" />
                               <span>Berjalan</span>
                             </div>
                           )}
 
                           {task.status === 'needs_approval' && (
-                            <div className="flex items-center gap-1 text-[10px] text-office-warn font-semibold">
-                              <AlertTriangle className="w-3 h-3" />
+                            <div className="flex items-center gap-1 text-[10px] text-office-warn font-semibold min-h-[44px]">
+                              <AlertTriangle className="w-3.5 h-3.5" />
                               <span>Persetujuan</span>
                             </div>
                           )}
@@ -238,9 +190,10 @@ export const TasksScreen: React.FC = () => {
                                 setViewingTask(task);
                               }}
                               type="button"
-                              className="flex items-center gap-1 px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-office-cyan text-[10px] font-mono transition-colors"
+                              aria-label={`Lihat hasil tugas ${task.title}`}
+                              className="flex items-center gap-1 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-office-cyan text-xs font-mono transition-colors min-h-[44px]"
                             >
-                              <FileText className="w-3 h-3" />
+                              <FileText className="w-3.5 h-3.5" />
                               <span>Hasil</span>
                             </button>
                           )}
@@ -255,152 +208,30 @@ export const TasksScreen: React.FC = () => {
         })}
       </div>
 
-      {/* Modal 1: Create Task Modal */}
-      {createModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 animate-in fade-in">
-          <form
-            onSubmit={handleCreateTask}
-            className="glass-panel-glow w-full max-w-sm rounded-2xl p-5 bg-slate-950 border border-office-cyan/40 shadow-2xl flex flex-col"
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
-              <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                <Plus className="w-4 h-4 text-office-cyan" />
-                <span>Buat Tugas Baru</span>
-              </h2>
-              <button
-                onClick={() => setCreateModalOpen(false)}
-                type="button"
-                className="p-1 text-office-muted hover:text-white"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      {/* Modals */}
+      <CreateTaskModal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        agents={agents}
+        onCreate={async (taskData) => {
+          const taskId = `task_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+          await api.createTask({
+            id: taskId,
+            ...taskData,
+            status: 'backlog',
+            run_id: null,
+            result_md: null,
+            due_at: null,
+            created_by: 0,
+          });
+          await fetchInitialData();
+        }}
+      />
 
-            <div className="flex flex-col gap-3 text-xs">
-              {/* Title input (max 1000) */}
-              <div>
-                <label className="text-[11px] text-office-muted mb-1 block">Judul Tugas *</label>
-                <input
-                  type="text"
-                  required
-                  maxLength={1000}
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="Contoh: Analisis tren viral hashtag #AI..."
-                  className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-white placeholder:text-office-muted/40 focus:outline-none focus:border-office-cyan min-h-[44px]"
-                />
-              </div>
-
-              {/* Description input */}
-              <div>
-                <label className="text-[11px] text-office-muted mb-1 block">Deskripsi Tugas</label>
-                <textarea
-                  rows={3}
-                  value={newDescription}
-                  onChange={(e) => setNewDescription(e.target.value)}
-                  placeholder="Instruksi detail untuk agen..."
-                  className="w-full bg-black/60 border border-white/15 rounded-xl p-2.5 text-white placeholder:text-office-muted/40 focus:outline-none focus:border-office-cyan resize-none"
-                />
-              </div>
-
-              {/* Assign Agent Dropdown */}
-              <div>
-                <label className="text-[11px] text-office-muted mb-1 block">Tugaskan ke Agen *</label>
-                <select
-                  value={selectedAgentId}
-                  onChange={(e) => setSelectedAgentId(e.target.value)}
-                  className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-office-cyan min-h-[44px]"
-                >
-                  {agents.map((ag) => (
-                    <option key={ag.id} value={ag.id} className="bg-slate-900 text-white">
-                      {ag.avatar} {ag.name} ({ag.role} - {ag.department})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Priority Selector */}
-              <div>
-                <label className="text-[11px] text-office-muted mb-1 block">Prioritas</label>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {(['low', 'normal', 'high', 'urgent'] as TaskPriority[]).map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setNewPriority(p)}
-                      className={`py-1.5 rounded-lg text-[10px] font-mono uppercase font-semibold transition-all min-h-[36px] ${
-                        newPriority === p
-                          ? 'bg-office-cyan text-office-bg shadow-glow-cyan'
-                          : 'bg-white/5 text-office-muted hover:text-white'
-                      }`}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-2 mt-4 pt-3 border-t border-white/10">
-              <button
-                type="button"
-                onClick={() => setCreateModalOpen(false)}
-                className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-office-muted hover:text-white min-h-[44px]"
-              >
-                Batal
-              </button>
-              <button
-                type="submit"
-                disabled={!newTitle.trim() || isSubmitting}
-                className="flex-1 py-2.5 rounded-xl bg-office-cyan text-office-bg text-xs font-bold hover:bg-cyan-300 disabled:opacity-40 transition-all shadow-glow-cyan min-h-[44px]"
-              >
-                {isSubmitting ? 'Menyimpan...' : 'Simpan Tugas'}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Modal 2: Markdown Result Viewer Modal */}
-      {viewingTask && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 animate-in fade-in">
-          <div className="glass-panel-glow w-full max-w-md max-h-[80vh] rounded-2xl p-5 bg-slate-950 border border-office-cyan/40 shadow-2xl flex flex-col">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-office-cyan" />
-                <h2 className="text-sm font-bold text-white truncate max-w-[240px]">
-                  {viewingTask.title}
-                </h2>
-              </div>
-              <button
-                onClick={() => setViewingTask(null)}
-                type="button"
-                className="p-1 text-office-muted hover:text-white"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto pr-1">
-              {viewingTask.result_md ? (
-                <MarkdownView content={viewingTask.result_md} />
-              ) : (
-                <p className="text-xs text-office-muted font-mono">Belum ada hasil tertulis untuk tugas ini.</p>
-              )}
-            </div>
-
-            <div className="pt-3 border-t border-white/10 mt-3 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setViewingTask(null)}
-                className="px-4 py-2 rounded-xl bg-office-cyan text-office-bg font-semibold text-xs shadow-glow-cyan min-h-[40px]"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <TaskResultModal
+        task={viewingTask}
+        onClose={() => setViewingTask(null)}
+      />
     </div>
   );
 };

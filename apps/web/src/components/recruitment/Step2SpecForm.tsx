@@ -5,8 +5,9 @@
 import React, { useState } from 'react';
 import type { AgentHiringSpec, Department } from '@hermes-office/shared';
 import { DEPARTMENTS, DEFAULT_APPROVAL_ACTIONS } from '@hermes-office/shared';
-import { Plus, Trash2, ArrowLeft, ArrowRight, ShieldAlert, Check } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ShieldAlert, Check } from 'lucide-react';
 import { tma } from '../../services/tma';
+import { SpecListEditor } from './SpecListEditor';
 
 interface Step2SpecFormProps {
   initialSpec: AgentHiringSpec;
@@ -26,46 +27,10 @@ export const Step2SpecForm: React.FC<Step2SpecFormProps> = ({
   const [mission, setMission] = useState(initialSpec.mission);
   const [tone, setTone] = useState(initialSpec.tone);
   const [responsibilities, setResponsibilities] = useState<string[]>(initialSpec.responsibilities);
-  const [newResp, setNewResp] = useState('');
   const [allowedTools, setAllowedTools] = useState<string[]>(initialSpec.allowed_tools);
-  const [newTool, setNewTool] = useState('');
   const [boundaries, setBoundaries] = useState<string[]>(initialSpec.boundaries);
-  const [newBoundary, setNewBoundary] = useState('');
   const [approvalActions, setApprovalActions] = useState<string[]>(initialSpec.approval_actions);
   const [reportingCadence, setReportingCadence] = useState(initialSpec.reporting_cadence);
-
-  const handleAddResponsibility = () => {
-    if (!newResp.trim()) return;
-    setResponsibilities([...responsibilities, newResp.trim()]);
-    setNewResp('');
-  };
-
-  const handleRemoveResponsibility = (index: number) => {
-    setResponsibilities(responsibilities.filter((_, i) => i !== index));
-  };
-
-  const handleAddTool = () => {
-    if (!newTool.trim()) return;
-    const clean = newTool.trim().toLowerCase().replace(/\s+/g, '_');
-    if (!allowedTools.includes(clean)) {
-      setAllowedTools([...allowedTools, clean]);
-    }
-    setNewTool('');
-  };
-
-  const handleRemoveTool = (tool: string) => {
-    setAllowedTools(allowedTools.filter((t) => t !== tool));
-  };
-
-  const handleAddBoundary = () => {
-    if (!newBoundary.trim()) return;
-    setBoundaries([...boundaries, newBoundary.trim()]);
-    setNewBoundary('');
-  };
-
-  const handleRemoveBoundary = (index: number) => {
-    setBoundaries(boundaries.filter((_, i) => i !== index));
-  };
 
   const toggleApprovalAction = (action: string) => {
     tma.hapticSelection();
@@ -78,21 +43,20 @@ export const Step2SpecForm: React.FC<Step2SpecFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !role.trim() || !mission.trim()) return;
-
     tma.hapticImpact('medium');
+
     onSubmit({
       name: name.trim(),
       role: role.trim(),
       department,
-      avatar: avatar.trim() || '🤖',
+      avatar: avatar.trim(),
       mission: mission.trim(),
       tone: tone.trim(),
-      responsibilities: responsibilities.filter((r) => r.trim().length > 0),
+      responsibilities,
       allowed_tools: allowedTools,
-      boundaries: boundaries.filter((b) => b.trim().length > 0),
+      boundaries,
       approval_actions: approvalActions,
-      reporting_cadence: reportingCadence.trim() || 'Harian',
+      reporting_cadence: reportingCadence.trim(),
     });
   };
 
@@ -106,7 +70,7 @@ export const Step2SpecForm: React.FC<Step2SpecFormProps> = ({
             type="text"
             value={avatar}
             onChange={(e) => setAvatar(e.target.value)}
-            className="w-full text-center text-lg px-2 py-2 rounded-xl bg-black/60 border border-white/15 text-white focus:outline-none focus:border-office-cyan"
+            className="w-full text-center text-lg px-2 py-2 rounded-xl bg-black/60 border border-white/15 text-white focus:outline-none focus:border-office-cyan min-h-[44px]"
             maxLength={4}
           />
         </div>
@@ -118,7 +82,7 @@ export const Step2SpecForm: React.FC<Step2SpecFormProps> = ({
             onChange={(e) => setName(e.target.value)}
             placeholder="Aura"
             required
-            className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs text-white focus:outline-none focus:border-office-cyan"
+            className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs text-white focus:outline-none focus:border-office-cyan min-h-[44px]"
           />
         </div>
       </div>
@@ -132,7 +96,7 @@ export const Step2SpecForm: React.FC<Step2SpecFormProps> = ({
             onChange={(e) => setRole(e.target.value)}
             placeholder="Social Media Manager"
             required
-            className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs text-white focus:outline-none focus:border-office-cyan"
+            className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs text-white focus:outline-none focus:border-office-cyan min-h-[44px]"
           />
         </div>
         <div>
@@ -140,7 +104,7 @@ export const Step2SpecForm: React.FC<Step2SpecFormProps> = ({
           <select
             value={department}
             onChange={(e) => setDepartment(e.target.value as Department)}
-            className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs text-white focus:outline-none focus:border-office-cyan"
+            className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs text-white focus:outline-none focus:border-office-cyan min-h-[44px]"
           >
             {DEPARTMENTS.map((d) => (
               <option key={d} value={d}>
@@ -158,7 +122,7 @@ export const Step2SpecForm: React.FC<Step2SpecFormProps> = ({
           onChange={(e) => setMission(e.target.value)}
           rows={2}
           required
-          className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-office-cyan"
+          className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-office-cyan min-h-[56px]"
         />
       </div>
 
@@ -169,161 +133,70 @@ export const Step2SpecForm: React.FC<Step2SpecFormProps> = ({
           value={tone}
           onChange={(e) => setTone(e.target.value)}
           placeholder="Antusias, kreatif, komunikatif"
-          className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs text-white focus:outline-none focus:border-office-cyan"
+          className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs text-white focus:outline-none focus:border-office-cyan min-h-[44px]"
         />
       </div>
 
-      {/* Responsibilities list */}
-      <div>
-        <label className="text-[11px] text-office-muted block mb-1">Tanggung Jawab Utama</label>
-        <div className="flex flex-col gap-1.5 mb-2">
-          {responsibilities.map((resp, idx) => (
-            <div key={idx} className="flex items-center gap-1.5 bg-black/40 p-2 rounded-lg border border-white/10 text-xs text-slate-200">
-              <span className="flex-1">{resp}</span>
-              <button
-                type="button"
-                onClick={() => handleRemoveResponsibility(idx)}
-                className="text-office-muted hover:text-office-danger p-1"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ))}
-        </div>
-        <div className="flex gap-1.5">
-          <input
-            type="text"
-            value={newResp}
-            onChange={(e) => setNewResp(e.target.value)}
-            placeholder="Tambah tanggung jawab..."
-            className="flex-1 px-3 py-1.5 rounded-lg bg-black/60 border border-white/15 text-xs text-white focus:outline-none focus:border-office-cyan"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleAddResponsibility();
-              }
-            }}
-          />
-          <button
-            type="button"
-            onClick={handleAddResponsibility}
-            className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs text-white"
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
+      {/* Dynamic Responsibilities Editor */}
+      <SpecListEditor
+        label="Tanggung Jawab Utama"
+        items={responsibilities}
+        placeholder="Tambah tanggung jawab..."
+        onAdd={(item) => setResponsibilities([...responsibilities, item])}
+        onRemove={(idx) => setResponsibilities(responsibilities.filter((_, i) => i !== idx))}
+      />
 
-      {/* Allowed Tools */}
-      <div>
-        <label className="text-[11px] text-office-muted block mb-1">Alat Bantu yang Diizinkan</label>
-        <div className="flex flex-wrap gap-1.5 mb-2">
-          {allowedTools.map((tool) => (
-            <span
-              key={tool}
-              className="px-2 py-1 rounded-md bg-office-cyan/15 border border-office-cyan/30 text-[11px] text-office-cyan font-mono flex items-center gap-1"
-            >
-              <span>{tool}</span>
-              <button type="button" onClick={() => handleRemoveTool(tool)} className="hover:text-white">
-                ×
-              </button>
-            </span>
-          ))}
-        </div>
-        <div className="flex gap-1.5">
-          <input
-            type="text"
-            value={newTool}
-            onChange={(e) => setNewTool(e.target.value)}
-            placeholder="web_search, crm_lookup..."
-            className="flex-1 px-3 py-1.5 rounded-lg bg-black/60 border border-white/15 text-xs text-white focus:outline-none focus:border-office-cyan"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleAddTool();
-              }
-            }}
-          />
-          <button
-            type="button"
-            onClick={handleAddTool}
-            className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs text-white"
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
+      {/* Dynamic Allowed Tools Editor */}
+      <SpecListEditor
+        label="Alat Bantu yang Diizinkan"
+        items={allowedTools}
+        placeholder="web_search, crm_lookup..."
+        isTag={true}
+        formatItem={(raw) => raw.trim().toLowerCase().replace(/\s+/g, '_')}
+        onAdd={(item) => {
+          if (!allowedTools.includes(item)) setAllowedTools([...allowedTools, item]);
+        }}
+        onRemove={(idx) => setAllowedTools(allowedTools.filter((_, i) => i !== idx))}
+      />
 
-      {/* Boundaries (What it must NEVER do) */}
-      <div>
-        <label className="text-[11px] text-office-muted block mb-1">Batasan Mutlak (Boundaries)</label>
-        <div className="flex flex-col gap-1.5 mb-2">
-          {boundaries.map((b, idx) => (
-            <div key={idx} className="flex items-center gap-1.5 bg-office-danger/10 border border-office-danger/30 p-2 rounded-lg text-xs text-red-300">
-              <span className="flex-1">{b}</span>
-              <button
-                type="button"
-                onClick={() => handleRemoveBoundary(idx)}
-                className="text-red-400 hover:text-white p-1"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ))}
-        </div>
-        <div className="flex gap-1.5">
-          <input
-            type="text"
-            value={newBoundary}
-            onChange={(e) => setNewBoundary(e.target.value)}
-            placeholder="Dilarang membocorkan kredensial..."
-            className="flex-1 px-3 py-1.5 rounded-lg bg-black/60 border border-white/15 text-xs text-white focus:outline-none focus:border-office-cyan"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleAddBoundary();
-              }
-            }}
-          />
-          <button
-            type="button"
-            onClick={handleAddBoundary}
-            className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs text-white"
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
+      {/* Dynamic Boundaries Editor */}
+      <SpecListEditor
+        label="Batasan & Larangan Keras (Boundaries)"
+        items={boundaries}
+        placeholder="Dilarang keras melakukan..."
+        onAdd={(item) => setBoundaries([...boundaries, item])}
+        onRemove={(idx) => setBoundaries(boundaries.filter((_, i) => i !== idx))}
+      />
 
-      {/* Actions requiring human approval */}
-      <div>
-        <div className="flex items-center gap-1.5 mb-1.5">
-          <ShieldAlert className="w-3.5 h-3.5 text-office-warn" />
-          <label className="text-[11px] font-bold text-office-warn">Aksi Wajib Persetujuan Manusia</label>
+      {/* Approval Actions checklist */}
+      <div className="flex flex-col gap-1.5 pt-1">
+        <div className="flex items-center gap-1.5 text-[11px] text-office-warn font-semibold">
+          <ShieldAlert className="w-3.5 h-3.5" />
+          <span>Aksi yang Memerlukan Persetujuan CEO</span>
         </div>
         <div className="flex flex-col gap-1.5">
           {DEFAULT_APPROVAL_ACTIONS.map((action) => {
-            const isSelected = approvalActions.includes(action);
+            const isChecked = approvalActions.includes(action);
             return (
               <div
                 key={action}
                 onClick={() => toggleApprovalAction(action)}
-                className={`p-2.5 rounded-xl border text-xs cursor-pointer transition-all flex items-center justify-between ${
-                  isSelected
-                    ? 'bg-office-warn/15 border-office-warn/50 text-white'
-                    : 'bg-black/40 border-white/10 text-office-muted hover:text-white'
+                className={`p-2 rounded-lg border text-[11px] cursor-pointer flex items-center gap-2 transition-all min-h-[44px] ${
+                  isChecked
+                    ? 'bg-office-warn/15 border-office-warn/40 text-white'
+                    : 'bg-black/30 border-white/5 text-office-muted hover:text-white'
                 }`}
               >
-                <span className="flex-1 pr-2">{action}</span>
                 <div
-                  className={`w-4 h-4 rounded flex items-center justify-center border ${
-                    isSelected
+                  className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                    isChecked
                       ? 'bg-office-warn border-office-warn text-slate-950 font-bold'
                       : 'border-white/20'
                   }`}
                 >
-                  {isSelected && <Check className="w-3 h-3" />}
+                  {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
                 </div>
+                <span className="leading-tight">{action}</span>
               </div>
             );
           })}
@@ -331,30 +204,31 @@ export const Step2SpecForm: React.FC<Step2SpecFormProps> = ({
       </div>
 
       <div>
-        <label className="text-[11px] text-office-muted block mb-1">Frekuensi Pelaporan (Reporting Cadence)</label>
+        <label className="text-[11px] text-office-muted block mb-1">Ritme Pelaporan</label>
         <input
           type="text"
           value={reportingCadence}
           onChange={(e) => setReportingCadence(e.target.value)}
-          placeholder="Harian atau Mingguan"
-          className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs text-white focus:outline-none focus:border-office-cyan font-mono"
+          placeholder="Harian dan Mingguan"
+          className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs text-white focus:outline-none focus:border-office-cyan min-h-[44px]"
         />
       </div>
 
-      <div className="flex gap-2 pt-3 border-t border-white/10">
+      {/* Actions */}
+      <div className="flex gap-2 pt-2 pb-1">
         <button
           type="button"
           onClick={onBack}
-          className="flex-1 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-xs font-bold text-office-muted hover:text-white min-h-[44px] flex items-center justify-center gap-1.5"
+          className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-office-muted hover:text-white flex items-center justify-center gap-1.5 min-h-[44px]"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Kembali</span>
         </button>
         <button
           type="submit"
-          className="flex-1 py-2.5 rounded-xl bg-office-cyan text-slate-950 text-xs font-bold hover:bg-cyan-300 min-h-[44px] shadow-glow-cyan flex items-center justify-center gap-1.5"
+          className="flex-1 py-2.5 rounded-xl bg-office-violet text-white text-xs font-bold hover:bg-violet-600 flex items-center justify-center gap-1.5 shadow-glow-violet min-h-[44px]"
         >
-          <span>Generate SOUL.md</span>
+          <span>Lanjut ke Preview SOUL</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>
