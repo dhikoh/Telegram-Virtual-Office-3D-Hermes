@@ -6,6 +6,7 @@
   "main": "./dist/server.js",
   "types": "./dist/server.d.ts",
   "scripts": {
+    "build": "tsc --build",
     "start": "node --experimental-strip-types src/index.ts",
     "typecheck": "tsc --build"
   }

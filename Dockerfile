@@ -13,6 +13,7 @@ COPY package*.json ./
 COPY packages/shared/package*.json ./packages/shared/
 COPY apps/web/package*.json ./apps/web/
 COPY apps/server/package*.json ./apps/server/
+COPY tools/mock-hermes/package*.json ./tools/mock-hermes/
 
 # Install dependencies including devDependencies (vite, typescript)
 RUN npm ci --include=dev
@@ -21,9 +22,11 @@ RUN npm ci --include=dev
 COPY packages/shared/ ./packages/shared/
 COPY apps/web/ ./apps/web/
 COPY apps/server/ ./apps/server/
+COPY tools/ ./tools/
 
-# Build shared types, frontend web bundle, and server
+# Build shared types, tools, server, and frontend web bundle
 RUN npm --workspace=packages/shared run build
+RUN npm --workspace=tools/mock-hermes run build
 RUN npm --workspace=apps/server run build
 RUN npm --workspace=apps/web run build
 
