@@ -175,3 +175,11 @@ body {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* Chip row edge: fades the cut-off chip so the clipping reads as "there is
+   more this way" instead of as a broken label. Removed by RoomChips as soon
+   as the row is scrolled to the end. */
+.chip-row-fade {
+  -webkit-mask-image: linear-gradient(to right, #000 88%, transparent 100%);
+  mask-image: linear-gradient(to right, #000 88%, transparent 100%);
+}

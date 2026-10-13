@@ -11,7 +11,7 @@
  * the row doubles as "who is where".
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ROOM_FOCUS_IDS,
@@ -33,10 +33,24 @@ export const RoomChips: React.FC = () => {
   const { t } = useTranslation();
   const { agents } = useOfficeStore();
   const { activeRoom, setActiveRoom } = useRoomFocusStore();
+  // The row has 11 chips in a 390 px canvas: the right edge is always cut.
+  // Fade it while there is more to scroll, drop the fade at the end so the
+  // last chip is never permanently dimmed (Tahap 4 polish, defect 1).
+  const [atEnd, setAtEnd] = useState(false);
 
   return (
     <div className="w-full max-w-[390px] mx-auto mb-2">
-      <div className="no-scrollbar flex gap-1 overflow-x-auto pb-0.5 px-0.5 scroll-smooth" role="tablist" aria-label="Fokus ruang">
+      <div
+        className={`no-scrollbar flex gap-1 overflow-x-auto pb-0.5 px-0.5 scroll-smooth ${
+          atEnd ? '' : 'chip-row-fade'
+        }`}
+        role="tablist"
+        aria-label="Fokus ruang"
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          setAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 2);
+        }}
+      >
         {ROOM_FOCUS_IDS.map((id) => {
           const isActive = id === activeRoom;
           const count = countAgents(agents, id);

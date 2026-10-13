@@ -190,7 +190,7 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
             stroke="rgba(251, 191, 36, 0.45)"
             strokeWidth="1"
           />
-          <text x="190" y="103" textAnchor="middle" fill="#7C2D12" fontSize="8" fontWeight="600" letterSpacing="0.5">
+          <text x="190" y="103" textAnchor="middle" fill="#7C2D12" fontSize="7" fontWeight="600" letterSpacing="0.3">
             {t('rooms.approvalGate')}
           </text>
         </g>
@@ -272,7 +272,7 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
           />
           {/* Coffee table in lounge center */}
           <circle cx="190" cy="225" r="18" fill="#EEF3F9" stroke="#D6DEEA" />
-          <text x="190" y="152" textAnchor="middle" fill="#6D28D9" fontSize="9" fontWeight="bold" letterSpacing="0.6">
+          <text x="190" y="311" textAnchor="middle" fill="#6D28D9" fontSize="9" fontWeight="bold" letterSpacing="0.6">
             {t('rooms.lounge')}
           </text>
           <text x="190" y="228" textAnchor="middle" fill="rgba(31, 41, 55, 0.35)" fontSize="10">
@@ -291,7 +291,7 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
         type="button"
         title={t('rooms.hr')}
         style={roomStyle('hr')}
-        className="absolute left-[92px] top-[266px] w-6 h-6 rounded-full bg-office-violet/20 border border-office-violet text-office-violet hover:bg-office-violet hover:text-office-text flex items-center justify-center text-xs font-bold shadow-nu-raised transition-transform active:scale-90 z-20"
+        className="absolute left-[96px] top-[312px] w-6 h-6 rounded-full bg-office-violet/20 border border-office-violet text-office-violet hover:bg-office-violet hover:text-office-text flex items-center justify-center text-xs font-bold shadow-nu-raised transition-transform active:scale-90 z-20"
       >
         <UserPlus className="w-3.5 h-3.5" />
       </button>
