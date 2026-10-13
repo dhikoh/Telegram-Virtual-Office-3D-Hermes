@@ -236,4 +236,18 @@ export const ENDPOINTS: readonly EndpointDefinition[] = [
     requiresAuth: true,
     description: 'List skills installed on the gateway, or report honestly why they cannot be listed',
   },
+  {
+    method: 'POST',
+    path: '/api/skills/install',
+    phase: 11,
+    requiresAuth: true,
+    description: 'Ask the orchestrator agent to install a catalog skill (task pipeline; gateway has no install REST)',
+  },
+  {
+    method: 'POST',
+    path: '/api/skills/uninstall',
+    phase: 11,
+    requiresAuth: true,
+    description: 'Ask the orchestrator agent to remove an installed skill (task pipeline; gateway has no uninstall REST)',
+  },
 ] as const;

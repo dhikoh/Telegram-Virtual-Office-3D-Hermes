@@ -124,6 +124,20 @@ export const api = {
       capabilities: unknown;
       error: string | null;
     }>('/skills'),
+  /**
+   * Tahap 11 — instal/hapus skill lewat orkestrator: server membuat tugas
+   * untuk agent_orchestrator dan menjalankannya; hasilnya di layar Tugas.
+   */
+  installSkill: (name: string) =>
+    request<{ task: Task; status: string; run_id: string | null }>('/skills/install', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    }),
+  uninstallSkill: (name: string) =>
+    request<{ task: Task; status: string; run_id: string | null }>('/skills/uninstall', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    }),
   streamChat: async (
     id: string,
     messages: { role: string; content: string }[],
