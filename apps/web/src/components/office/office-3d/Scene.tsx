@@ -1,6 +1,11 @@
 /**
  * 3D Scene Root Component (Rule REQ-110 to REQ-116).
- * Assembles lighting, floor grid, furniture, camera controller, and agent meshes.
+ * Assembles lighting, floor, furniture, camera controller, and agent meshes.
+ *
+ * Tahap 3 — light world (docs/DESIGN_DIRECTION.md §3.1): one dominant key
+ * light from the top-left carrying a phone-sized shadow map, a hemisphere
+ * fill instead of a flat ambient wash, and a light ground. Depth comes from
+ * contact shadows, not from a neon wireframe floor.
  */
 
 import React, { useState } from 'react';
@@ -49,18 +54,33 @@ export const Scene: React.FC<SceneProps> = ({ onSelectAgent, onOpenRecruitment }
     <>
       <CameraController />
 
-      {/* Ambient & Directional Cyberpunk Lighting */}
-      <ambientLight intensity={0.8} />
-      <directionalLight position={[10, 20, 15]} intensity={1.2} />
+      {/* Lighting: sky/ground fill + ONE dominant key light (top-left, shadow
+          casting) + a weak cool fill so cast shadows never crush to black. */}
+      <hemisphereLight args={['#F8FAFC', '#E4D9C8', 0.55]} />
+      <directionalLight
+        position={[8, 14, 8]}
+        intensity={1.6}
+        castShadow
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+        shadow-camera-left={-14}
+        shadow-camera-right={14}
+        shadow-camera-top={14}
+        shadow-camera-bottom={-14}
+        shadow-camera-near={1}
+        shadow-camera-far={45}
+        shadow-bias={-0.0005}
+      />
+      <directionalLight position={[-9, 7, -7]} intensity={0.3} color="#E8F1FF" />
 
-      {/* Main Dark Floor Grid (22 x 24 units) */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
+      {/* Main Floor (22 x 24 units) — light ground, receives the key shadow */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
         <planeGeometry args={[22, 24]} />
-        <meshStandardMaterial color="#070B14" roughness={0.9} metalness={0.1} />
+        <meshStandardMaterial color="#E7ECF3" roughness={0.95} metalness={0} />
       </mesh>
 
-      {/* Subtle Neon Floor Grid Overlay */}
-      <gridHelper args={[22, 22, '#22D3EE', '#1E293B']} position={[0, 0.005, 0]} />
+      {/* Soft floor grid — measurement aid, not a neon effect */}
+      <gridHelper args={[22, 22, '#C3CCDA', '#DCE3EC']} position={[0, 0.005, 0]} />
 
       {/* 3D Rooms & Procedural Furniture */}
       <Furniture onSelectRoom={handleSelectRoom} />
@@ -78,7 +98,7 @@ export const Scene: React.FC<SceneProps> = ({ onSelectAgent, onOpenRecruitment }
       {/* Floating Room Info Banner upon Tap (Rule REQ-113) */}
       {activeRoomNotice && (
         <Html position={[0, 4.5, 0]} center>
-          <div className="bg-slate-900/95 text-office-cyan border border-office-cyan/40 px-3 py-1.5 rounded-full text-xs font-mono shadow-glow-cyan flex items-center space-x-1.5 whitespace-nowrap pointer-events-none">
+          <div className="bg-office-surface text-office-accent-ink border border-office-border px-3 py-1.5 rounded-full text-xs font-mono shadow-nu-raised flex items-center space-x-1.5 whitespace-nowrap pointer-events-none">
             <span>🏢</span>
             <span className="font-bold">{activeRoomNotice}</span>
           </div>

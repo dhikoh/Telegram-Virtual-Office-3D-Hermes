@@ -28,10 +28,12 @@ const FORBIDDEN: Array<{ pattern: RegExp; why: string }> = [
   { pattern: /\bhover:bg-violet-600\b/, why: 'raw Tailwind accent; use office token classes' },
   { pattern: /\bbg-office-violet text-office-text\b/, why: 'dark ink on violet fails contrast; use accent CTA or text-office-on-violet' },
   { pattern: /(?:text|bg|border|placeholder)-(?:slate|gray|neutral|zinc)-\d{3}/, why: 'raw palette outside the office token set' },
+  // Three.js world colours (class utilities do not cover these):
+  { pattern: /#(?:070B14|0B132B|0F172A|1E293B|22D3EE)/i, why: 'dark world / neon cyan is gone; Tahap 3 uses a light world' },
 ];
 
-/** The 3D scene keeps its own neon palette until Tahap 3 rewrites the world. */
-const SKIP_DIRS = new Set(['office-3d', '__tests__', 'node_modules']);
+/** The 3D world was rewritten for light (Tahap 3), so it is scanned too. */
+const SKIP_DIRS = new Set(['__tests__', 'node_modules']);
 
 function walk(dir: string): string[] {
   const out: string[] = [];

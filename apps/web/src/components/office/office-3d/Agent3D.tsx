@@ -1,10 +1,14 @@
 /**
  * 3D Low-Poly Agent Character & Status Ring (Rule REQ-111 & REQ-112).
  * Smooth straight-path movement, status-colored ring, and floating badge.
+ *
+ * Tahap 3: pale toy-like bodies (they must sit on a light world, not vanish
+ * into it), cast shadows, and an explicit invalidate() while walking so the
+ * demand-based loop actually repaints the movement.
  */
 
 import React, { useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { Vector3, Group } from 'three';
 import type { OfficeAgent } from '../../../stores/office';
@@ -16,12 +20,14 @@ interface Agent3DProps {
   showLabel?: boolean;
 }
 
+// Rings and visors sit on a light floor: every status colour is chosen to
+// keep ≥ 3:1 against #E7ECF3 (non-text contrast).
 const STATUS_COLORS: Record<string, string> = {
   idle: '#94A3B8',
-  thinking: '#22D3EE',
-  working: '#34D399',
-  waiting_approval: '#FBBF24',
-  error: '#F43F5E',
+  thinking: '#0284C7',
+  working: '#15803D',
+  waiting_approval: '#B45309',
+  error: '#DC2626',
   offline: '#64748B',
 };
 
@@ -31,6 +37,7 @@ export const Agent3D: React.FC<Agent3DProps> = ({
   onSelect,
   showLabel = true,
 }) => {
+  const { invalidate } = useThree();
   const groupRef = useRef<Group>(null);
   const ringRef = useRef<Group>(null);
   const currentPos = useRef(new Vector3(...targetPos));
@@ -50,6 +57,8 @@ export const Agent3D: React.FC<Agent3DProps> = ({
       // Interpolate towards target position smoothly
       currentPos.current.lerp(destination.current, Math.min(1, delta * 6));
       groupRef.current.position.copy(currentPos.current);
+      // frameloop is "demand": without this the walk would never repaint.
+      invalidate();
     } else {
       groupRef.current.position.copy(destination.current);
     }
@@ -80,9 +89,9 @@ export const Agent3D: React.FC<Agent3DProps> = ({
       {/* Low-Poly Robot Character Body */}
       <group position={[0, 0.45, 0]}>
         {/* Torso */}
-        <mesh position={[0, 0.1, 0]}>
+        <mesh position={[0, 0.1, 0]} castShadow>
           <cylinderGeometry args={[0.26, 0.22, 0.5, 12]} />
-          <meshStandardMaterial color="#0F172A" metalness={0.8} roughness={0.2} />
+          <meshStandardMaterial color="#DDE3EA" metalness={0.05} roughness={0.6} />
         </mesh>
 
         {/* Chest Accent Light */}
@@ -92,9 +101,9 @@ export const Agent3D: React.FC<Agent3DProps> = ({
         </mesh>
 
         {/* Head */}
-        <mesh position={[0, 0.52, 0]}>
+        <mesh position={[0, 0.52, 0]} castShadow>
           <sphereGeometry args={[0.2, 16, 16]} />
-          <meshStandardMaterial color="#1E293B" metalness={0.7} roughness={0.3} />
+          <meshStandardMaterial color="#EFF3F8" metalness={0.05} roughness={0.55} />
         </mesh>
 
         {/* Glowing Visor */}
@@ -113,12 +122,12 @@ export const Agent3D: React.FC<Agent3DProps> = ({
           zIndexRange={[100, 0]}
         >
           <div className="flex flex-col items-center pointer-events-none select-none">
-            <div className="bg-office-surface/90 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/10 shadow-lg flex items-center space-x-1 whitespace-nowrap">
+            <div className="bg-office-surface/90 backdrop-blur-md px-2 py-0.5 rounded-full border border-office-border shadow-nu-raised flex items-center space-x-1 whitespace-nowrap">
               <span className="text-xs">{agent.avatar || '🤖'}</span>
-              <span className="text-[11px] font-semibold text-white/90">{agent.name}</span>
+              <span className="text-[11px] font-semibold text-office-text">{agent.name}</span>
             </div>
             {agent.status === 'working' && agent.currentTool && (
-              <span className="text-[9px] text-cyan-300 bg-cyan-950/80 px-1.5 rounded border border-cyan-800/40 mt-0.5">
+              <span className="text-[9px] text-office-accent-ink bg-office-hover px-1.5 rounded border border-office-border mt-0.5">
                 ⚡ {agent.currentTool}
               </span>
             )}

@@ -15,8 +15,9 @@ export const CameraController: React.FC = () => {
   const target = useRef(new Vector3(0, 0, 0));
 
   useEffect(() => {
-    // Initial isometric angle positioning
-    camera.position.set(12, 16, 16);
+    // Initial isometric angle — Tahap 3 pulls the camera in so the room
+    // reads as a place you are looking into instead of a plan seen from orbit.
+    camera.position.set(10, 12, 12);
     camera.lookAt(target.current);
     invalidate();
   }, [camera, invalidate]);
@@ -27,7 +28,7 @@ export const CameraController: React.FC = () => {
     const clampTarget = () => {
       target.current.x = Math.max(-7, Math.min(7, target.current.x));
       target.current.z = Math.max(-7, Math.min(7, target.current.z));
-      const offset = new Vector3(12, 16, 16).multiplyScalar(camera.zoom ? 1 / camera.zoom : 1);
+      const offset = new Vector3(10, 12, 12).multiplyScalar(camera.zoom ? 1 / camera.zoom : 1);
       camera.position.copy(target.current).add(offset);
       camera.lookAt(target.current);
       invalidate();

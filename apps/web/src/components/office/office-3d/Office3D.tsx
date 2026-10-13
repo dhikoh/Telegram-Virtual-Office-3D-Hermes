@@ -89,10 +89,11 @@ export const Office3D: React.FC<Office3DProps> = ({
   return (
     <div
       ref={containerRef}
-      className="relative w-full max-w-[390px] mx-auto aspect-[380/420] rounded-xl overflow-hidden border border-office-border bg-office-bg shadow-2xl select-none"
+      className="relative w-full max-w-[390px] mx-auto aspect-[380/420] rounded-xl overflow-hidden border border-office-border bg-office-surface shadow-nu-raised select-none"
     >
       <Canvas
         key={recoveryKey}
+        shadows
         dpr={[1, 1.5]}
         frameloop={shouldPause ? 'never' : 'demand'}
         gl={{
@@ -100,7 +101,7 @@ export const Office3D: React.FC<Office3DProps> = ({
           powerPreference: 'low-power',
           failIfMajorPerformanceCaveat: false,
         }}
-        camera={{ position: [12, 16, 16], fov: 38 }}
+        camera={{ position: [10, 12, 12], fov: 38 }}
         onCreated={handleCreated}
       >
         <Scene
@@ -111,7 +112,7 @@ export const Office3D: React.FC<Office3DProps> = ({
 
       {/* Self-healing notice: shown only during the brief window of a remount */}
       {recoveryNotice && (
-        <div className="absolute inset-0 flex items-center justify-center bg-office-bg/80 pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-center bg-office-surface/85 pointer-events-none">
           <div className="flex items-center gap-2 text-[11px] text-office-warn font-mono">
             <span className="w-4 h-4 rounded-full border-2 border-office-warn border-t-transparent animate-spin" />
             Memulihkan tampilan 3D…
@@ -120,7 +121,7 @@ export const Office3D: React.FC<Office3DProps> = ({
       )}
 
       {/* Control overlay hint for touch gestures */}
-      <div className="absolute bottom-2 left-2 pointer-events-none text-[10px] text-white/40 bg-black/40 px-2 py-0.5 rounded backdrop-blur-sm">
+      <div className="absolute bottom-2 left-2 pointer-events-none text-[10px] text-office-text/70 bg-office-surface/85 border border-office-border px-2 py-0.5 rounded backdrop-blur-sm">
         3D View • Seret untuk menggeser
       </div>
     </div>
