@@ -1,7 +1,7 @@
-## 1. Current Phase: Phase 9 (Post-Audit Remediation) — AUDIT FIXES DONE - ready for re-audit
+## 1. Current Phase: Phase 9 (Post-Audit Remediation) — DONE; master plan DESIGN_DIRECTION Tahap 0–8 complete, live on Coolify (commit 9387636)
 
-- **Status**: Audit remediation complete. All 10 findings (F-01 through F-10) and verification items (A-1 through A-4) resolved and verified with 161 automated tests and 8/8 modular gap-checks with passing and failing fixtures.
-- **Next Step**: Independent auditor conducts re-audit; owner conducts physical smartphone test per `docs/3D_PHONE_TEST.md` and deploys on Coolify.
+- **Status**: Audit remediation complete (F-01…F-10, A-1…A-4). Master plan in `docs/DESIGN_DIRECTION.md` §5 finished through Tahap 8: 348 automated tests, 8/8 modular gap-checks, production web bundle (`no jsxDEV`), live on https://app.zupu.web.id with gateway session chat (E2E verified 2026-10-13: stream → persisted history → delete → 404).
+- **Next Step**: Owner smartphone test per `docs/3D_PHONE_TEST.md` (REQ-119, blocked on device); gateway `/v1/skills` 500 is an upstream Hermes install mismatch (`include_editorial` kwarg) — see chat log; STUB-004 real run-event samples still pending.
 
 ---
 

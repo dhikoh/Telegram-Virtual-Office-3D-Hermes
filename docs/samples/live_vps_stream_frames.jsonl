@@ -1,0 +1,17 @@
+{"ts": 1791914614441, "event": "heartbeat", "data": {"type": "heartbeat", "timestamp": 1791914614438}}
+{"ts": 1791914614446, "event": "task_update", "data": {"type": "task_update", "agent_id": "probe_evt_1791914614430", "task": {"id": "task_evt_1791914614430", "status": "backlog", "title": "Sapa sekali", "agent_id": "probe_evt_1791914614430", "result_md": null, "updated_at": 1791914614444}, "timestamp": 1791914614445}}
+{"ts": 1791914614961, "event": "task_update", "data": {"type": "task_update", "agent_id": "probe_evt_1791914614430", "task": {"id": "task_evt_1791914614430", "status": "running", "title": "Sapa sekali", "agent_id": "probe_evt_1791914614430", "result_md": null, "updated_at": 1791914614953}, "timestamp": 1791914614953}}
+{"ts": 1791914614961, "event": "agent_status", "data": {"type": "agent_status", "agent_id": "probe_evt_1791914614430", "status": "thinking", "timestamp": 1791914614953}}
+{"ts": 1791914619894, "event": "heartbeat", "data": {"type": "heartbeat", "timestamp": 1791914619892}}
+{"ts": 1791914625433, "event": "task_update", "data": {"type": "task_update", "agent_id": "probe_evt_1791914614430", "task": {"id": "task_evt_1791914614430", "status": "done", "title": "Sapa sekali", "agent_id": "probe_evt_1791914614430", "result_md": "Halo IKONA, selamat datang kembali di kantor — semua sistem siap menunggu perintahmu.", "updated_at": 1791914625432}, "timestamp": 1791914625432}}
+{"ts": 1791914625433, "event": "agent_status", "data": {"type": "agent_status", "agent_id": "probe_evt_1791914614430", "status": "idle", "timestamp": 1791914625432}}
+{"ts": 1791914634893, "event": "heartbeat", "data": {"type": "heartbeat", "timestamp": 1791914634892}}
+{"ts": 1791914649894, "event": "heartbeat", "data": {"type": "heartbeat", "timestamp": 1791914649893}}
+{"ts": 1791914664898, "event": "heartbeat", "data": {"type": "heartbeat", "timestamp": 1791914664897}}
+{"ts": 1791914679899, "event": "heartbeat", "data": {"type": "heartbeat", "timestamp": 1791914679898}}
+{"ts": 1791914694907, "event": "heartbeat", "data": {"type": "heartbeat", "timestamp": 1791914694906}}
+{"ts": 1791914709907, "event": "heartbeat", "data": {"type": "heartbeat", "timestamp": 1791914709906}}
+{"ts": 1791914724913, "event": "heartbeat", "data": {"type": "heartbeat", "timestamp": 1791914724913}}
+{"ts": 1791914739915, "event": "heartbeat", "data": {"type": "heartbeat", "timestamp": 1791914739913}}
+{"ts": 1791914754922, "event": "heartbeat", "data": {"type": "heartbeat", "timestamp": 1791914754920}}
+{"ts": 1791914769923, "event": "heartbeat", "data": {"type": "heartbeat", "timestamp": 1791914769922}}
