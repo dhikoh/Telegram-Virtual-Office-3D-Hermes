@@ -115,7 +115,7 @@ export const OfficeScreen: React.FC<OfficeScreenProps> = ({ onOpenRecruitment, o
         {agents.length > 0 && (
           <div className="w-full flex flex-col items-center">
             <div className="w-full flex items-center justify-between px-1 mb-2">
-              <span className="text-[11px] font-mono text-office-muted tracking-wider uppercase">
+              <span className="text-[11px] font-mono text-office-text/80 tracking-wider uppercase">
                 {viewMode === '3D' ? '3D Isometric Floor Plan' : '2D Floor Plan • 8 Divisions'}
               </span>
 

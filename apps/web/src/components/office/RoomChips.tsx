@@ -36,7 +36,7 @@ export const RoomChips: React.FC = () => {
 
   return (
     <div className="w-full max-w-[390px] mx-auto mb-2">
-      <div className="flex gap-1.5 overflow-x-auto pb-0.5 px-0.5" role="tablist" aria-label="Fokus ruang">
+      <div className="no-scrollbar flex gap-1 overflow-x-auto pb-0.5 px-0.5 scroll-smooth" role="tablist" aria-label="Fokus ruang">
         {ROOM_FOCUS_IDS.map((id) => {
           const isActive = id === activeRoom;
           const count = countAgents(agents, id);
@@ -49,7 +49,7 @@ export const RoomChips: React.FC = () => {
               aria-pressed={isActive}
               onClick={() => setActiveRoom(id)}
               className={[
-                'h-11 shrink-0 px-3 rounded-full border text-xs font-semibold',
+                'h-11 shrink-0 px-2.5 rounded-full border text-[11px] font-semibold',
                 'flex items-center gap-1.5 whitespace-nowrap select-none',
                 'transition-colors active:scale-95',
                 isActive
@@ -60,7 +60,7 @@ export const RoomChips: React.FC = () => {
               <span>{t(getRoomFocusNameKey(id))}</span>
               <span
                 className={[
-                  'text-[10px] font-mono tabular-nums',
+                  'text-[10px] font-mono tabular-nums font-bold',
                   isActive ? 'text-office-on-accent/80' : 'text-office-muted',
                 ].join(' ')}
               >

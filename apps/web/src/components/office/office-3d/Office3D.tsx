@@ -123,7 +123,7 @@ export const Office3D: React.FC<Office3DProps> = ({
       )}
 
       {/* Control overlay hint for touch gestures */}
-      <div className="absolute bottom-2 left-2 pointer-events-none text-[10px] text-office-text/70 bg-office-surface/85 border border-office-border px-2 py-0.5 rounded backdrop-blur-sm">
+      <div className="absolute bottom-2 left-2 pointer-events-none text-[10px] text-office-text/85 bg-office-surface/85 border border-office-border px-2 py-0.5 rounded backdrop-blur-sm">
         Seret: putar • 2 jari: geser &amp; zoom
       </div>
 

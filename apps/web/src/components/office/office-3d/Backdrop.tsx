@@ -25,7 +25,7 @@ export const WINDOW_HEAD = 3.4;
 const WALL_THICKNESS = 0.3;
 
 const WALL_COLOR = '#F1F5F9';
-const WINDOW_FRAME_COLOR = '#CBD5E1';
+const WINDOW_FRAME_COLOR = '#8A97A9';
 const GLASS_COLOR = '#E6EEF8';
 
 /** Lane centres on the street behind the glass. */
@@ -49,13 +49,13 @@ const Buildings: React.FC = () => {
       {blocks.map((b, i) => (
         <mesh key={i} position={[b.x, b.h / 2, b.z]}>
           <boxGeometry args={[b.w, b.h, 1.2]} />
-          <meshStandardMaterial color={i % 2 === 0 ? '#E6E9F2' : '#EDEFF5'} roughness={0.95} />
+          <meshStandardMaterial color={i % 2 === 0 ? '#CDD3DF' : '#DCE1EB'} roughness={0.95} />
         </mesh>
       ))}
       {/* Sky plate: behind everything, light so the diorama never darkens. */}
       <mesh position={[0, 8, -21]}>
         <planeGeometry args={[80, 40]} />
-        <meshBasicMaterial color="#E9EFF8" />
+        <meshBasicMaterial color="#D8E3F2" />
       </mesh>
     </group>
   );
@@ -82,18 +82,18 @@ const Street: React.FC = () => {
       {/* Sidewalk between the building and the road */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, -12.7]} receiveShadow>
         <planeGeometry args={[48, 1.6]} />
-        <meshStandardMaterial color="#E3E8EF" roughness={0.95} />
+        <meshStandardMaterial color="#D2D8E2" roughness={0.95} />
       </mesh>
       {/* Road */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.0, -14.6]} receiveShadow>
         <planeGeometry args={[48, 4.4]} />
-        <meshStandardMaterial color="#D8DDE6" roughness={0.98} />
+        <meshStandardMaterial color="#B9C0CD" roughness={0.98} />
       </mesh>
       {/* Centre dashes */}
       {Array.from({ length: 13 }, (_, i) => -STREET_SPAN + 1.6 + i * 3.2).map((x) => (
         <mesh key={x} rotation={[-Math.PI / 2, 0, 0]} position={[x, 0.02, -14.6]}>
           <planeGeometry args={[1.4, 0.14]} />
-          <meshStandardMaterial color="#F1F5F9" roughness={1} />
+          <meshStandardMaterial color="#FFFFFF" roughness={1} />
         </mesh>
       ))}
 

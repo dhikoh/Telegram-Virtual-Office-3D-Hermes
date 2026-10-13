@@ -10,10 +10,10 @@
 import React, { useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
-import { Vector3, Group } from 'three';
+import { Vector3, Group, BackSide } from 'three';
 import type { OfficeAgent } from '../../../stores/office';
 import { usePowerStore } from '../../../stores/power';
-import { agentMotion } from '@hermes-office/shared';
+import { agentMotion, ROOM_LAYOUTS } from '@hermes-office/shared';
 import { isCameraDrag } from './cameraState';
 
 interface Agent3DProps {
@@ -51,6 +51,12 @@ export const Agent3D: React.FC<Agent3DProps> = ({
   destination.current.set(...targetPos);
 
   const statusColor = STATUS_COLORS[agent.status] || STATUS_COLORS.idle;
+  // Tahap 4 polish: wear your department (DESIGN_DIRECTION 3.1 "pakaian
+  // berwarna per departemen") instead of eight identical grey pawns.
+  const shirtColor =
+    agent.department && agent.department in ROOM_LAYOUTS
+      ? ROOM_LAYOUTS[agent.department as keyof typeof ROOM_LAYOUTS].color
+      : '#94A3B8';
 
   // Smooth straight-path interpolation loop + ambient body language
   useFrame((state, delta) => {
@@ -103,10 +109,21 @@ export const Agent3D: React.FC<Agent3DProps> = ({
 
       {/* Low-Poly Robot Character Body */}
       <group position={[0, 0.45, 0]}>
+        {/* Inverted-hull outline (Tahap 4 polish): a dark silhouette edge, so a
+            pale body still separates from the pale floor. This is the non-text
+            contrast rule applied to the one graphic that carries identity. */}
+        <mesh position={[0, 0.1, 0]} scale={[1.14, 1.06, 1.14]}>
+          <cylinderGeometry args={[0.26, 0.22, 0.5, 12]} />
+          <meshBasicMaterial color="#3F4A5C" side={BackSide} />
+        </mesh>
+        <mesh position={[0, 0.52, 0]} scale={1.16}>
+          <sphereGeometry args={[0.2, 16, 16]} />
+          <meshBasicMaterial color="#3F4A5C" side={BackSide} />
+        </mesh>
         {/* Torso */}
         <mesh position={[0, 0.1, 0]} castShadow>
           <cylinderGeometry args={[0.26, 0.22, 0.5, 12]} />
-          <meshStandardMaterial color="#DDE3EA" metalness={0.05} roughness={0.6} />
+          <meshStandardMaterial color={shirtColor} metalness={0.05} roughness={0.6} />
         </mesh>
 
         {/* Chest Accent Light */}
@@ -118,7 +135,7 @@ export const Agent3D: React.FC<Agent3DProps> = ({
         {/* Head */}
         <mesh position={[0, 0.52, 0]} castShadow>
           <sphereGeometry args={[0.2, 16, 16]} />
-          <meshStandardMaterial color="#EFF3F8" metalness={0.05} roughness={0.55} />
+          <meshStandardMaterial color="#F1F5F9" metalness={0.05} roughness={0.55} />
         </mesh>
 
         {/* Glowing Visor */}

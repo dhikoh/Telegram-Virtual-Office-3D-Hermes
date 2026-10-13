@@ -143,3 +143,14 @@ body {
   animation: none !important;
   transition: none !important;
 }
+
+/* Room chips scroll sideways instead of wrapping (Tahap 4b). The row has
+   11 entries, so a visible scrollbar strip would eat 10 px of the 390 px
+   map canvas for a chrome element nobody uses. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
