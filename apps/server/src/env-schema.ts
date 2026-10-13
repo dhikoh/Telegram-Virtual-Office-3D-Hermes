@@ -23,6 +23,19 @@ export const EnvSchema = z.object({
   HERMES_TIMEOUT_MS: z.coerce.number().default(30000),
   DEV_AUTH_BYPASS: booleanPreprocess.default(false),
   DB_PATH: z.string().default('./data/office.sqlite'),
+  /**
+   * Tahap 12 — media chat & retensi.
+   * MEDIA_DIR kosong = '<direktori DB>/media', jadi di kontainer cukup set
+   * DB_PATH=/data/office.sqlite dan media ikut menetap di /data/media.
+   */
+  MEDIA_DIR: z.string().default(''),
+  MEDIA_IMAGE_RETENTION_DAYS: z.coerce.number().int().min(0).default(7),
+  MEDIA_ARTIFACT_RETENTION_DAYS: z.coerce.number().int().min(0).default(30),
+  MEDIA_CAP_MB: z.coerce.number().int().min(0).default(500),
+  MEDIA_UPLOAD_MAX_MB: z.coerce.number().int().min(1).default(8),
+  MEDIA_SWEEP_INTERVAL_MIN: z.coerce.number().int().min(0).default(60),
+  /** 1 = jangan jalankan pembersih retensi otomatis (untuk debugging operasional). */
+  MEDIA_SWEEP_DISABLED: booleanPreprocess.default(false),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

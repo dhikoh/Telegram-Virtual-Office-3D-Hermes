@@ -136,6 +136,13 @@ Buka tab **Environment Variables** di Coolify dan masukkan variabel berikut:
 | `HERMES_BASE_URL` | `http://172.16.1.1:8642` | IP gateway jaringan `coolify` + port API server Hermes (lihat bagian 2C) |
 | `HERMES_KEY_DEFAULT` | *(sama persis dengan `API_SERVER_KEY`)* | Bearer key API server Hermes. Server menolak start bila masih placeholder |
 | `HERMES_TIMEOUT_MS` | `30000` | Batas waktu timeout permintaan Hermes dalam milidetik (default 30000) |
+| `MEDIA_DIR` | `/data/media` | Folder media chat & artefak di volume persisten. **Kosongkan** = otomatis `<folder DB_PATH>/media` (mis. `/data/media`) |
+| `MEDIA_IMAGE_RETENTION_DAYS` | `7` | Retensi gambar chat (hari). `0` = tidak pernah dihapus berdasar umur |
+| `MEDIA_ARTIFACT_RETENTION_DAYS` | `30` | Retensi artefak agent, mis. video/gambar hasil run (hari). `0` = nonaktif |
+| `MEDIA_CAP_MB` | `500` | Batas total seluruh media dalam MB; melebihi ini yang **paling tua** dihapus dulu. `0` = tanpa cap |
+| `MEDIA_UPLOAD_MAX_MB` | `8` | Batas ukuran satu unggahan (di atas ini server menjawab `413`) |
+| `MEDIA_SWEEP_INTERVAL_MIN` | `60` | Interval pembersih retensi otomatis dalam menit (jalan juga sekali saat start) |
+| `MEDIA_SWEEP_DISABLED` | `0` | `1` = hentikan pembersih retensi otomatis (hanya untuk debugging) |
 | `DEV_AUTH_BYPASS` | `0` | **Wajib 0** di produksi (Rule S3) |
 
 Klik **Save**.

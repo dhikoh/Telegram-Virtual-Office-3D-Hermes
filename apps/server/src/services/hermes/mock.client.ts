@@ -1,4 +1,6 @@
 import type {
+  ChatMessageContent,
+  ChatRequestMessage,
   HermesClient,
   StartRunParams,
   StartRunResponse,
@@ -129,7 +131,7 @@ export class MockHermesClient implements HermesClient {
   }
 
   public async chatStream(
-    messages: { role: string; content: string }[],
+    messages: ChatRequestMessage[],
     onChunk: (chunk: string) => void,
     model?: string
   ): Promise<void> {
@@ -142,7 +144,10 @@ export class MockHermesClient implements HermesClient {
         stream: true,
       }),
     });
-    if (!res.ok || !res.body) return;
+    if (!res.ok || !res.body) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`Mock gateway chat error: ${res.status} ${res.statusText} ${text}`.trim());
+    }
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();

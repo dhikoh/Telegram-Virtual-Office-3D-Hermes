@@ -21,6 +21,9 @@ import { hiringRoutes } from './routes/hiring.js';
 import { auditRoutes } from './routes/audit.js';
 import { skillRoutes } from './routes/skills.js';
 import { departmentRoutes } from './routes/departments.js';
+import { mediaRoutes } from './routes/media.js';
+import { config } from './config.js';
+import { startMediaSweepTimer, stopMediaSweepTimer, sweepRetention } from './services/media.js';
 
 export interface BuildServerOptions {
   db: Database.Database;
@@ -79,6 +82,20 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
   app.register(auditRoutes);
   app.register(skillRoutes);
   app.register(departmentRoutes, { db: options.db });
+  app.register(mediaRoutes);
+
+  // Tahap 12 — retensi media: sekali saat startup + interval berkala.
+  // NODE_ENV=test sengaja dilewati supaya unit test tidak mewarisi timer aktif
+  // (timer-nya juga bisa dimatikan dengan MEDIA_SWEEP_DISABLED=1).
+  if (config.NODE_ENV !== 'test' && !config.MEDIA_SWEEP_DISABLED) {
+    try {
+      sweepRetention(options.db);
+    } catch (err) {
+      app.log?.error?.({ err }, 'startup media sweep failed');
+    }
+    startMediaSweepTimer(options.db);
+    app.addHook('onClose', async () => stopMediaSweepTimer());
+  }
 
   // Serve compiled web build when available (Section 2: ONE container office)
   const __dirname = path.dirname(fileURLToPath(import.meta.url));

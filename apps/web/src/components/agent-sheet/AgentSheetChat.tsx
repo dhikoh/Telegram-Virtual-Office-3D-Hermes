@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, History, RefreshCw, Plus, Archive, ArrowLeft, Pencil } from 'lucide-react';
+import { Send, History, RefreshCw, Plus, Archive, ArrowLeft, Pencil, Paperclip } from 'lucide-react';
 import type { OfficeAgent } from '../../stores/office';
 import { api } from '../../services/api';
 import { tma } from '../../services/tma';
@@ -14,6 +14,9 @@ interface ChatMessage {
   replaced?: boolean;
   /** Tahap 9 — pesan user yang lahir dari tombol "Ubah". */
   edited?: boolean;
+  /** Tahap 12 — gambar yang dilampirkan (object URL untuk bubble + media id tersimpan). */
+  imageUrl?: string;
+  mediaId?: string;
 }
 
 interface SessionRow {
@@ -60,6 +63,13 @@ export const AgentSheetChat: React.FC<AgentSheetChatProps> = ({ agent }) => {
   const [viewingSession, setViewingSession] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // Tahap 12 — lampiran gambar chat.
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [gatewayError, setGatewayError] = useState<string | null>(null);
+
+  /** Batas yang sama dengan server (MEDIA_UPLOAD_MAX_MB); dicek di klien dulu. */
+  const MAX_IMAGE_MB = 8;
 
   const isViewingArchive = viewingSession !== null;
 
@@ -201,6 +211,59 @@ export const AgentSheetChat: React.FC<AgentSheetChatProps> = ({ agent }) => {
   const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user' && !m.replaced);
   const canEdit = !isStreaming && !isViewingArchive && historyState === 'ready';
 
+  /**
+   * Tahap 12 — lampirkan gambar ke percakapan.
+   * Gambar dikirim multipart ke server, yang menyimpannya DAN meneruskannya ke
+   * sesi gateway sebagai content part. Bila gateway menolak, bubble gambar tetap
+   * muncul (berkasnya memang tersimpan) tapi peringatan apa adanya ikut tampil.
+   */
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (isStreaming || isViewingArchive || isUploading) return;
+
+    if (!file.type.startsWith('image/')) {
+      setNotice(`"${file.name}" bukan gambar — lampirkan PNG, JPEG, WebP, atau GIF.`);
+      return;
+    }
+    if (file.size > MAX_IMAGE_MB * 1024 * 1024) {
+      setNotice(
+        `Gambar ${Math.round(file.size / (1024 * 1024))} MB melebihi batas ${MAX_IMAGE_MB} MB. Kompres dulu sebelum dikirim.`
+      );
+      return;
+    }
+
+    tma.hapticImpact('light');
+    setIsUploading(true);
+    setGatewayError(null);
+    const previewUrl = URL.createObjectURL(file);
+    try {
+      const media = await api.uploadChatImage(agent.id, file);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `media-${media.id}`,
+          role: 'user',
+          content: '[gambar terlampir]',
+          timestamp: media.created_at || Date.now(),
+          imageUrl: previewUrl,
+          mediaId: media.id,
+        },
+      ]);
+      setHistoryState('ready');
+      if (media.gateway_error) {
+        // Jangan disembunyikan: gambar tersimpan, tapi agent belum melihatnya.
+        setGatewayError(media.gateway_error);
+      }
+    } catch (err) {
+      URL.revokeObjectURL(previewUrl);
+      setNotice(`Gagal unggah gambar: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col justify-between overflow-hidden">
       {/* Session toolbar — Tahap 9: Sesi baru + arsip */}
@@ -264,6 +327,26 @@ export const AgentSheetChat: React.FC<AgentSheetChatProps> = ({ agent }) => {
               <span className="text-[9px] font-bold">{s.is_current ? 'SEKARANG' : 'ARSIP'}</span>
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Peringatan galat gateway dari lampiran gambar (Tahap 12, apa adanya) */}
+      {gatewayError && (
+        <div
+          className="px-3 py-1.5 border-b border-office-danger/40 bg-office-danger/10 flex items-start justify-between gap-2"
+          data-testid="media-gateway-error"
+        >
+          <span className="text-[10px] text-office-danger leading-snug">
+            Gambar tersimpan, tetapi agent belum menerimanya — gateway menolak: {gatewayError}
+          </span>
+          <button
+            type="button"
+            onClick={() => setGatewayError(null)}
+            className="text-[10px] text-office-muted hover:text-office-text shrink-0"
+            aria-label="Tutup peringatan gateway"
+          >
+            ✕
+          </button>
         </div>
       )}
 
@@ -339,6 +422,14 @@ export const AgentSheetChat: React.FC<AgentSheetChatProps> = ({ agent }) => {
                   : 'glass-panel bg-office-hover text-office-text border border-office-border rounded-bl-none'
               } ${m.replaced ? 'opacity-50' : ''}`}
             >
+              {m.imageUrl && (
+                <img
+                  src={m.imageUrl}
+                  alt={m.content || 'Gambar terlampir'}
+                  data-testid="chat-image-attachment"
+                  className="mb-1.5 max-h-48 w-full object-cover rounded-xl border border-office-border"
+                />
+              )}
               <MarkdownView content={m.content} />
             </div>
             <div className="flex items-center gap-2 mt-1 px-1">
@@ -399,6 +490,30 @@ export const AgentSheetChat: React.FC<AgentSheetChatProps> = ({ agent }) => {
       {/* Chat Input Bar */}
       <div className="p-2.5 border-t border-office-border bg-office-elevated flex items-center gap-2">
         {editingId && <Pencil className="w-3.5 h-3.5 text-office-accent-ink shrink-0" />}
+        {/* Tahap 12 — lampirkan gambar ke percakapan */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif"
+          onChange={(e) => void handleFileSelected(e)}
+          className="hidden"
+          data-testid="chat-image-input"
+          aria-label="Pilih gambar untuk dilampirkan"
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isStreaming || isViewingArchive || isUploading}
+          aria-label={isUploading ? 'Mengunggah gambar…' : 'Lampirkan gambar'}
+          data-testid="chat-attach-button"
+          className="w-11 h-11 rounded-xl bg-office-inset border border-office-border text-office-muted hover:text-office-text hover:border-office-accent/70 flex items-center justify-center transition-colors disabled:opacity-40 shrink-0 min-h-[44px] min-w-[44px]"
+        >
+          {isUploading ? (
+            <RefreshCw className="w-4 h-4 animate-spin" />
+          ) : (
+            <Paperclip className="w-4 h-4" />
+          )}
+        </button>
         <input
           type="text"
           value={inputMessage}

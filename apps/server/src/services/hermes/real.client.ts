@@ -1,4 +1,6 @@
 import type {
+  ChatMessageContent,
+  ChatRequestMessage,
   HermesClient,
   StartRunParams,
   StartRunResponse,
@@ -165,7 +167,7 @@ export class RealHermesClient implements HermesClient {
   }
 
   public async chatStream(
-    messages: { role: string; content: string }[],
+    messages: ChatRequestMessage[],
     onChunk: (chunk: string) => void,
     model?: string
   ): Promise<void> {
@@ -178,7 +180,12 @@ export class RealHermesClient implements HermesClient {
         stream: true,
       }),
     });
-    if (!res.ok || !res.body) return;
+    // Tahap 12 — a rejected completion (e.g. the gateway refuses image parts)
+    // must surface its own message instead of a silently empty stream.
+    if (!res.ok || !res.body) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`Hermes chat error: ${res.status} ${res.statusText} ${text}`.trim());
+    }
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
@@ -231,7 +238,7 @@ export class RealHermesClient implements HermesClient {
 
   public async sessionChatStream(
     sessionId: string,
-    message: string,
+    message: ChatMessageContent,
     onDelta: (delta: string) => void,
     _model?: string
   ): Promise<void> {

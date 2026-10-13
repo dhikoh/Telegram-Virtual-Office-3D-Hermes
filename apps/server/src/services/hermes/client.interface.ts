@@ -7,6 +7,21 @@ export interface StartRunParams {
   conversationHistory?: unknown[];
 }
 
+/**
+ * Tahap 12 — konten pesan OpenAI-compatible: teks polos ATAU content part
+ * (teks + gambar data URL) untuk jalur multimodal /v1/chat/completions.
+ */
+export type ChatContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string } };
+
+export type ChatMessageContent = string | ChatContentPart[];
+
+export interface ChatRequestMessage {
+  role: string;
+  content: ChatMessageContent;
+}
+
 export class HermesTimeoutError extends Error {
   constructor(message: string) {
     super(message);
@@ -39,7 +54,7 @@ export interface HermesClient {
   stopRun(runId: string): Promise<{ status: string }>;
   streamEvents(runId: string, onEvent: (event: string, data: unknown) => void): Promise<() => void>;
   chatStream(
-    messages: { role: string; content: string }[],
+    messages: ChatRequestMessage[],
     onChunk: (chunk: string) => void,
     model?: string
   ): Promise<void>;
@@ -51,7 +66,7 @@ export interface HermesClient {
   getSessionMessages(sessionId: string): Promise<HermesSessionMessage[]>;
   sessionChatStream(
     sessionId: string,
-    message: string,
+    message: ChatMessageContent,
     onDelta: (delta: string) => void,
     model?: string
   ): Promise<void>;

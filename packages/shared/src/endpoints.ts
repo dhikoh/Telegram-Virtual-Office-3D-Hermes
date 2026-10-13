@@ -250,4 +250,32 @@ export const ENDPOINTS: readonly EndpointDefinition[] = [
     requiresAuth: true,
     description: 'Ask the orchestrator agent to remove an installed skill (task pipeline; gateway has no uninstall REST)',
   },
+  {
+    method: 'POST',
+    path: '/api/agents/:id/media',
+    phase: 12,
+    requiresAuth: true,
+    description: 'Upload a chat image (multipart) and forward it to the agent gateway session as an OpenAI image content part',
+  },
+  {
+    method: 'GET',
+    path: '/api/media',
+    phase: 12,
+    requiresAuth: true,
+    description: 'List uploaded media and artifacts for one agent (never returns filesystem paths)',
+  },
+  {
+    method: 'POST',
+    path: '/api/agents/:id/artifacts',
+    phase: 12,
+    requiresAuth: true,
+    description: 'Store an agent-produced artifact (video/image output) as a downloadable media row',
+  },
+  {
+    method: 'GET',
+    path: '/api/artifacts/:id/download',
+    phase: 12,
+    requiresAuth: true,
+    description: 'Stream a stored artifact for download with its original content type',
+  },
 ] as const;

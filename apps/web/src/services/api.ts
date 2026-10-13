@@ -17,6 +17,19 @@ import type {
 
 const API_BASE = '/api';
 
+/** Tahap 12 — balasan unggah gambar chat (termasuk galat gateway bila ada). */
+export interface ChatMediaUploadResult {
+  id: string;
+  agent_id: string;
+  kind: string;
+  mime: string;
+  size: number;
+  original_name: string | null;
+  created_at: number;
+  /** Galat gateway apa adanya — gambar tersimpan, tapi pengiriman ke model gagal. */
+  gateway_error?: string;
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const initData = tma.getInitData();
   const headers = new Headers(options.headers || {});
@@ -231,4 +244,51 @@ export const api = {
       body: JSON.stringify({ agent }),
     }),
   getAudit: () => request<AuditLog[]>('/audit'),
+  /**
+   * Tahap 12 — unggah gambar chat (multipart). Sengaja BUKAN lewat helper
+   * request(): FormData tidak boleh dikasih Content-Type application/json,
+   * browser yang harus mengisi boundary multipart-nya sendiri.
+   */
+  uploadChatImage: async (agentId: string, file: File): Promise<ChatMediaUploadResult> => {
+    const initData = tma.getInitData();
+    const headers: Record<string, string> = {};
+    if (initData) {
+      headers['Authorization'] = `tma ${initData}`;
+    }
+    const form = new FormData();
+    form.append('file', file, file.name || 'lampiran.png');
+
+    const response = await fetch(`${API_BASE}/agents/${encodeURIComponent(agentId)}/media`, {
+      method: 'POST',
+      headers,
+      body: form,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Unggah gambar ditolak (${response.status}): ${errorText}`);
+    }
+    return (await response.json()) as ChatMediaUploadResult;
+  },
+  /** Tahap 12 — daftar media agen (upload + artefak, tanpa path fisik). */
+  getMediaList: (agentId: string) =>
+    request<{
+      media: {
+        id: string;
+        agent_id: string;
+        kind: 'upload' | 'artifact';
+        mime: string;
+        size: number;
+        original_name: string | null;
+        task_id: string | null;
+        created_at: number;
+      }[];
+    }>(`/media?agent_id=${encodeURIComponent(agentId)}`),
+  /** Tahap 12 — URL unduh artefak (otentikasi lewat query ?auth=, hook server mendukungnya). */
+  artifactDownloadUrl: (id: string) => {
+    const initData = tma.getInitData();
+    return `${API_BASE}/artifacts/${encodeURIComponent(id)}/download${
+      initData ? `?auth=${encodeURIComponent(initData)}` : ''
+    }`;
+  },
 };
