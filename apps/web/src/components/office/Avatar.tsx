@@ -16,7 +16,7 @@
  * free under .low-power.
  */
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   motion,
   useMotionValue,
@@ -43,11 +43,22 @@ const SPRITE_W = 20;
 const SPRITE_H = 30;
 
 function shirtOf(agent: OfficeAgent): string {
+  // Tahap 9 — warna baju kustom milik agen (avatar editor) mengalahkan warna
+  // departemen; kalau belum diatur, jatuh ke warna ruangannya seperti biasa.
+  const custom = agent.avatar_style?.shirt;
+  if (custom) return custom;
   const dept = agent.department;
   return dept && dept in ROOM_LAYOUTS
     ? ROOM_LAYOUTS[dept as keyof typeof ROOM_LAYOUTS].color
     : '#94A3B8';
 }
+
+/** Tahap 9 — aksesori overlay pilihan Owner di atas sprite. */
+const ACCESSORY_GLYPHS: Record<string, string> = {
+  glasses: '🕶️',
+  cap: '🧢',
+  headset: '🎧',
+};
 
 interface AvatarProps {
   agent: OfficeAgent;
@@ -63,6 +74,33 @@ interface AvatarProps {
 
 export const Avatar: React.FC<AvatarProps> = ({ agent, targetX, targetY, onClick, showLabel = true }) => {
   const { isLowPower } = usePowerStore();
+  const [bubbleText, setBubbleText] = useState<string | null>(null);
+
+  // Tahap 9 — bubble teks di atas avatar: muncul saat status berubah, hilang
+  // sendiri ~4 dtk (satu bubble per perubahan status = throttle, tidak menumpuk).
+  // Status 'working' dengan alat tertentu tidak ikut — chip alat di bawah sudah
+  // mewakilinya, bubble hanya muncul saat bekerja tanpa alat terlihat.
+  useEffect(() => {
+    const text =
+      agent.status === 'thinking'
+        ? 'sedang berpikir…'
+        : agent.status === 'working'
+          ? agent.currentTool
+            ? null
+            : 'sedang mengerjakan tugas…'
+          : agent.status === 'waiting_approval'
+            ? 'butuh persetujuanmu'
+            : agent.status === 'error'
+              ? 'ada kendala…'
+              : null;
+    if (!text) {
+      setBubbleText(null);
+      return;
+    }
+    setBubbleText(text);
+    const timer = setTimeout(() => setBubbleText(null), 4200);
+    return () => clearTimeout(timer);
+  }, [agent.status, agent.currentTool]);
 
   const handleClick = () => {
     tma.hapticSelection();
@@ -181,6 +219,15 @@ export const Avatar: React.FC<AvatarProps> = ({ agent, targetX, targetY, onClick
     >
       {/* Pixel frame + sprite, standing in for the old circular status ring */}
       <div className="relative flex items-center justify-center">
+        {/* Tahap 9 — bubble teks status (otomatis hilang, di atas chip alat) */}
+        {bubbleText && (
+          <div
+            data-testid="avatar-bubble"
+            className="absolute bottom-full left-1/2 z-30 mb-2 max-w-[76px] -translate-x-1/2 truncate rounded-[3px] border border-office-border bg-white px-1 py-px text-center font-mono text-[7px] leading-tight text-black shadow-nu-raised"
+          >
+            {bubbleText}
+          </div>
+        )}
         <div
           className={`relative flex items-end justify-center w-[26px] h-[34px] bg-office-elevated transition-transform group-hover:scale-105 active:scale-95 ${ringClasses}`}
         >
@@ -203,6 +250,16 @@ export const Avatar: React.FC<AvatarProps> = ({ agent, targetX, targetY, onClick
           )}
           {!spriteUrls.some(Boolean) && (
             <span className="text-lg leading-none pb-0.5">{agent.avatar || '🤖'}</span>
+          )}
+          {/* Tahap 9 — aksesori pilihan Owner (avatar editor) */}
+          {ACCESSORY_GLYPHS[agent.avatar_style?.accessory || ''] && (
+            <span
+              data-testid="avatar-accessory"
+              className="absolute -right-0.5 -top-0.5 text-[9px] leading-none"
+              aria-hidden
+            >
+              {ACCESSORY_GLYPHS[agent.avatar_style!.accessory!]}
+            </span>
           )}
         </div>
         {badgeContent}

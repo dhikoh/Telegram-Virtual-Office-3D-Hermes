@@ -1,9 +1,29 @@
 import React, { useState } from 'react';
-import { HeartPulse, CheckCircle, AlertCircle, PlugZap, Cpu, Loader2 } from 'lucide-react';
+import { HeartPulse, CheckCircle, AlertCircle, PlugZap, Cpu, Loader2, Sparkles } from 'lucide-react';
 import type { OfficeAgent } from '../../stores/office';
 import { useOfficeStore } from '../../stores/office';
 import { api } from '../../services/api';
 import { tma } from '../../services/tma';
+
+/** Tahap 9 — pilihan warna baju avatar (Rule 9.4: palet lokal, nol aset eksternal). */
+const SHIRT_SWATCHES = [
+  '#38BDF8',
+  '#34D399',
+  '#FBBF24',
+  '#F87171',
+  '#A78BFA',
+  '#F472B6',
+  '#94A3B8',
+  '#F97316',
+];
+
+/** Tahap 9 — aksesori overlay di atas sprite (disetujui server sebagai whitelist). */
+const ACCESSORY_OPTIONS = [
+  { id: 'none', glyph: '·', label: 'Tanpa' },
+  { id: 'glasses', glyph: '🕶️', label: 'Kacamata' },
+  { id: 'cap', glyph: '🧢', label: 'Topi' },
+  { id: 'headset', glyph: '🎧', label: 'Headset' },
+];
 
 interface AgentSheetProfileProps {
   agent: OfficeAgent;
@@ -24,6 +44,32 @@ export const AgentSheetProfile: React.FC<AgentSheetProfileProps> = ({ agent }) =
   const [models, setModels] = useState<string[]>([]);
   const [probing, setProbing] = useState(false);
   const [probeMessage, setProbeMessage] = useState<{ ok: boolean; text: string } | null>(null);
+
+  // Tahap 9 — avatar editor dasar: warna baju + aksesori overlay.
+  const [shirt, setShirt] = useState(agent.avatar_style?.shirt ?? '');
+  const [accessory, setAccessory] = useState(agent.avatar_style?.accessory ?? 'none');
+  const [avatarSaving, setAvatarSaving] = useState(false);
+  const [avatarMsg, setAvatarMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const handleSaveAvatar = async () => {
+    setAvatarSaving(true);
+    setAvatarMsg(null);
+    try {
+      const style =
+        shirt || accessory !== 'none'
+          ? { ...(shirt ? { shirt } : {}), ...(accessory !== 'none' ? { accessory } : {}) }
+          : null;
+      await api.updateAgent(agent.id, { avatar_style: style });
+      await fetchInitialData();
+      setAvatarMsg({ ok: true, text: 'Avatar diperbarui.' });
+      tma.hapticNotification('success');
+    } catch (err: unknown) {
+      setAvatarMsg({ ok: false, text: err instanceof Error ? err.message : 'Gagal menyimpan avatar' });
+      tma.hapticNotification('error');
+    } finally {
+      setAvatarSaving(false);
+    }
+  };
 
   const handleCheckHealth = async () => {
     setHealthStatus('checking');
@@ -90,6 +136,88 @@ export const AgentSheetProfile: React.FC<AgentSheetProfileProps> = ({ agent }) =
         <p className="text-xs text-office-text/90 leading-relaxed bg-office-inset p-2.5 rounded-lg border border-office-border">
           {agent.soul_summary || 'Tidak ada deskripsi jiwa (SOUL) tersimpan.'}
         </p>
+      </div>
+
+      {/* Tahap 9 — Avatar editor dasar (warna baju + aksesori) */}
+      <div
+        className="glass-panel rounded-xl p-3.5 border border-office-border flex flex-col gap-2"
+        data-testid="avatar-editor"
+      >
+        <div className="flex items-center gap-2 text-xs font-semibold text-office-accent-ink">
+          <Sparkles className="w-4 h-4" />
+          <span>Avatar Agen</span>
+        </div>
+        {agent.is_system && (
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-office-inset border border-office-border text-office-muted self-start">
+            AGEN SISTEM — permanen, tidak bisa dihapus
+          </span>
+        )}
+        <span className="text-[11px] text-office-muted">Warna baju (kosongkan = warna ruangan)</span>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {SHIRT_SWATCHES.map((color) => (
+            <button
+              key={color}
+              type="button"
+              aria-label={`Pilih warna baju ${color}`}
+              onClick={() => setShirt(color)}
+              className={`w-8 h-8 rounded-lg border-2 transition-transform active:scale-95 ${
+                shirt === color ? 'border-office-accent scale-110' : 'border-office-border'
+              }`}
+              style={{ backgroundColor: color }}
+            />
+          ))}
+          <button
+            type="button"
+            onClick={() => setShirt('')}
+            className={`h-8 px-2 rounded-lg border text-[10px] font-semibold ${
+              shirt === '' ? 'border-office-accent text-office-text' : 'border-office-border text-office-muted'
+            }`}
+          >
+            Otomatis
+          </button>
+        </div>
+        <span className="text-[11px] text-office-muted pt-1">Aksesori</span>
+        <div className="flex gap-1.5">
+          {ACCESSORY_OPTIONS.map((opt) => (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => setAccessory(opt.id)}
+              className={`flex items-center gap-1.5 h-9 px-2.5 rounded-lg border text-[11px] transition-colors ${
+                accessory === opt.id
+                  ? 'border-office-accent text-office-text bg-office-accent/10'
+                  : 'border-office-border text-office-muted'
+              }`}
+            >
+              <span aria-hidden>{opt.glyph}</span>
+              <span>{opt.label}</span>
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => void handleSaveAvatar()}
+          disabled={avatarSaving}
+          className="w-full py-2.5 rounded-xl bg-office-accent/10 hover:bg-office-accent/20 border border-office-accent/30 text-xs font-semibold text-office-accent-ink transition-colors min-h-[44px] flex items-center justify-center gap-2 mt-1"
+        >
+          {avatarSaving ? (
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <span>Menyimpan...</span>
+            </>
+          ) : (
+            <span>Simpan Avatar</span>
+          )}
+        </button>
+        {avatarMsg && (
+          <span
+            className={`text-[10px] font-mono ${
+              avatarMsg.ok ? 'text-office-success' : 'text-office-danger'
+            }`}
+          >
+            {avatarMsg.text}
+          </span>
+        )}
       </div>
 
       {/* Tahap 7 — connection + model auto-detect */}

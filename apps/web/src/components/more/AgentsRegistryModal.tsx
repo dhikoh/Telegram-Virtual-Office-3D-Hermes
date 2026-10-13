@@ -166,6 +166,11 @@ export const AgentsRegistryModal: React.FC<AgentsRegistryModalProps> = ({
                             DEMO
                           </span>
                         )}
+                        {agent.is_system && (
+                          <span className="text-[9px] font-mono font-bold bg-office-violet/20 text-office-violet px-1.5 py-0.5 rounded leading-none">
+                            SISTEM
+                          </span>
+                        )}
                       </div>
                       <span className="text-[11px] text-office-muted">{agent.role}</span>
                     </div>
@@ -204,19 +209,22 @@ export const AgentsRegistryModal: React.FC<AgentsRegistryModalProps> = ({
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setConfirmDeleteId(agent.id);
-                            setEditingId(null);
-                            setActionError(null);
-                          }}
-                          aria-label={`Hapus ${agent.name}`}
-                          title="Hapus Agen"
-                          className="p-2 rounded-lg bg-office-hover text-office-danger hover:text-office-danger transition-colors min-h-[36px]"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {/* Tahap 9 — agen sistem tidak punya tombol hapus (juga dijaga server). */}
+                        {!agent.is_system && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setConfirmDeleteId(agent.id);
+                              setEditingId(null);
+                              setActionError(null);
+                            }}
+                            aria-label={`Hapus ${agent.name}`}
+                            title="Hapus Agen"
+                            className="p-2 rounded-lg bg-office-hover text-office-danger hover:text-office-danger transition-colors min-h-[36px]"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </>
                     )}
                   </div>

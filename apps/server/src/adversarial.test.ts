@@ -52,7 +52,10 @@ describe('Adversarial & State Matrix Tests (Rule C5 & C9)', () => {
   it('Case 1: Empty database handles queries gracefully (returns empty lists)', async () => {
     const resAgents = await app.inject({ method: 'GET', url: '/api/agents', headers: { authorization: ownerAuth } });
     expect(resAgents.statusCode).toBe(200);
-    expect(JSON.parse(resAgents.body)).toEqual([]);
+    // Tahap 9 — the "empty" office always has the seeded system orchestrator.
+    const agentsList = JSON.parse(resAgents.body) as { is_system: boolean }[];
+    expect(agentsList.length).toBe(1);
+    expect(agentsList[0].is_system).toBe(true);
 
     const resTasks = await app.inject({ method: 'GET', url: '/api/tasks', headers: { authorization: ownerAuth } });
     expect(resTasks.statusCode).toBe(200);

@@ -12,6 +12,20 @@ import {
 import { normalizeBaseUrl, probeModels } from '../services/hermes/detect.js';
 import { config } from '../config.js';
 
+/** Tahap 9 — avatar style stored as JSON on the agent row, parsed for the client. */
+function parseAvatarStyle(raw: string | null | undefined): { shirt?: string; accessory?: string } | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as { shirt?: unknown; accessory?: unknown };
+    const style: { shirt?: string; accessory?: string } = {};
+    if (typeof parsed.shirt === 'string') style.shirt = parsed.shirt;
+    if (typeof parsed.accessory === 'string') style.accessory = parsed.accessory;
+    return Object.keys(style).length > 0 ? style : null;
+  } catch {
+    return null;
+  }
+}
+
 /** F-08: Strip server-only fields from agent before sending to client */
 function toPublic(
   agent: Agent,
@@ -25,10 +39,13 @@ function toPublic(
     role: agent.role,
     department: agent.department,
     avatar: agent.avatar,
+    avatar_style: parseAvatarStyle(agent.avatar_style),
     soul_summary: agent.soul_summary,
     hermes_profile: agent.hermes_profile,
     model: agent.model ?? null,
     active: agent.active,
+    // Tahap 9 — the orchestrator is a system agent: undeletable, undisableable.
+    is_system: Boolean(agent.is_system),
     hired_at: agent.hired_at,
     created_at: agent.created_at,
     // Tahap 7: the office always has a working gateway (server config), so an
@@ -54,6 +71,41 @@ function storeAgentKey(settingRepo: SettingRepository, agentId: string, key: unk
   if (typeof key !== 'string' || !key.trim()) return false;
   settingRepo.set(`agent_key:${agentId}`, key.trim());
   return true;
+}
+
+/**
+ * Tahap 9 — PATCH whitelist. Anything outside this set never reaches SQL:
+ * is_system and session_id are server-managed, and the key fields are already
+ * diverted to settings above.
+ */
+const PATCHABLE_AGENT_FIELDS = new Set([
+  'name',
+  'role',
+  'department',
+  'avatar',
+  'avatar_style',
+  'soul_summary',
+  'hermes_profile',
+  'model',
+  'active',
+  'hermes_base_url',
+]);
+
+const AVATAR_ACCESSORIES = new Set(['none', 'glasses', 'cap', 'headset']);
+
+/** Tahap 9 — validate + serialize the avatar style before it touches the row. */
+function encodeAvatarStyle(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'object') return null;
+  const raw = value as { shirt?: unknown; accessory?: unknown };
+  const style: { shirt?: string; accessory?: string } = {};
+  if (typeof raw.shirt === 'string' && /^#[0-9a-fA-F]{6}$/.test(raw.shirt)) {
+    style.shirt = raw.shirt;
+  }
+  if (typeof raw.accessory === 'string' && AVATAR_ACCESSORIES.has(raw.accessory)) {
+    style.accessory = raw.accessory;
+  }
+  return Object.keys(style).length > 0 ? JSON.stringify(style) : null;
 }
 
 export const agentRoutes: FastifyPluginAsync = async (fastify) => {
@@ -110,14 +162,25 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const rawUpdates = (request.body || {}) as Record<string, unknown>;
-    const updates: Record<string, unknown> = { ...rawUpdates };
+    const updates: Record<string, unknown> = {};
+    for (const key of Object.keys(rawUpdates)) {
+      if (PATCHABLE_AGENT_FIELDS.has(key)) updates[key] = rawUpdates[key];
+    }
 
     // Rule S4: the key is diverted to settings, never stored on the agent row,
     // and never written to the audit log or the response.
-    delete updates.api_key;
-    delete updates.api_key_env;
-    delete updates.id;
     const keyStored = storeAgentKey(settingRepo, id, rawUpdates.api_key);
+
+    // Tahap 9 — the system orchestrator can be renamed but never disabled.
+    if (existing.is_system && 'active' in updates && !Number(updates.active)) {
+      return reply.code(403).send({
+        error: 'system_agent',
+        message: 'Agen sistem orkestrator tidak dapat dinonaktifkan.',
+      });
+    }
+    if ('avatar_style' in updates) {
+      updates.avatar_style = encodeAvatarStyle(updates.avatar_style);
+    }
 
     if ('hermes_base_url' in updates) {
       const normalized = normalizeBaseUrl(String(updates.hermes_base_url || ''));
@@ -284,7 +347,13 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
         // Tahap 8: prefer the gateway session — history and memory persist there.
         const sessionId = agent.session_id || (await client.createSession(`${agent.name}`));
         if (sessionId) {
-          if (!agent.session_id) agentRepo.update(id, { session_id: sessionId });
+          if (!agent.session_id) {
+            agentRepo.update(id, { session_id: sessionId });
+            // Tahap 9 — record the live session so "Sesi baru" can archive it later.
+            db.prepare(
+              'INSERT OR IGNORE INTO agent_sessions (agent_id, session_id, created_at, archived_at) VALUES (?, ?, ?, NULL)'
+            ).run(id, sessionId, Date.now());
+          }
           await client.sessionChatStream(
             sessionId,
             lastUser?.content || JSON.stringify(messages),
@@ -321,31 +390,116 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
    * Tahap 8 — riwayat chat nyata: diambil dari sesi agen di gateway.
    * Tanpa sesi (belum pernah chat / gateway mock) → daftar kosong, bukan data karangan.
    */
-  fastify.get<{ Params: { id: string } }>('/api/agents/:id/chat', async (request, reply) => {
+  fastify.get<{ Params: { id: string }; Querystring: { session?: string } }>(
+    '/api/agents/:id/chat',
+    async (request, reply) => {
+      const { id } = request.params;
+      const agent = agentRepo.getById(id);
+      if (!agent) {
+        return reply.code(404).send({ error: 'not_found', message: 'Agent not found' });
+      }
+      // Tahap 9 — ?session=<sid> reads an archived session; it must belong to
+      // this agent, so one agent's history can never be fetched for another.
+      const requested = request.query.session?.trim();
+      let sessionId = agent.session_id;
+      if (requested) {
+        const owned = db
+          .prepare('SELECT 1 FROM agent_sessions WHERE agent_id = ? AND session_id = ?')
+          .get(id, requested);
+        if (!owned) {
+          return reply.code(403).send({
+            error: 'invalid_input',
+            message: 'Sesi tersebut bukan milik agen ini.',
+          });
+        }
+        sessionId = requested;
+      }
+      if (!sessionId) {
+        return { messages: [], session_id: null };
+      }
+      try {
+        const client = getHermesClientForAgent(agent, db);
+        const messages = await client.getSessionMessages(sessionId);
+        return {
+          session_id: sessionId,
+          is_archived: Boolean(requested && requested !== agent.session_id),
+          messages: messages.map((m) => ({
+            role: m.role,
+            content: m.content,
+            timestamp: m.timestamp,
+          })),
+        };
+      } catch (err) {
+        return reply
+          .code(502)
+          .send({ error: 'gateway_unreachable', message: `Riwayat chat gagal dimuat: ${err}` });
+      }
+    }
+  );
+
+  /**
+   * Tahap 9 — "Sesi baru": sesi gateway sekarang diarsipkan (dicatat di
+   * agent_sessions, riwayatnya tetap hidup di gateway), lalu sesi kosong yang
+   * baru dibuat untuk melanjutkan percakapan.
+   */
+  fastify.post<{ Params: { id: string } }>('/api/agents/:id/session', async (request, reply) => {
     const { id } = request.params;
     const agent = agentRepo.getById(id);
     if (!agent) {
       return reply.code(404).send({ error: 'not_found', message: 'Agent not found' });
     }
-    if (!agent.session_id) {
-      return { messages: [], session_id: null };
-    }
     try {
       const client = getHermesClientForAgent(agent, db);
-      const messages = await client.getSessionMessages(agent.session_id);
-      return {
-        session_id: agent.session_id,
-        messages: messages.map((m) => ({
-          role: m.role,
-          content: m.content,
-          timestamp: m.timestamp,
-        })),
-      };
+      const now = Date.now();
+      if (agent.session_id) {
+        db.prepare(
+          'UPDATE agent_sessions SET archived_at = ? WHERE agent_id = ? AND session_id = ?'
+        ).run(now, id, agent.session_id);
+      }
+      const sessionId = await client.createSession(`${agent.name} (sesi baru)`);
+      if (sessionId) {
+        agentRepo.update(id, { session_id: sessionId });
+        db.prepare(
+          'INSERT OR REPLACE INTO agent_sessions (agent_id, session_id, created_at, archived_at) VALUES (?, ?, ?, NULL)'
+        ).run(id, sessionId, now);
+      } else {
+        // Mock client (unit tests) has no real sessions — clear the pointer.
+        agentRepo.update(id, { session_id: null });
+      }
+      auditRepo.logAction(
+        request.user!.id,
+        'agent.session_reset',
+        id,
+        JSON.stringify({ had_session: Boolean(agent.session_id), new_session: Boolean(sessionId) })
+      );
+      return { session_id: sessionId ?? null };
     } catch (err) {
       return reply
         .code(502)
-        .send({ error: 'gateway_unreachable', message: `Riwayat chat gagal dimuat: ${err}` });
+        .send({ error: 'gateway_unreachable', message: `Sesi gagal dibuat: ${err}` });
     }
+  });
+
+  /** Tahap 9 — daftar sesi (arsip) milik satu agen, terbaru di atas. */
+  fastify.get<{ Params: { id: string } }>('/api/agents/:id/sessions', async (request, reply) => {
+    const { id } = request.params;
+    const agent = agentRepo.getById(id);
+    if (!agent) {
+      return reply.code(404).send({ error: 'not_found', message: 'Agent not found' });
+    }
+    const rows = db
+      .prepare(
+        'SELECT session_id, created_at, archived_at FROM agent_sessions WHERE agent_id = ? ORDER BY created_at DESC'
+      )
+      .all(id) as { session_id: string; created_at: number; archived_at: number | null }[];
+    return {
+      sessions: rows.map((row) => ({
+        session_id: row.session_id,
+        created_at: row.created_at,
+        archived_at: row.archived_at,
+        is_current: row.session_id === agent.session_id,
+      })),
+    };
   });
 
   /**
@@ -358,6 +512,13 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
     const agent = agentRepo.getById(id);
     if (!agent) {
       return reply.code(404).send({ error: 'not_found', message: 'Agent not found' });
+    }
+    // Tahap 9 — the system orchestrator is permanent.
+    if (agent.is_system) {
+      return reply.code(403).send({
+        error: 'system_agent',
+        message: 'Agen sistem orkestrator tidak dapat dihapus.',
+      });
     }
 
     const tasksRemoved = db

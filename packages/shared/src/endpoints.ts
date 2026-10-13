@@ -83,6 +83,20 @@ export const ENDPOINTS: readonly EndpointDefinition[] = [
     description: 'Remove an agent from the roster together with its stored key and tasks',
   },
   {
+    method: 'POST',
+    path: '/api/agents/:id/session',
+    phase: 9,
+    requiresAuth: true,
+    description: 'Archive the current gateway session and start a fresh one ("Sesi baru")',
+  },
+  {
+    method: 'GET',
+    path: '/api/agents/:id/sessions',
+    phase: 9,
+    requiresAuth: true,
+    description: "List the agent's gateway sessions (current + archived) from agent_sessions",
+  },
+  {
     method: 'GET',
     path: '/api/tasks',
     phase: 2,

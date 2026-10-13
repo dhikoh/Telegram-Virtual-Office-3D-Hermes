@@ -71,12 +71,27 @@ export const api = {
     request<{ success: boolean; id: string; tasks_removed: number }>(`/agents/${id}`, {
       method: 'DELETE',
     }),
-  /** Tahap 8 — riwayat chat tersimpan di sesi gateway, bukan di memori browser. */
-  getChatHistory: (id: string) =>
+  /** Tahap 8 — riwayat chat tersimpan di sesi gateway, bukan di memori browser.
+   * Tahap 9 — ?session=<sid> membaca sesi arsip (opsional). */
+  getChatHistory: (id: string, sessionId?: string) =>
     request<{
       session_id: string | null;
+      is_archived?: boolean;
       messages: { role: 'user' | 'assistant'; content: string; timestamp: number }[];
-    }>(`/agents/${id}/chat`),
+    }>(`/agents/${id}/chat${sessionId ? `?session=${encodeURIComponent(sessionId)}` : ''}`),
+  /** Tahap 9 — akhiri sesi sekarang, mulai sesi baru; riwayat lama diarsipkan. */
+  resetAgentSession: (id: string) =>
+    request<{ session_id: string | null }>(`/agents/${id}/session`, { method: 'POST' }),
+  /** Tahap 9 — daftar sesi (arsip) milik agen. */
+  getAgentSessions: (id: string) =>
+    request<{
+      sessions: {
+        session_id: string;
+        created_at: number;
+        archived_at: number | null;
+        is_current: boolean;
+      }[];
+    }>(`/agents/${id}/sessions`),
   /** Tahap 8 — skill yang benar-benar terpasang di gateway. */
   getSkills: () =>
     request<{

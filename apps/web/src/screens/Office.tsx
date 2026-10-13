@@ -52,9 +52,11 @@ export const OfficeScreen: React.FC<OfficeScreenProps> = ({ onOpenRecruitment, o
   };
 
   const handleOpenAskOffice = () => {
-    const commandAgent = agents.find((a) => a.department === 'command') || agents[0];
-    if (commandAgent) {
-      setSelectedAgentId(commandAgent.id);
+    // Tahap 9 — arahkan ke agen sistem orkestrator; fallback kompatibel DB lama.
+    const orchestrator =
+      agents.find((a) => a.is_system) || agents.find((a) => a.department === 'command') || agents[0];
+    if (orchestrator) {
+      setSelectedAgentId(orchestrator.id);
     }
   };
 

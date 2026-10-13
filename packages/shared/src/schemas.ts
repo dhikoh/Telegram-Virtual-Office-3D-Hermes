@@ -33,6 +33,11 @@ export const AgentSchema = z.object({
   model: z.string().nullable().optional(),
   // Tahap 8 — the agent's chat session on the Hermes gateway (history lives there).
   session_id: z.string().nullable().optional(),
+  // Tahap 9 — system orchestrator flag + custom avatar style (JSON string).
+  // Optional (not defaulted) so legacy Agent literals and pre-migration rows
+  // still parse; every reader coerces (Boolean(...)) and the repo stores 0.
+  is_system: z.number().int().min(0).max(1).optional(),
+  avatar_style: z.string().nullable().optional(),
   active: z.number().int().min(0).max(1).default(1),
   hired_at: z.number().int(),
   created_at: z.number().int(),
@@ -54,6 +59,16 @@ export const AgentPublicSchema = z.object({
   active: z.number(),
   hired_at: z.number(),
   created_at: z.number(),
+  // Tahap 9 — system agents (orchestrator) can never be deleted or disabled.
+  is_system: z.boolean().optional(),
+  /** Tahap 9 — parsed avatar style: { shirt?: '#RRGGBB', accessory?: ... } */
+  avatar_style: z
+    .object({
+      shirt: z.string().optional(),
+      accessory: z.string().optional(),
+    })
+    .nullable()
+    .optional(),
   endpoint_configured: z.boolean(),
   endpoint_source: z.enum(['agent', 'server']).optional(),
   key_source: z.enum(['server', 'env']).optional(),

@@ -16,8 +16,8 @@ export class AgentRepository {
   public create(agent: Agent): void {
     this.db
       .prepare(
-        `INSERT INTO agents (id, name, role, department, avatar, soul_summary, hermes_base_url, api_key_env, hermes_profile, active, hired_at, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO agents (id, name, role, department, avatar, soul_summary, hermes_base_url, api_key_env, hermes_profile, active, hired_at, created_at, is_system, avatar_style)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         agent.id,
@@ -31,7 +31,9 @@ export class AgentRepository {
         agent.hermes_profile,
         agent.active,
         agent.hired_at,
-        agent.created_at
+        agent.created_at,
+        agent.is_system ?? 0,
+        agent.avatar_style ?? null
       );
   }
 

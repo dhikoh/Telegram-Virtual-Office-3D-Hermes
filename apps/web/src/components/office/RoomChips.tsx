@@ -11,7 +11,7 @@
  * the row doubles as "who is where".
  */
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ROOM_FOCUS_IDS,
@@ -37,11 +37,29 @@ export const RoomChips: React.FC = () => {
   // Fade it while there is more to scroll, drop the fade at the end so the
   // last chip is never permanently dimmed (Tahap 4 polish, defect 1).
   const [atEnd, setAtEnd] = useState(false);
+  const [atStart, setAtStart] = useState(true);
+  // Tahap 9 — fix poin diskusi: di desktop (mouse/touchpad) baris chip yang
+  // kepotong kanan tidak bisa digulir tanpa trackpad horizontal. Dua tombol
+  // panah digeser 160 px per klik; disembunyikan di layar sentuh (pointer:fine).
+  const rowRef = useRef<HTMLDivElement>(null);
+  const nudge = (dir: -1 | 1) => {
+    rowRef.current?.scrollBy({ left: dir * 160, behavior: 'smooth' });
+  };
 
   return (
-    <div className="w-full max-w-[390px] mx-auto mb-2">
+    <div className="w-full max-w-[390px] mx-auto mb-2 flex items-center gap-1">
+      <button
+        type="button"
+        aria-label="Geser daftar ruang ke kiri"
+        disabled={atStart}
+        onClick={() => nudge(-1)}
+        className="hidden h-8 w-7 shrink-0 items-center justify-center rounded border border-office-border bg-office-inset text-[15px] leading-none text-office-muted transition-opacity active:scale-95 [@media(pointer:fine)]:flex disabled:opacity-30"
+      >
+        ‹
+      </button>
       <div
-        className={`no-scrollbar flex gap-1 overflow-x-auto pb-0.5 px-0.5 scroll-smooth ${
+        ref={rowRef}
+        className={`no-scrollbar flex flex-1 gap-1 overflow-x-auto pb-0.5 px-0.5 scroll-smooth ${
           atEnd ? '' : 'chip-row-fade'
         }`}
         role="tablist"
@@ -49,6 +67,7 @@ export const RoomChips: React.FC = () => {
         onScroll={(e) => {
           const el = e.currentTarget;
           setAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 2);
+          setAtStart(el.scrollLeft <= 2);
         }}
       >
         {ROOM_FOCUS_IDS.map((id) => {
@@ -84,6 +103,15 @@ export const RoomChips: React.FC = () => {
           );
         })}
       </div>
+      <button
+        type="button"
+        aria-label="Geser daftar ruang ke kanan"
+        disabled={atEnd}
+        onClick={() => nudge(1)}
+        className="hidden h-8 w-7 shrink-0 items-center justify-center rounded border border-office-border bg-office-inset text-[15px] leading-none text-office-muted transition-opacity active:scale-95 [@media(pointer:fine)]:flex disabled:opacity-30"
+      >
+        ›
+      </button>
     </div>
   );
 };
