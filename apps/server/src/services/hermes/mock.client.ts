@@ -3,6 +3,7 @@ import type {
   StartRunParams,
   StartRunResponse,
   HermesRunStatus,
+  HermesSessionMessage,
 } from './client.interface.js';
 import { HermesTimeoutError } from './client.interface.js';
 import type { HermesCapabilities } from '@hermes-office/shared';
@@ -151,5 +152,26 @@ export class MockHermesClient implements HermesClient {
       if (done) break;
       onChunk(decoder.decode(value));
     }
+  }
+
+  /**
+   * Tahap 8 — the mock gateway has no sessions API. Returning null here makes
+   * the chat route fall back to the stateless /v1/chat/completions stream.
+   */
+  public async createSession(_label?: string): Promise<string | null> {
+    return null;
+  }
+
+  public async getSessionMessages(_sessionId: string): Promise<HermesSessionMessage[]> {
+    return [];
+  }
+
+  public async sessionChatStream(): Promise<void> {
+    throw new Error('Mock gateway does not implement sessions');
+  }
+
+  /** Tahap 8 — the mock gateway genuinely has no skills installed. */
+  public async listSkills(): Promise<unknown[]> {
+    return [];
   }
 }

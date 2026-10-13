@@ -279,14 +279,30 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
       });
 
       const client = getHermesClientForAgent(agent, db);
+      const lastUser = [...messages].reverse().find((m) => m.role === 'user');
       try {
-        await client.chatStream(
-          messages,
-          (chunk) => {
-            reply.raw.write(chunk);
-          },
-          agent.model || undefined
-        );
+        // Tahap 8: prefer the gateway session — history and memory persist there.
+        const sessionId = agent.session_id || (await client.createSession(`${agent.name}`));
+        if (sessionId) {
+          if (!agent.session_id) agentRepo.update(id, { session_id: sessionId });
+          await client.sessionChatStream(
+            sessionId,
+            lastUser?.content || JSON.stringify(messages),
+            (chunk) => {
+              reply.raw.write(`data: ${JSON.stringify({ choices: [{ delta: { content: chunk } }] })}\n\n`);
+            },
+            agent.model || undefined
+          );
+          reply.raw.write('data: [DONE]\n\n');
+        } else {
+          await client.chatStream(
+            messages,
+            (chunk) => {
+              reply.raw.write(chunk);
+            },
+            agent.model || undefined
+          );
+        }
       } catch (err) {
         // Surface a real error frame instead of a silently truncated stream
         reply.raw.write(
@@ -300,4 +316,63 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
       reply.raw.end();
     }
   );
+
+  /**
+   * Tahap 8 — riwayat chat nyata: diambil dari sesi agen di gateway.
+   * Tanpa sesi (belum pernah chat / gateway mock) → daftar kosong, bukan data karangan.
+   */
+  fastify.get<{ Params: { id: string } }>('/api/agents/:id/chat', async (request, reply) => {
+    const { id } = request.params;
+    const agent = agentRepo.getById(id);
+    if (!agent) {
+      return reply.code(404).send({ error: 'not_found', message: 'Agent not found' });
+    }
+    if (!agent.session_id) {
+      return { messages: [], session_id: null };
+    }
+    try {
+      const client = getHermesClientForAgent(agent, db);
+      const messages = await client.getSessionMessages(agent.session_id);
+      return {
+        session_id: agent.session_id,
+        messages: messages.map((m) => ({
+          role: m.role,
+          content: m.content,
+          timestamp: m.timestamp,
+        })),
+      };
+    } catch (err) {
+      return reply
+        .code(502)
+        .send({ error: 'gateway_unreachable', message: `Riwayat chat gagal dimuat: ${err}` });
+    }
+  });
+
+  /**
+   * Tahap 8 — hapus agen: baris dihapus dari roster, kunci API disingkirkan
+   * dari settings, dan tugas yang ditugaskan kepadanya ikut dihapus (dicatat
+   * di audit log agar tidak ada data yang hilang tanpa jejak).
+   */
+  fastify.delete<{ Params: { id: string } }>('/api/agents/:id', async (request, reply) => {
+    const { id } = request.params;
+    const agent = agentRepo.getById(id);
+    if (!agent) {
+      return reply.code(404).send({ error: 'not_found', message: 'Agent not found' });
+    }
+
+    const tasksRemoved = db
+      .prepare('DELETE FROM tasks WHERE agent_id = ?')
+      .run(id).changes;
+    settingRepo.delete(`agent_key:${id}`);
+    const removed = agentRepo.delete(id);
+
+    auditRepo.logAction(
+      request.user!.id,
+      'agent.delete',
+      id,
+      JSON.stringify({ name: agent.name, tasks_removed: tasksRemoved, had_session: Boolean(agent.session_id) })
+    );
+
+    return { success: removed > 0, id, tasks_removed: tasksRemoved };
+  });
 };

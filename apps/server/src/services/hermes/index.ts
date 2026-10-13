@@ -92,3 +92,16 @@ export function getHermesClientForAgent(agent: Agent, db?: Database.Database): H
 
   return new MockHermesClient(baseUrl, timeoutMs);
 }
+
+/** Tahap 8 — server-wide client (skills, capabilities) not tied to one agent. */
+export function getServerHermesClient(): HermesClient {
+  const timeoutMs = process.env.HERMES_TIMEOUT_MS
+    ? parseInt(process.env.HERMES_TIMEOUT_MS, 10)
+    : config.HERMES_TIMEOUT_MS;
+
+  if (config.HERMES_MODE === 'real') {
+    return new RealHermesClient(config.HERMES_BASE_URL, config.HERMES_KEY_DEFAULT, timeoutMs);
+  }
+
+  return new MockHermesClient(config.HERMES_BASE_URL, timeoutMs);
+}

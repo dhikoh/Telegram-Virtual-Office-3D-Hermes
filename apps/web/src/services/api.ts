@@ -37,7 +37,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export const api = {
   getHealth: () => request<{ status: string; uptime: number; timestamp: string }>('/health'),
-  getMe: () => request<{ user: { id: number; username?: string; role: string } }>('/me'),
+  getMe: () =>
+    request<{ user: { id: number; username?: string; role: string }; role: string; permissions: string[] }>(
+      '/me'
+    ),
   getAgents: () => request<AgentPublic[]>('/agents'),
   createAgent: (body: unknown) => request<AgentPublic>('/agents', { method: 'POST', body: JSON.stringify(body) }),
   updateAgent: (id: string, body: unknown) =>
@@ -63,6 +66,26 @@ export const api = {
     }>(`/agents/${id}/connection`, { method: 'POST', body: JSON.stringify(body) }),
   setAgentModel: (id: string, model: string) =>
     request<AgentPublic>(`/agents/${id}`, { method: 'PATCH', body: JSON.stringify({ model }) }),
+  /** Tahap 8 — hapus agen dari roster beserta tugasnya. */
+  deleteAgent: (id: string) =>
+    request<{ success: boolean; id: string; tasks_removed: number }>(`/agents/${id}`, {
+      method: 'DELETE',
+    }),
+  /** Tahap 8 — riwayat chat tersimpan di sesi gateway, bukan di memori browser. */
+  getChatHistory: (id: string) =>
+    request<{
+      session_id: string | null;
+      messages: { role: 'user' | 'assistant'; content: string; timestamp: number }[];
+    }>(`/agents/${id}/chat`),
+  /** Tahap 8 — skill yang benar-benar terpasang di gateway. */
+  getSkills: () =>
+    request<{
+      available: boolean;
+      gateway: string;
+      skills: { name: string; description: string; enabled?: boolean; source: string }[];
+      capabilities: unknown;
+      error: string | null;
+    }>('/skills'),
   streamChat: async (
     id: string,
     messages: { role: string; content: string }[],

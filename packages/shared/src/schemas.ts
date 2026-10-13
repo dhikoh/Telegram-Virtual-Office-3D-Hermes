@@ -31,6 +31,8 @@ export const AgentSchema = z.object({
   hermes_profile: z.string().default('default'),
   // Tahap 7: optional so existing call sites and pre-migration rows still parse
   model: z.string().nullable().optional(),
+  // Tahap 8 — the agent's chat session on the Hermes gateway (history lives there).
+  session_id: z.string().nullable().optional(),
   active: z.number().int().min(0).max(1).default(1),
   hired_at: z.number().int(),
   created_at: z.number().int(),

@@ -3,6 +3,7 @@ import type {
   StartRunParams,
   StartRunResponse,
   HermesRunStatus,
+  HermesSessionMessage,
 } from './client.interface.js';
 import { HermesTimeoutError } from './client.interface.js';
 import type { HermesCapabilities } from '@hermes-office/shared';
@@ -187,5 +188,132 @@ export class RealHermesClient implements HermesClient {
       if (done) break;
       onChunk(decoder.decode(value));
     }
+  }
+
+  /**
+   * Tahap 8 — sessions: history and memory live on the gateway, so an agent's
+   * chat survives reloads, restarts and redeploys without a local copy.
+   */
+  public async createSession(label?: string): Promise<string | null> {
+    try {
+      const res = await this.fetchWithTimeout(`${this.baseUrl}/api/sessions`, {
+        method: 'POST',
+        headers: this.headers(),
+        body: JSON.stringify(label ? { label } : {}),
+      });
+      if (!res.ok) return null;
+      const body = (await res.json()) as { session?: { id?: string } };
+      return body?.session?.id ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  public async getSessionMessages(sessionId: string): Promise<HermesSessionMessage[]> {
+    const res = await this.fetchWithTimeout(
+      `${this.baseUrl}/api/sessions/${encodeURIComponent(sessionId)}/messages?limit=500`,
+      { headers: this.headers() }
+    );
+    if (!res.ok) {
+      throw new Error(`Hermes session messages error: ${res.status} ${res.statusText}`);
+    }
+    const body = (await res.json()) as { data?: HermesSessionMessage[] };
+    return (body.data || [])
+      .filter(
+        (m) =>
+          (m.role === 'user' || m.role === 'assistant') &&
+          !m.tool_call_id &&
+          !m.tool_name &&
+          typeof m.content === 'string'
+      )
+      .sort((a, b) => a.timestamp - b.timestamp);
+  }
+
+  public async sessionChatStream(
+    sessionId: string,
+    message: string,
+    onDelta: (delta: string) => void,
+    _model?: string
+  ): Promise<void> {
+    const res = await this.fetchWithTimeout(
+      `${this.baseUrl}/api/sessions/${encodeURIComponent(sessionId)}/chat/stream`,
+      {
+        method: 'POST',
+        headers: this.headers(),
+        body: JSON.stringify({ message }),
+      }
+    );
+    if (!res.ok || !res.body) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`Hermes session chat error: ${res.status} ${res.statusText} ${text}`.trim());
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let streamError: string | null = null;
+
+    const handleFrame = (frame: string) => {
+      const lines = frame.split('\n');
+      let event = '';
+      let data = '';
+      for (const line of lines) {
+        if (line.startsWith('event: ')) event = line.substring(7).trim();
+        else if (line.startsWith('data: ')) data = line.substring(6);
+      }
+      if (!event || !data) return;
+      let parsed: Record<string, unknown> = {};
+      try {
+        parsed = JSON.parse(data) as Record<string, unknown>;
+      } catch {
+        return;
+      }
+      if (event === 'assistant.delta') {
+        const delta = parsed.delta;
+        if (typeof delta === 'string' && delta) onDelta(delta);
+      } else if (event === 'error' || event === 'run.failed') {
+        streamError = String(
+          (parsed.error as { message?: string } | undefined)?.message ||
+            parsed.message ||
+            parsed.error ||
+            event
+        );
+      }
+    };
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const frames = buffer.split('\n\n');
+      buffer = frames.pop() || '';
+      for (const frame of frames) {
+        if (frame.trim()) handleFrame(frame);
+      }
+    }
+    if (buffer.trim()) handleFrame(buffer);
+
+    if (streamError) throw new Error(streamError);
+  }
+
+  /** Tahap 8 — skills installed on the gateway. */
+  public async listSkills(): Promise<unknown[]> {
+    const res = await this.fetchWithTimeout(`${this.baseUrl}/v1/skills`, {
+      headers: this.headers(),
+    });
+    if (!res.ok) {
+      let message = `${res.status} ${res.statusText}`;
+      try {
+        const body = (await res.json()) as { error?: { message?: string } };
+        if (body?.error?.message) message = body.error.message;
+      } catch {
+        // keep the status line
+      }
+      throw new Error(message);
+    }
+    const body: unknown = await res.json();
+    if (Array.isArray(body)) return body;
+    const asRecord = body as { data?: unknown[]; skills?: unknown[] };
+    return asRecord?.data || asRecord?.skills || [];
   }
 }

@@ -50,4 +50,9 @@ export class AgentRepository {
     values.push(id);
     this.db.prepare(`UPDATE agents SET ${fields.join(', ')} WHERE id = ?`).run(...values);
   }
+
+  /** Tahap 8 — hapus agen dari roster (kunci API & sesi ikut dibersihkan di route). */
+  public delete(id: string): number {
+    return this.db.prepare('DELETE FROM agents WHERE id = ?').run(id).changes;
+  }
 }

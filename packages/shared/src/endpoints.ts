@@ -70,6 +70,20 @@ export const ENDPOINTS: readonly EndpointDefinition[] = [
   },
   {
     method: 'GET',
+    path: '/api/agents/:id/chat',
+    phase: 8,
+    requiresAuth: true,
+    description: "Load the agent's persisted chat history from its gateway session",
+  },
+  {
+    method: 'DELETE',
+    path: '/api/agents/:id',
+    phase: 8,
+    requiresAuth: true,
+    description: 'Remove an agent from the roster together with its stored key and tasks',
+  },
+  {
+    method: 'GET',
     path: '/api/tasks',
     phase: 2,
     requiresAuth: true,
@@ -172,5 +186,12 @@ export const ENDPOINTS: readonly EndpointDefinition[] = [
     phase: 2,
     requiresAuth: true,
     description: 'Retrieve immutable security audit trail logs',
+  },
+  {
+    method: 'GET',
+    path: '/api/skills',
+    phase: 8,
+    requiresAuth: true,
+    description: 'List skills installed on the gateway, or report honestly why they cannot be listed',
   },
 ] as const;

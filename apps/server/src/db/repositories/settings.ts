@@ -17,4 +17,8 @@ export class SettingRepository {
       )
       .run(key, value);
   }
+
+  public delete(key: string): void {
+    this.db.prepare('DELETE FROM settings WHERE key = ?').run(key);
+  }
 }

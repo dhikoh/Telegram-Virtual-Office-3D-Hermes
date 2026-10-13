@@ -19,6 +19,7 @@ import { kpiRoutes } from './routes/kpis.js';
 import { reportRoutes } from './routes/reports.js';
 import { hiringRoutes } from './routes/hiring.js';
 import { auditRoutes } from './routes/audit.js';
+import { skillRoutes } from './routes/skills.js';
 
 export interface BuildServerOptions {
   db: Database.Database;
@@ -75,6 +76,7 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
   app.register(reportRoutes);
   app.register(hiringRoutes);
   app.register(auditRoutes);
+  app.register(skillRoutes);
 
   // Serve compiled web build when available (Section 2: ONE container office)
   const __dirname = path.dirname(fileURLToPath(import.meta.url));

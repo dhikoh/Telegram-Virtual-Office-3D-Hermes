@@ -45,4 +45,26 @@ export interface HermesClient {
   ): Promise<void>;
   /** Tahap 7 — auto-detect: models advertised by the gateway. */
   listModels(): Promise<string[]>;
+
+  /** Tahap 8 — chat history lives in a session on the gateway. */
+  createSession(label?: string): Promise<string | null>;
+  getSessionMessages(sessionId: string): Promise<HermesSessionMessage[]>;
+  sessionChatStream(
+    sessionId: string,
+    message: string,
+    onDelta: (delta: string) => void,
+    model?: string
+  ): Promise<void>;
+  /** Tahap 8 — skills installed on the gateway (throws when it cannot enumerate). */
+  listSkills(): Promise<unknown[]>;
+}
+
+/** Tahap 8 — one persisted message from a gateway session. */
+export interface HermesSessionMessage {
+  id: number | string;
+  role: string;
+  content: string;
+  timestamp: number;
+  tool_call_id?: string | null;
+  tool_name?: string | null;
 }

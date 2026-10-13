@@ -16,6 +16,7 @@ import {
   UserPlus,
   Users,
   Shield,
+  Sparkles,
   ChevronRight,
 } from 'lucide-react';
 import { usePowerStore } from '../stores/power';
@@ -26,6 +27,8 @@ import { changeLanguage } from '../i18n';
 import { RecruitmentWizard } from '../components/recruitment/RecruitmentWizard';
 import { AgentsRegistryModal } from '../components/more/AgentsRegistryModal';
 import { AuditLogModal } from '../components/more/AuditLogModal';
+import { SkillsModal } from '../components/more/SkillsModal';
+import { AccountCard } from '../components/more/AccountCard';
 import { TelegramNotificationsCard } from '../components/more/TelegramNotificationsCard';
 import { ViewModeCard } from '../components/more/ViewModeCard';
 
@@ -41,6 +44,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
   const [isRecruitmentOpen, setIsRecruitmentOpen] = useState(false);
   const [isRegistryOpen, setIsRegistryOpen] = useState(false);
   const [isAuditOpen, setIsAuditOpen] = useState(false);
+  const [isSkillsOpen, setIsSkillsOpen] = useState(false);
 
   const handleLanguageChange = (lang: 'id' | 'en') => {
     tma.hapticSelection();
@@ -121,6 +125,29 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
                 <span className="font-semibold text-office-text">Registri Agen Kantor</span>
                 <span className="text-[10px] text-office-muted">
                   {agents.length} agen aktif • Cek status & koneksi gateway
+                </span>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-office-muted" />
+          </button>
+
+          {/* Tahap 8 — Gateway Skills & Capabilities */}
+          <button
+            onClick={() => {
+              tma.hapticImpact('light');
+              setIsSkillsOpen(true);
+            }}
+            type="button"
+            className="glass-panel rounded-xl p-3.5 border border-office-border hover:bg-office-hover flex items-center justify-between text-xs text-office-text transition-all min-h-[48px]"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-office-inset text-office-muted">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col text-left">
+                <span className="font-semibold text-office-text">Kemampuan Gateway</span>
+                <span className="text-[10px] text-office-muted">
+                  Skill terpasang & fitur runtime yang dilaporkan Hermes
                 </span>
               </div>
             </div>
@@ -279,6 +306,9 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
           </div>
         </div>
 
+        {/* Tahap 8 — Akun: identitas sesi Telegram yang diautentikasi server */}
+        <AccountCard />
+
         {/* App Version Info */}
         <div className="text-center py-4 text-[10px] font-mono text-office-muted">
           Hermes Virtual Office v1.0.0 • Phase 7 (Notifications & Polish)
@@ -300,6 +330,11 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
       <AuditLogModal
         isOpen={isAuditOpen}
         onClose={() => setIsAuditOpen(false)}
+      />
+
+      <SkillsModal
+        isOpen={isSkillsOpen}
+        onClose={() => setIsSkillsOpen(false)}
       />
     </div>
   );

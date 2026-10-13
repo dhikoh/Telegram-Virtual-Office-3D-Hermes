@@ -42,6 +42,10 @@ interface OfficeState {
   setAgentStatus: (agentId: string, status: AgentNormalizedStatus, currentTool?: string) => void;
   addTickerMessage: (text: string, type?: TickerItem['type']) => void;
   createKpi: (kpi: Omit<Kpi, 'created_at'>) => Promise<Kpi>;
+  /** Tahap 8 — edit atribut agen (PATCH server, lalu sinkron ke state). */
+  patchAgent: (id: string, body: Record<string, unknown>) => Promise<AgentPublic | null>;
+  /** Tahap 8 — hapus agen dari server lalu muat ulang roster & tugas. */
+  deleteAgent: (id: string) => Promise<void>;
 }
 
 export { DEMO_AGENTS, DEMO_KPIS } from './demo-data.js';
@@ -210,6 +214,31 @@ export const useOfficeStore = create<OfficeState>((set, get) => ({
   },
 
   setSelectedAgentId: (id) => set({ selectedAgentId: id }),
+
+  patchAgent: async (id, body) => {
+    const updated = await api.updateAgent(id, body);
+    set((state) => ({
+      agents: state.agents.map((agent) =>
+        agent.id === id ? { ...agent, ...updated, status: agent.status } : agent
+      ),
+    }));
+    get().addTickerMessage(`${updated.name} diperbarui oleh pemilik.`, 'success');
+    return updated;
+  },
+
+  deleteAgent: async (id) => {
+    const target = get().agents.find((a) => a.id === id);
+    const res = await api.deleteAgent(id);
+    set((state) => ({
+      agents: state.agents.filter((a) => a.id !== id),
+      tasks: state.tasks.filter((t) => t.agent_id !== id),
+      selectedAgentId: state.selectedAgentId === id ? null : state.selectedAgentId,
+    }));
+    get().addTickerMessage(
+      `${target?.name || id} dihapus dari roster (${res.tasks_removed} tugas ikut dihapus).`,
+      'error'
+    );
+  },
 
   setAgentStatus: (agentId, status, currentTool) => {
     set((state) => {
