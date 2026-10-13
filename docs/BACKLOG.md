@@ -11,3 +11,4 @@
 - **[BL-003] Automated VPS Profile Provisioning**: Direct SSH or Ansible agent profile creation on the VPS host (currently deliberately disabled in v1 for security; owner runs commands manually via the Hiring Package).
 - **[BL-004] Voice Note Task Assignments**: Speech-to-text integration allowing the CEO to assign tasks via Telegram voice messages.
 - **[BL-005] Biometric Approval Confirmations**: Native WebAuthn / FaceID confirmation for high-stakes financial approvals inside the Mini App.
+- **[BL-006] Camoufox Anti-Detect Browsing**: Considered 2026-10-14 and deferred by owner; verified NOT installed on the VPS (pip/pipx/cache/processes clean). Revisit only if the built-in agent browser is blocked by a target site and RAM headroom is measured on the KVM 2 box.

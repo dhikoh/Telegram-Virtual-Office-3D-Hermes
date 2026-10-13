@@ -131,8 +131,14 @@ Tahap 4 baru mengerjakan ini. Keputusan detail (palet warna, jumlah frame) dibua
 | 6 | Transisi mode + preset grafis + uji fps | fps ≥ 30 di HP kelas menengah; preset Low aktif di `power.ts` |
 | 7 | Fondasi jujur: SSE bernama, hapus data karangan, deteksi model gateway per agen | 310 test hijau, gap-check 8/8, index ≤ 222 KB gzip — live stream, KPI/laporan tanpa angka palsu, `POST /api/agents/:id/connection` |
 | 8 | Integrasi sesi gateway: riwayat chat tersimpan, hapus/nonaktifkan agen, layar Skills & Akun | 348 test hijau, gap-check 8/8, index ≤ 222 KB gzip — `GET /api/agents/:id/chat` (riwayat dari sesi gateway), `DELETE /api/agents/:id` (+hapus tugas & kunci), `GET /api/skills`, kartu Akun dari `/api/me`, migrasi `003_agent_session` |
+| 9 | Orkestrator & kehidupan UI: agen sistem tak-terhapus (`is_system`, "Ask Office" → sesi orkestrator), bubble status dari event SSE, fix scroll ruang di desktop, edit-&-kirim-ulang + sesi baru, avatar editor dasar | Orkestrator tak bisa dihapus via API/UI; bubble tampil & throttle; gate regresi hijau |
+| 10 | Kepemilikan ruang: tabel `departments` + CRUD ruang di layar More, floor plan dibaca dari data | Buat/hapus/rename ruang langsung tercermin di denah; agen tetap terhubung ke ruangnya |
+| 11 | Skill gateway: halaman detail skill + tombol **Install (dari katalog) & Uninstall** lewat orkestrator (`skill_manage`/`manage_catalog`), guardrail nama hanya dari katalog; toggle aktif per agen (layer SOUL) | Pasang/unpas skill nyata dari UI, tercatat di riwayat run; daftar muat ulang jujur |
+| 12 | Media chat & artefak: tempel/unggah gambar di chat (multipart, validasi tipe+ukuran), direktori artefak + `GET /api/artifacts/:id/download` untuk output video/gambar agent, pembersih retensi otomatis (gambar 7 hari, artefak 30 hari, cap 500 MB — configurable via env) | Gambar terkirim ke sesi gateway (multimodal tervalidasi live 2026-10-14); unduh video jalan; pembersih terjadwal teruji |
+| 13 | Visual 3D: aset CC0 (KayKit Adventurers + Character Animations, Kenney Furniture Kit) di-commit sendiri ke repo, dicatat di `docs/ASSETS.md` (Rule R3), lazy-load chunk 3D | fps ≥ 30 di HP asli (REQ-119), fallback 2D utuh, bundle tetap dalam budget |
+| 14 | Proyek & koordinasi antar-agen: tabel `projects`, orkestrator memecah jadi subtask berdependensi, peta workflow DAG (node = subtask, warna = agen) | Satu proyek contoh berjalan otomatis dari pecahan sampai hasil gabungan, peta terlihat di UI |
 
-Tahap 0–6 di-commit terpisah; Tahap 7 & 8 dikerjakan dalam satu putaran sesuai permintaan owner (2026-10-13).
+Tahap 0–6 di-commit terpisah; Tahap 7 & 8 dikerjakan dalam satu putaran sesuai permintaan owner (2026-10-13). Tahap 9–14 disepakati 2026-10-14; **push dibagi dua**: (A) setelah Tahap 9–12 — semua kode & 2D selesai, sebelum aset visual; (B) setelah seluruh tahap selesai — aset 3D jadi commit sendiri di dalam push B agar roll-back visual tidak menghapus fitur.
 
 ## 6. Batasan yang tidak boleh dilanggar
 
@@ -152,6 +158,10 @@ Tahap 0–6 di-commit terpisah; Tahap 7 & 8 dikerjakan dalam satu putaran sesuai
 | 7.3 | Mode default | **2D pixel art** |
 | 7.4 | Tujuan akhir dunia | **Konsep A: Diorama Ruang Kaca** — satu ruang + jendela ke jalan |
 | 7.5 | Kehidupan (kendaraan lalu lalang) | **Modul ambien terpisah**, satu modul menggerakkan renderer 2D dan 2.5D |
+| 7.6 | Retensi media (keterbatasan memori VPS) | **Gambar sementara 7 hari, artefak/video 30 hari, cap total 500 MB** — semuanya configurable via env; pembersih terjadwal di server, baris DB ikut dibersihkan + tercatat di audit |
+| 7.7 | Jalur install/uninstall skill | **Lewat orkestrator + `skill_manage`** — gateway API tidak punya endpoint tulis (`POST /v1/skills` 405, `DELETE` 404, tervalidasi live 2026-10-14); guardrail: nama skill hanya dari daftar katalog |
+| 7.8 | Chat multimodal (tempel gambar) | **Tervalidasi live 2026-10-14**: `/v1/chat/completions` menerima konten `image_url` dan model menjawab isi gambar dengan benar |
+| 7.9 | Camoufox (anti-detect browser) | **Ditunda** — tidak pernah terpasang di VPS (diverifikasi 2026-10-14); tinjau ulang hanya jika browser bawaan diblokir target dan RAM terukur cukup (KVM 2) |
 
 ### Konsekuensi Konsep A
 
