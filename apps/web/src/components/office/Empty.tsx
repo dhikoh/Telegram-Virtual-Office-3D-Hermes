@@ -1,21 +1,38 @@
 /**
  * Empty State Onboarding Card (Rule REQ-074 & Section 8)
  * Displayed when no agents are registered yet.
- * Includes "Load demo office" CTA button with prominent DEMO badges.
+ *
+ * Tahap 7: the primary path is hiring a real agent (the recruitment wizard is
+ * wired end-to-end), not loading a demo. The demo remains available but is
+ * secondary and labelled — it never masquerades as production data.
  */
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Sparkles, Building2, ShieldCheck, Zap } from 'lucide-react';
+import { Sparkles, Building2, ShieldCheck, Zap, UserPlus } from 'lucide-react';
 import { useOfficeStore } from '../../stores/office';
 import { tma } from '../../services/tma';
 
-export const EmptyOffice: React.FC = () => {
+interface EmptyOfficeProps {
+  onOpenRecruitment?: () => void;
+}
+
+export const EmptyOffice: React.FC<EmptyOfficeProps> = ({ onOpenRecruitment }) => {
   const { t } = useTranslation();
   const { loadDemoOffice, isLoading } = useOfficeStore();
 
-  const handleLoadDemo = async () => {
+  const handleHireFirst = () => {
     tma.hapticImpact('heavy');
+    if (onOpenRecruitment) {
+      onOpenRecruitment();
+    } else {
+      // Fallback when rendered outside the Office screen shell
+      window.location.hash = 'more';
+    }
+  };
+
+  const handleLoadDemo = async () => {
+    tma.hapticImpact('medium');
     await loadDemoOffice();
   };
 
@@ -31,7 +48,7 @@ export const EmptyOffice: React.FC = () => {
         </h2>
 
         <p className="text-xs text-office-muted leading-relaxed mb-6">
-          {t('office.emptyDesc')}
+          Kantor masih kosong. Rekrut agen pertama untuk mulai bekerja dengan sungguhan.
         </p>
 
         {/* Feature Highlights */}
@@ -50,19 +67,29 @@ export const EmptyOffice: React.FC = () => {
           </div>
         </div>
 
-        {/* Action Button: Load Demo Office */}
+        {/* Primary CTA: hire a real agent */}
+        <button
+          onClick={handleHireFirst}
+          type="button"
+          className="w-full py-3 px-4 rounded-xl bg-office-accent text-office-on-accent font-semibold text-sm flex items-center justify-center gap-2 hover:bg-cyan-300 active:scale-95 transition-all shadow-nu-raised min-h-[46px]"
+        >
+          <UserPlus className="w-4 h-4" />
+          <span>Rekrut Agen Pertama</span>
+        </button>
+
+        {/* Secondary, explicitly labelled demo path */}
         <button
           onClick={handleLoadDemo}
           disabled={isLoading}
           type="button"
-          className="w-full py-3 px-4 rounded-xl bg-office-accent text-office-on-accent font-semibold text-sm flex items-center justify-center gap-2 hover:bg-cyan-300 active:scale-95 transition-all shadow-nu-raised min-h-[46px] disabled:opacity-50"
+          className="w-full mt-2 py-2.5 px-4 rounded-xl bg-office-inset border border-office-border font-semibold text-xs flex items-center justify-center gap-2 text-office-muted hover:text-office-text active:scale-95 transition-all min-h-[44px] disabled:opacity-50"
         >
-          <Sparkles className="w-4 h-4" />
-          <span>{isLoading ? t('office.loadingDemo') : t('office.loadDemo')}</span>
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>{isLoading ? t('office.loadingDemo') : 'Lihat Kantor DEMO (simulasi)'}</span>
         </button>
 
         <span className="text-[10px] text-office-muted mt-3 font-mono">
-          Semua agen simulasi ditandai badge DEMO resmi.
+          Mode demo menampilkan data simulasi berlabel DEMO.
         </span>
       </div>
     </div>

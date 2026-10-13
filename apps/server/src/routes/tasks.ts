@@ -2,6 +2,25 @@ import type { FastifyPluginAsync } from 'fastify';
 import { TaskSchema } from '@hermes-office/shared';
 import { TaskRepository } from '../db/repositories/tasks.js';
 import { AuditRepository } from '../db/repositories/audit.js';
+import { streamManager } from '../services/stream.js';
+import type { Task } from '@hermes-office/shared';
+
+/** Tahap 7: broadcast every task change so the board is live, not reload-bound. */
+function broadcastTask(task: Task): void {
+  streamManager.broadcast({
+    type: 'task_update',
+    agent_id: task.agent_id,
+    task: {
+      id: task.id,
+      status: task.status,
+      title: task.title,
+      agent_id: task.agent_id,
+      result_md: task.result_md,
+      updated_at: task.updated_at,
+    },
+    timestamp: Date.now(),
+  });
+}
 
 export const taskRoutes: FastifyPluginAsync = async (fastify) => {
   // F-09: Typed decorations via types/fastify.d.ts
@@ -39,6 +58,7 @@ export const taskRoutes: FastifyPluginAsync = async (fastify) => {
     taskRepo.create(task);
 
     auditRepo.logAction(request.user!.id, 'task.create', task.id, JSON.stringify({ title: task.title }));
+    broadcastTask(task);
 
     return reply.code(201).send(task);
   });
@@ -54,8 +74,10 @@ export const taskRoutes: FastifyPluginAsync = async (fastify) => {
     taskRepo.update(id, updates);
 
     auditRepo.logAction(request.user!.id, 'task.update', id, JSON.stringify(updates));
+    const updatedTask = taskRepo.getById(id);
+    if (updatedTask) broadcastTask(updatedTask);
 
-    return taskRepo.getById(id);
+    return updatedTask;
   });
 
   fastify.post<{ Params: { id: string } }>('/api/tasks/:id/run', async (request, reply) => {
@@ -96,6 +118,8 @@ export const taskRoutes: FastifyPluginAsync = async (fastify) => {
 
     await dispatcher.stopTask(id);
     auditRepo.logAction(request.user!.id, 'task.stop', id);
+    const stopped = taskRepo.getById(id);
+    if (stopped) broadcastTask(stopped);
     return { status: 'stopping' };
   });
 };

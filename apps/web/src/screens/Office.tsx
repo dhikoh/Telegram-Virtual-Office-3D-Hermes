@@ -114,7 +114,7 @@ export const OfficeScreen: React.FC<OfficeScreenProps> = ({ onOpenRecruitment, o
         )}
 
         {/* State Matrix: Empty State */}
-        {!isLoading && agents.length === 0 && <EmptyOffice />}
+        {!isLoading && agents.length === 0 && <EmptyOffice onOpenRecruitment={onOpenRecruitment} />}
 
         {/* State Matrix: Interactive Office Map */}
         {agents.length > 0 && (
@@ -124,18 +124,22 @@ export const OfficeScreen: React.FC<OfficeScreenProps> = ({ onOpenRecruitment, o
                 {viewMode === '3D' ? '3D Isometric Floor Plan' : '2D Floor Plan • 8 Divisions'}
               </span>
 
-              {/* Dev Simulation Bar Toggle */}
-              <button
-                onClick={() => setShowSimPanel(!showSimPanel)}
-                type="button"
-                className="text-[10px] font-mono px-2 py-0.5 rounded bg-office-hover hover:bg-office-hover text-office-accent-ink border border-office-border"
-              >
-                {showSimPanel ? 'Hide Controls' : 'Simulate Status'}
-              </button>
+              {/* STUB-005 (status simulator) — DEV builds only. Shipping a fake
+                  status driver in production was a Rule C7 violation: it made the
+                  live office look alive while the real stream was silent. */}
+              {import.meta.env.DEV && (
+                <button
+                  onClick={() => setShowSimPanel(!showSimPanel)}
+                  type="button"
+                  className="text-[10px] font-mono px-2 py-0.5 rounded bg-office-hover hover:bg-office-hover text-office-accent-ink border border-office-border"
+                >
+                  {showSimPanel ? 'Hide Controls' : 'Simulate Status'}
+                </button>
+              )}
             </div>
 
-            {/* Simulation Controller Drawer */}
-            {showSimPanel && (
+            {/* Simulation Controller Drawer (DEV only, see STUB-005) */}
+            {import.meta.env.DEV && showSimPanel && (
               <div className="w-full mb-3 p-2.5 rounded-xl bg-office-elevated border border-office-accent/30 flex flex-col gap-2 text-xs">
                 <span className="text-[11px] font-semibold text-office-accent-ink">
                   Status Simulator (Phase 3 Acceptance Testing)

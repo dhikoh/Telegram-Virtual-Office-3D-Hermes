@@ -41,7 +41,15 @@ export const GenerateReportModal: React.FC<GenerateReportModalProps> = ({
     tma.hapticImpact('heavy');
 
     const agent = departmentAgents[0];
-    const agentId = agent ? agent.id : `demo-${activeDept}`;
+    if (!agent) {
+      // Tahap 7: no fictional `demo-<dept>` agents any more — a report must
+      // come from a really hired agent of this department.
+      setGenerationError('Belum ada agen di divisi ini. Rekrut agen dulu sebelum membuat laporan.');
+      setIsGenerating(false);
+      tma.hapticNotification('error');
+      return;
+    }
+    const agentId = agent.id;
 
     try {
       const res = await api.generateReport({
@@ -133,9 +141,17 @@ export const GenerateReportModal: React.FC<GenerateReportModalProps> = ({
             <div>
               <label className="text-[11px] text-office-muted block mb-1">Agen Penanggung Jawab</label>
               <div className="p-2.5 rounded-xl bg-office-inset border border-office-border flex items-center gap-2 text-xs text-office-text min-h-[44px]">
-                <span>{departmentAgents[0]?.avatar || '🤖'}</span>
-                <span className="font-bold">{departmentAgents[0]?.name || 'Agen Divisi'}</span>
-                <span className="text-[10px] text-office-muted">({departmentAgents[0]?.role})</span>
+                {departmentAgents.length > 0 ? (
+                  <>
+                    <span>{departmentAgents[0].avatar || '🤖'}</span>
+                    <span className="font-bold">{departmentAgents[0].name}</span>
+                    <span className="text-[10px] text-office-muted">({departmentAgents[0].role})</span>
+                  </>
+                ) : (
+                  <span className="text-office-warn">
+                    Belum ada agen divisi {activeDept} — rekrut dulu dari tab Kantor.
+                  </span>
+                )}
               </div>
             </div>
 
@@ -157,7 +173,7 @@ export const GenerateReportModal: React.FC<GenerateReportModalProps> = ({
               <button
                 type="button"
                 onClick={handleGenerateReport}
-                disabled={isGenerating}
+                disabled={isGenerating || departmentAgents.length === 0}
                 className="flex-1 py-2.5 rounded-xl bg-office-accent text-office-on-accent text-xs font-bold hover:opacity-90 min-h-[44px] shadow-nu-raised disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
                 {isGenerating ? (

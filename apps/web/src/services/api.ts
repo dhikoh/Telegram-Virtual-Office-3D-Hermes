@@ -47,7 +47,22 @@ export const api = {
   runTask: (id: string) => request<{ status: string; run_id: string }>(`/tasks/${id}/run`, { method: 'POST' }),
   stopTask: (id: string) => request<{ status: string }>(`/tasks/${id}/stop`, { method: 'POST' }),
   getAgentHealth: (id: string) =>
-    request<{ status: string; capabilities?: unknown }>(`/agents/${id}/health`),
+    request<{ status: string; capabilities?: unknown; model?: string | null }>(`/agents/${id}/health`),
+  /**
+   * Tahap 7 — auto-detect: probe the gateway with a base URL + API key and get
+   * back the models it serves. The key is stored server-side and never returned.
+   */
+  probeConnection: (id: string, body: { base_url?: string; api_key?: string }) =>
+    request<{
+      status: string;
+      models: string[];
+      current_model: string | null;
+      key_stored: boolean;
+      endpoint_configured: boolean;
+      latency_ms?: number | null;
+    }>(`/agents/${id}/connection`, { method: 'POST', body: JSON.stringify(body) }),
+  setAgentModel: (id: string, model: string) =>
+    request<AgentPublic>(`/agents/${id}`, { method: 'PATCH', body: JSON.stringify({ model }) }),
   streamChat: async (
     id: string,
     messages: { role: string; content: string }[],

@@ -40,6 +40,9 @@ export interface HermesClient {
   streamEvents(runId: string, onEvent: (event: string, data: unknown) => void): Promise<() => void>;
   chatStream(
     messages: { role: string; content: string }[],
-    onChunk: (chunk: string) => void
+    onChunk: (chunk: string) => void,
+    model?: string
   ): Promise<void>;
+  /** Tahap 7 — auto-detect: models advertised by the gateway. */
+  listModels(): Promise<string[]>;
 }

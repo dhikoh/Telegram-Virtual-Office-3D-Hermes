@@ -48,6 +48,27 @@ export class RealHermesClient implements HermesClient {
     return (await res.json()) as HermesCapabilities;
   }
 
+  /**
+   * Tahap 7 — auto-detect: ask the gateway which models it serves.
+   * Falls back to the capabilities document when /v1/models is unavailable.
+   */
+  public async listModels(): Promise<string[]> {
+    try {
+      const res = await this.fetchWithTimeout(`${this.baseUrl}/v1/models`, {
+        headers: this.headers(),
+      });
+      if (res.ok) {
+        const body = (await res.json()) as { data?: { id?: string }[] };
+        const ids = (body.data || []).map((m) => m?.id).filter((id): id is string => Boolean(id));
+        if (ids.length > 0) return ids;
+      }
+    } catch {
+      // fall through to capabilities
+    }
+    const caps = await this.capabilities();
+    return caps.model ? [caps.model] : [];
+  }
+
   public async startRun(params: StartRunParams): Promise<StartRunResponse> {
     const res = await this.fetchWithTimeout(`${this.baseUrl}/v1/runs`, {
       method: 'POST',
@@ -144,13 +165,14 @@ export class RealHermesClient implements HermesClient {
 
   public async chatStream(
     messages: { role: string; content: string }[],
-    onChunk: (chunk: string) => void
+    onChunk: (chunk: string) => void,
+    model?: string
   ): Promise<void> {
     const res = await fetch(`${this.baseUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: this.headers(),
       body: JSON.stringify({
-        model: 'hermes-agent',
+        model: model || 'hermes-agent',
         messages,
         stream: true,
       }),

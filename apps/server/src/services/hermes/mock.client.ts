@@ -36,6 +36,10 @@ export class MockHermesClient implements HermesClient {
     return (await res.json()) as HermesCapabilities;
   }
 
+  public async listModels(): Promise<string[]> {
+    return ['hermes-agent'];
+  }
+
   public async startRun(params: StartRunParams): Promise<StartRunResponse> {
     const res = await this.fetchWithTimeout(`${this.baseUrl}/v1/runs`, {
       method: 'POST',
@@ -125,13 +129,14 @@ export class MockHermesClient implements HermesClient {
 
   public async chatStream(
     messages: { role: string; content: string }[],
-    onChunk: (chunk: string) => void
+    onChunk: (chunk: string) => void,
+    model?: string
   ): Promise<void> {
     const res = await fetch(`${this.baseUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'hermes-agent',
+        model: model || 'hermes-agent',
         messages,
         stream: true,
       }),

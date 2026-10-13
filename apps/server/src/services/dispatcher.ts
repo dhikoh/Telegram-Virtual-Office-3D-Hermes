@@ -37,6 +37,29 @@ export class OfficeDispatcher {
     });
   }
 
+  /**
+   * Tahap 7: every task status change is broadcast to the office stream so the
+   * board updates live instead of only on reload (Rule S6 transport contract).
+   */
+  public updateTask(taskId: string, updates: Parameters<TaskRepository['update']>[1]): void {
+    this.taskRepo.update(taskId, updates);
+    const task = this.taskRepo.getById(taskId);
+    if (!task) return;
+    streamManager.broadcast({
+      type: 'task_update',
+      agent_id: task.agent_id,
+      task: {
+        id: task.id,
+        status: task.status,
+        title: task.title,
+        agent_id: task.agent_id,
+        result_md: task.result_md,
+        updated_at: task.updated_at,
+      },
+      timestamp: Date.now(),
+    });
+  }
+
   public async runTask(taskId: string): Promise<{ run_id: string }> {
     const task = this.taskRepo.getById(taskId);
     if (!task) throw new Error(`Task ${taskId} not found`);
@@ -44,7 +67,7 @@ export class OfficeDispatcher {
     const agent = this.agentRepo.getById(task.agent_id);
     if (!agent) throw new Error(`Agent ${task.agent_id} not found`);
 
-    const client = getHermesClientForAgent(agent);
+    const client = getHermesClientForAgent(agent, this.db);
     let run_id: string;
 
     try {
@@ -54,14 +77,14 @@ export class OfficeDispatcher {
       run_id = res.run_id;
     } catch (err: unknown) {
       this.setAgentStatus(agent.id, 'offline');
-      this.taskRepo.update(taskId, {
+      this.updateTask(taskId, {
         status: 'failed',
         result_md: `Hermes connection error: ${(err as Error)?.message || err}`,
       });
       throw err;
     }
 
-    this.taskRepo.update(taskId, {
+    this.updateTask(taskId, {
       status: 'running',
       run_id,
     });
@@ -165,7 +188,7 @@ export class OfficeDispatcher {
     const agent = this.agentRepo.getById(task.agent_id);
     if (!agent) return;
 
-    const client = getHermesClientForAgent(agent);
+    const client = getHermesClientForAgent(agent, this.db);
     await client.stopRun(task.run_id);
 
     const cleanup = this.activeStreams.get(task.run_id);
@@ -174,7 +197,7 @@ export class OfficeDispatcher {
       this.activeStreams.delete(task.run_id);
     }
 
-    this.taskRepo.update(taskId, { status: 'cancelled' });
+    this.updateTask(taskId, { status: 'cancelled' });
     this.setAgentStatus(agent.id, 'idle');
   }
 
@@ -187,7 +210,7 @@ export class OfficeDispatcher {
     const agent = this.agentRepo.getById(approval.agent_id);
     if (!agent) throw new Error('Agent not found');
 
-    const client = getHermesClientForAgent(agent);
+    const client = getHermesClientForAgent(agent, this.db);
     await client.resolveApproval(approval.run_id, decision === 'approve' ? 'once' : 'deny');
 
     this.approvalRepo.resolve(approvalId, decision === 'approve' ? 'approved' : 'denied', userId);
@@ -234,12 +257,19 @@ export class OfficeDispatcher {
           decided_at: null,
           created_at: Date.now(),
         });
-        this.taskRepo.update(taskId, { status: 'needs_approval' });
+        this.updateTask(taskId, { status: 'needs_approval' });
         this.setAgentStatus(agent.id, 'waiting_approval');
         streamManager.broadcast({
-          type: 'approval_request',
+          type: 'approval_requested',
           agent_id: agent.id,
-          data: { approval_id: approvalId, run_id: runId },
+          approval: {
+            id: approvalId,
+            run_id: runId,
+            agent_id: agent.id,
+            summary,
+            status: 'pending',
+            created_at: Date.now(),
+          },
           timestamp: Date.now(),
         });
         telegramNotifications.notifyApprovalPending(
@@ -250,7 +280,7 @@ export class OfficeDispatcher {
       }
 
       case 'run.completed':
-        this.taskRepo.update(taskId, {
+        this.updateTask(taskId, {
           status: 'done',
           result_md: data.output || 'Tugas selesai dengan sukses.',
         });
@@ -261,7 +291,7 @@ export class OfficeDispatcher {
       case 'run.failed': {
         const task = this.taskRepo.getById(taskId);
         const errMsg = data.error || 'Eksekusi tugas gagal.';
-        this.taskRepo.update(taskId, {
+        this.updateTask(taskId, {
           status: 'failed',
           result_md: errMsg,
         });
@@ -276,7 +306,7 @@ export class OfficeDispatcher {
       }
 
       case 'run.cancelled':
-        this.taskRepo.update(taskId, { status: 'cancelled' });
+        this.updateTask(taskId, { status: 'cancelled' });
         this.setAgentStatus(agent.id, 'idle');
         this.activeStreams.delete(runId);
         break;
@@ -291,7 +321,7 @@ export class OfficeDispatcher {
       for (const agent of agents) {
         if (!agent.active) continue;
         try {
-          const client = getHermesClientForAgent(agent);
+          const client = getHermesClientForAgent(agent, this.db);
           await client.capabilities();
         } catch {
           this.setAgentStatus(agent.id, 'offline');

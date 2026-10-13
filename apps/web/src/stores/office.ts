@@ -51,7 +51,7 @@ export const useOfficeStore = create<OfficeState>((set, get) => ({
   agents: [],
   tasks: [],
   approvals: [],
-  kpis: DEMO_KPIS,
+  kpis: [],
   reports: [],
   streamStatus: 'connecting',
   ticker: [
@@ -91,7 +91,9 @@ export const useOfficeStore = create<OfficeState>((set, get) => ({
         agents: loadedAgents,
         tasks: loadedTasks,
         approvals: loadedApprovals,
-        kpis: loadedKpis.length > 0 ? loadedKpis : (get().kpis.length > 0 ? get().kpis : DEMO_KPIS),
+        // Tahap 7: never fall back to demo numbers — an empty office shows
+        // "no data yet", not fabricated KPIs (Rule C7 honesty).
+        kpis: loadedKpis,
         reports: loadedReports,
         isLoading: false,
       });
@@ -121,6 +123,11 @@ export const useOfficeStore = create<OfficeState>((set, get) => ({
         set({ streamStatus: 'connected' });
       });
 
+      // A reconnect is invisible to addEventListener users, so surface it.
+      eventSource.onmessage = () => {
+        if (get().streamStatus !== 'connected') set({ streamStatus: 'connected' });
+      };
+
       eventSource.addEventListener('agent_status', (event) => {
         try {
           const payload = JSON.parse(event.data);
@@ -131,16 +138,21 @@ export const useOfficeStore = create<OfficeState>((set, get) => ({
         }
       });
 
+      // Tahap 7: server now emits named events, so these listeners actually fire.
+      // The approval payload is `{ approval: {...} }` — the old code read
+      // `payload.summary`, which never existed.
       eventSource.addEventListener('approval_requested', (event) => {
         try {
           const payload = JSON.parse(event.data);
+          const approval = payload.approval;
+          if (!approval) return;
           tma.hapticNotification('warning');
           get().addTickerMessage(
-            `Persetujuan diperlukan: ${payload.summary || 'Aksi berisiko memerlukan konfirmasi'}`,
+            `Persetujuan diperlukan: ${approval.summary || 'Aksi berisiko memerlukan konfirmasi'}`,
             'approval',
           );
           set((state) => ({
-            approvals: [payload, ...state.approvals.filter((a) => a.id !== payload.id)],
+            approvals: [approval, ...state.approvals.filter((a) => a.id !== approval.id)],
           }));
         } catch {
           // Ignore
@@ -150,9 +162,14 @@ export const useOfficeStore = create<OfficeState>((set, get) => ({
       eventSource.addEventListener('task_update', (event) => {
         try {
           const payload = JSON.parse(event.data);
-          get().addTickerMessage(`Tugas "${payload.title}": ${payload.status}`, 'info');
+          const task = payload.task;
+          if (!task) return;
+          get().addTickerMessage(
+            `Tugas "${task.title || task.id}": ${task.status}`,
+            task.status === 'failed' ? 'error' : 'info',
+          );
           set((state) => ({
-            tasks: state.tasks.map((t) => (t.id === payload.id ? { ...t, ...payload } : t)),
+            tasks: state.tasks.map((t) => (t.id === task.id ? { ...t, ...task } : t)),
           }));
         } catch {
           // Ignore
@@ -175,14 +192,13 @@ export const useOfficeStore = create<OfficeState>((set, get) => ({
 
   loadDemoOffice: async () => {
     set({ isLoading: true });
-    // Simulate brief setup delay for smooth UX
-    await new Promise((resolve) => setTimeout(resolve, 350));
+    // Explicitly labelled demo — every agent carries isDemo so the UI can badge it
     set({
-      agents: DEMO_AGENTS,
+      agents: DEMO_AGENTS.map((a) => ({ ...a, isDemo: true })),
       kpis: DEMO_KPIS,
       isLoading: false,
     });
-    get().addTickerMessage('8 agen demo berhasil dimuat di seluruh divisi kantor.', 'success');
+    get().addTickerMessage('Kantor DEMO dimuat — semua agen di sini bersifat simulasi.', 'error');
   },
 
   createKpi: async (kpiData) => {

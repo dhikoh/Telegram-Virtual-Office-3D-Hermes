@@ -48,6 +48,13 @@ export const ENDPOINTS: readonly EndpointDefinition[] = [
     description: 'Update agent profile metadata, role, or active status',
   },
   {
+    method: 'POST',
+    path: '/api/agents/:id/connection',
+    phase: 7,
+    requiresAuth: true,
+    description: 'Probe a gateway endpoint with a stored key and auto-detect the models it serves',
+  },
+  {
     method: 'GET',
     path: '/api/agents/:id/health',
     phase: 2,

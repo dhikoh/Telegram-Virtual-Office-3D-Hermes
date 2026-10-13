@@ -129,8 +129,9 @@ Tahap 4 baru mengerjakan ini. Keputusan detail (palet warna, jumlah frame) dibua
 | 4 | Diorama Ruang Kaca: kamera dekat, dinding belakang, jendela ke jalan | Screenshot before/after; chunk ≤ 228 KB |
 | 5 | Dunia 2D pixel art (default) + strip jalan | Chunk ≤ 222 KB; posisi sama dengan 2.5D |
 | 6 | Transisi mode + preset grafis + uji fps | fps ≥ 30 di HP kelas menengah; preset Low aktif di `power.ts` |
+| 7 | Fondasi jujur: SSE bernama, hapus data karangan, deteksi model gateway per agen | 310 test hijau, gap-check 8/8, index ≤ 222 KB gzip — live stream, KPI/laporan tanpa angka palsu, `POST /api/agents/:id/connection` |
 
-Tiap tahap di-commit terpisah dan diuji sebelum tahap berikutnya dimulai.
+Tahap 0–6 di-commit terpisah; Tahap 7 dikerjakan dalam satu putaran sesuai permintaan owner (2026-10-13).
 
 ## 6. Batasan yang tidak boleh dilanggar
 

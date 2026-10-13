@@ -16,10 +16,9 @@ import {
   Clock,
   ArrowRight,
 } from 'lucide-react';
-import { ResponsiveContainer, AreaChart, Area } from 'recharts';
 import type { Department, Report } from '@hermes-office/shared';
 import { DEPARTMENTS } from '@hermes-office/shared';
-import { useOfficeStore, DEMO_AGENTS } from '../stores/office';
+import { useOfficeStore } from '../stores/office';
 import { tma } from '../services/tma';
 import { KpiEntryModal } from '../components/reports/KpiEntryModal';
 import { GenerateReportModal } from '../components/reports/GenerateReportModal';
@@ -54,8 +53,9 @@ export const ReportsScreen: React.FC = () => {
   }, [reports, activeDept]);
 
   const departmentAgents = useMemo(() => {
-    const list = agents.filter((a) => a.department === activeDept);
-    return list.length > 0 ? list : DEMO_AGENTS.filter((a) => a.department === activeDept);
+    // Tahap 7: only really hired agents can report. The old DEMO_AGENTS
+    // fallback sent the report generator a fictional agent id.
+    return agents.filter((a) => a.department === activeDept && !a.isDemo);
   }, [agents, activeDept]);
 
   const handleTabChange = (dept: Department) => {
@@ -145,15 +145,6 @@ export const ReportsScreen: React.FC = () => {
         ) : (
           <div className="grid grid-cols-2 gap-2.5">
             {departmentKpis.map((kpi) => {
-              const sparkData = [
-                { val: kpi.value * 0.75 },
-                { val: kpi.value * 0.82 },
-                { val: kpi.value * 0.95 },
-                { val: kpi.value * 0.9 },
-                { val: kpi.value * 1.05 },
-                { val: kpi.value },
-              ];
-
               return (
                 <div
                   key={kpi.id}
@@ -186,20 +177,11 @@ export const ReportsScreen: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Sparkline (Recharts AreaChart) */}
-                  <div className="h-9 w-full mt-1 -mb-1 opacity-60">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={sparkData}>
-                        <Area
-                          type="monotone"
-                          dataKey="val"
-                          stroke="#F59E0B"
-                          strokeWidth={1.5}
-                          fill="#F59E0B"
-                          fillOpacity={0.15}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
+                  {/* Tahap 7: the old sparkline was synthesised (value * 0.75 …)
+                      — a chart of invented history. Show the recorded facts only. */}
+                  <div className="mt-1 -mb-1 flex items-center gap-1 text-[10px] text-office-text/60 font-mono">
+                    <Clock className="w-2.5 h-2.5" />
+                    <span>Tercatat {new Date(kpi.created_at).toLocaleDateString('id-ID')}</span>
                   </div>
                 </div>
               );

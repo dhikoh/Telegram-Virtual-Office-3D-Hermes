@@ -16,13 +16,44 @@ export type Setting = z.infer<typeof schemas.SettingSchema>;
 export type AntiHallucinationReport = z.infer<typeof schemas.AntiHallucinationReportSchema>;
 export type ResolveApprovalRequest = z.infer<typeof schemas.ResolveApprovalRequestSchema>;
 
+export interface OfficeTaskUpdate {
+  id: string;
+  status: string;
+  title?: string;
+  agent_id?: string;
+  result_md?: string | null;
+  updated_at?: number;
+}
+
+export interface OfficeApprovalUpdate {
+  id: string;
+  run_id: string;
+  agent_id: string;
+  summary: string;
+  status: string;
+  created_at: number;
+}
+
 export interface NormalizedOfficeEvent {
-  type: 'agent_status' | 'task_update' | 'approval_request' | 'heartbeat';
+  type: 'agent_status' | 'task_update' | 'approval_requested' | 'heartbeat';
   agent_id?: string;
   status?: AgentNormalizedStatus;
   current_tool?: string;
+  task?: OfficeTaskUpdate;
+  approval?: OfficeApprovalUpdate;
   data?: unknown;
   timestamp: number;
+}
+
+/** Result of POST /api/agents/:id/connection — auto-detect probe. */
+export interface AgentConnectionResult {
+  status: 'connected';
+  models: string[];
+  current_model: string | null;
+  key_stored: boolean;
+  endpoint_configured: boolean;
+  platform?: string;
+  message?: string;
 }
 
 export interface HermesCapabilities {

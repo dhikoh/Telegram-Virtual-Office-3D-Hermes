@@ -1,6 +1,17 @@
 import type { FastifyReply } from 'fastify';
 import type { NormalizedOfficeEvent } from '@hermes-office/shared';
 
+/**
+ * Tahap 7 fix: emit BOTH a named SSE event (`event: agent_status`) and the
+ * raw `data:` line. EventSource only fires `addEventListener('agent_status')`
+ * for named events; the previous payload-only frame was delivered as the
+ * default `message` event, so every listener in the web app stayed silent.
+ * Keeping the bare data line means older clients still receive it via onmessage.
+ */
+export function sseFrame(event: NormalizedOfficeEvent): string {
+  return `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`;
+}
+
 class OfficeStreamManager {
   private clients = new Set<FastifyReply>();
   private heartbeatInterval: NodeJS.Timeout | null = null;
@@ -35,7 +46,7 @@ class OfficeStreamManager {
   }
 
   public broadcast(event: NormalizedOfficeEvent): void {
-    const payload = `data: ${JSON.stringify(event)}\n\n`;
+    const payload = sseFrame(event);
     for (const client of this.clients) {
       try {
         client.raw.write(payload);
@@ -47,7 +58,7 @@ class OfficeStreamManager {
 
   private sendToClient(reply: FastifyReply, event: NormalizedOfficeEvent): void {
     try {
-      reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
+      reply.raw.write(sseFrame(event));
     } catch {
       this.clients.delete(reply);
     }
