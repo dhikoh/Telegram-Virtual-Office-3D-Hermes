@@ -1,7 +1,7 @@
-## 1. Current Phase: Phase 9 (Post-Audit Remediation) — DONE; master plan DESIGN_DIRECTION Tahap 0–8 complete, live on Coolify (commit 9387636)
+## 1. Current Phase: Phase 9 (Post-Audit Remediation) — DONE; master plan DESIGN_DIRECTION Tahap 0–8 complete, live on Coolify (commit 3661d49)
 
-- **Status**: Audit remediation complete (F-01…F-10, A-1…A-4). Master plan in `docs/DESIGN_DIRECTION.md` §5 finished through Tahap 8: 348 automated tests, 8/8 modular gap-checks, production web bundle (`no jsxDEV`), live on https://app.zupu.web.id with gateway session chat (E2E verified 2026-10-13: stream → persisted history → delete → 404).
-- **Next Step**: Owner smartphone test per `docs/3D_PHONE_TEST.md` (REQ-119, blocked on device); gateway `/v1/skills` 500 is an upstream Hermes install mismatch (`include_editorial` kwarg) — see chat log; STUB-004 real run-event samples still pending.
+- **Status**: Audit remediation complete (F-01…F-10, A-1…A-4). Master plan in `docs/DESIGN_DIRECTION.md` §5 finished through Tahap 8: 355 automated tests, 8/8 modular gap-checks, production web bundle (`no jsxDEV`), live on https://app.zupu.web.id with gateway session chat (E2E verified 2026-10-13: stream → persisted history → delete → 404) and live-captured SSE sample contract (`apps/server/src/services/live_sample.test.ts`).
+- **Next Step**: Owner smartphone test per `docs/3D_PHONE_TEST.md` (REQ-119, blocked on device). ~~Gateway `/v1/skills` 500~~ fixed 2026-10-13 via a 1-line local patch on the VPS gateway (`_find_all_skills(include_editorial=True)` kwarg never accepted — upstream bug, still present in release v0.21.7 & main; backup `.bak-20261013`, undo diff at `/root/skills-fix.patch`); `/v1/skills` now 200 with 55 real skills. ~~STUB-004 real run-event samples~~ done: `docs/samples/live_vps_stream_frames.jsonl` (17 frames, full backlog→running→done lifecycle captured live).
 
 ---
 
