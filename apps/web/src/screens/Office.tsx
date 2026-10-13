@@ -7,7 +7,11 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RefreshCw } from 'lucide-react';
 import { HeaderHUD } from '../components/layout/HeaderHUD';
-import { Map } from '../components/office/Map';
+// Tahap 5: the 2D world ships in its own lazy chunk, the same way the 3D
+// renderer does (Rule 9.2 — keep the shell chunk small).
+const Map = React.lazy(() =>
+  import('../components/office/Map').then((m) => ({ default: m.Map }))
+);
 import { RoomChips } from '../components/office/RoomChips';
 import { EmptyOffice } from '../components/office/Empty';
 import { AskOffice } from '../components/office/AskOffice';
@@ -183,10 +187,19 @@ export const OfficeScreen: React.FC<OfficeScreenProps> = ({ onOpenRecruitment, o
                 />
               </React.Suspense>
             ) : (
-              <Map
-                onSelectAgent={handleSelectAgent}
-                onOpenRecruitment={onOpenRecruitment}
-              />
+              <React.Suspense
+                fallback={
+                  <div className="w-full max-w-[390px] aspect-[380/420] flex flex-col items-center justify-center rounded-xl border border-office-border bg-office-surface">
+                    <div className="w-8 h-8 rounded-full border-2 border-office-accent border-t-transparent animate-spin mb-2" />
+                    <span className="text-xs text-office-text/80 font-mono">Memuat Peta 2D...</span>
+                  </div>
+                }
+              >
+                <Map
+                  onSelectAgent={handleSelectAgent}
+                  onOpenRecruitment={onOpenRecruitment}
+                />
+              </React.Suspense>
             )}
           </div>
         )}

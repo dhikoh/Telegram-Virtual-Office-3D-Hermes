@@ -6,4 +6,5 @@ export * from './soul.js';
 export * from './layout.js';
 export * from './behaviour.js';
 export * from './ambient.js';
+export * from './sprites.js';
 export * from './schema-spec.js';

@@ -4,13 +4,93 @@
  * Smooth avatar placement and movement based on status.
  */
 
-import React from 'react';
+import React, { useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UserPlus } from 'lucide-react';
-import { getAgentPlacement } from '@hermes-office/shared';
+import { useAnimationFrame } from 'framer-motion';
+import {
+  getAgentPlacement,
+  streetTraffic,
+  spritePalette,
+  STREET_SPAN,
+  VEHICLE_BUS,
+  VEHICLE_CAR,
+} from '@hermes-office/shared';
 import { Avatar } from './Avatar';
 import { useOfficeStore, type OfficeAgent } from '../../stores/office';
+import { usePowerStore } from '../../stores/power';
 import { useRoomFocusStore } from '../../stores/room-focus';
+import { spriteDataUrl } from '../../lib/sprites';
+
+/** Tahap 5: the street strip below the rooms, 380 px wide like the canvas. */
+const STRIP_TOP = 354;
+const CURB_Y = 366;
+const ROAD_BOTTOM = 414;
+/** Lane centre lines, in canvas pixels (lane 0 runs left, lane 1 right). */
+const LANE_Y = [372, 396];
+/** world units (STREET_SPAN either side) mapped onto the canvas width. */
+const STRIP_UNIT_PX = 380 / (2 * STREET_SPAN);
+
+const StreetStrip: React.FC = () => {
+  const isLowPower = usePowerStore((s) => s.isLowPower);
+  const groupRefs = useRef<Record<string, SVGGElement | null>>({});
+  // Deterministic base fleet: ids and vehicle kinds never change (ambient.ts).
+  const fleet = useMemo(() => streetTraffic(0, false), []);
+
+  const urls = useMemo(() => {
+    const out: Record<string, string | null> = {};
+    for (const v of fleet) {
+      const map = v.kind === 'bus' ? VEHICLE_BUS : VEHICLE_CAR;
+      out[v.id] = spriteDataUrl(map, spritePalette(map, v.color), v.kind === 'bus' ? 3 : 2);
+    }
+    return out;
+  }, [fleet]);
+
+  useAnimationFrame((tMs) => {
+    // Rule 9.3: ECO freezes the street; the static t=0 frame stays on screen.
+    if (isLowPower) return;
+    for (const v of streetTraffic(tMs / 1000, false)) {
+      const el = groupRefs.current[v.id];
+      if (!el) continue;
+      const px = 190 + v.x * STRIP_UNIT_PX;
+      el.setAttribute(
+        'transform',
+        `translate(${px.toFixed(1)} ${LANE_Y[v.lane]}) scale(${v.lane === 0 ? -1 : 1} 1)`
+      );
+    }
+  });
+
+  return (
+    <g id="street-strip" role="img" aria-label="Jalan di depan kantor">
+      <rect x="0" y={STRIP_TOP} width="380" height={CURB_Y - STRIP_TOP} fill="#D2D8E2" />
+      <rect x="0" y={CURB_Y} width="380" height={ROAD_BOTTOM - CURB_Y} fill="#B9C0CD" />
+      <rect x="0" y={CURB_Y} width="380" height="2" fill="#8A97A9" />
+      {Array.from({ length: 8 }).map((_, i) => (
+        <rect key={i} x={8 + i * 48} y={389} width="24" height="3" fill="#FFFFFF" />
+      ))}
+      <rect x="0" y={ROAD_BOTTOM} width="380" height="6" fill="#D2D8E2" />
+      {fleet.map((v) => {
+        const url = urls[v.id];
+        if (!url) return null;
+        const w = v.kind === 'bus' ? 30 : 20;
+        const h = v.kind === 'bus' ? 15 : 10;
+        return (
+          <g
+            key={v.id}
+            ref={(el) => {
+              groupRefs.current[v.id] = el;
+            }}
+            transform={`translate(${(190 + v.x * STRIP_UNIT_PX).toFixed(1)} ${LANE_Y[v.lane]}) scale(${
+              v.lane === 0 ? -1 : 1
+            } 1)`}
+          >
+            <image href={url} x={-w / 2} y={-h / 2} width={w} height={h} style={{ imageRendering: 'pixelated' }} />
+          </g>
+        );
+      })}
+    </g>
+  );
+};
 
 interface MapProps {
   onSelectAgent: (agent: OfficeAgent) => void;
@@ -63,13 +143,20 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
             <stop offset="100%" stopColor="rgba(245, 158, 11, 0.04)" />
           </radialGradient>
 
+          {/* Tahap 5: 16 px pixel tiles under the whole plan */}
+          <pattern id="pixel-tile" width="16" height="16" patternUnits="userSpaceOnUse">
+            <rect width="16" height="16" fill="#F1F5FA" />
+            <path d="M 16 0 L 0 0 0 16" fill="none" stroke="#E2E9F2" strokeWidth="1" />
+          </pattern>
+
           {/* Approval gate caution stripe pattern */}
           <pattern id="caution-stripes" width="10" height="10" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
             <line x1="0" y1="0" x2="0" y2="10" stroke="rgba(180, 83, 9, 0.14)" strokeWidth="4" />
           </pattern>
         </defs>
 
-        {/* Floor Background Grid */}
+        {/* Floor Background Grid over the pixel tiles */}
+        <rect width="380" height="420" fill="url(#pixel-tile)" />
         <rect width="380" height="420" fill="url(#floor-grid)" />
 
         {/* 1. Command Center (Center Top) */}
@@ -192,6 +279,10 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
             ☕
           </text>
         </g>
+
+        {/* Tahap 5: the street outside, drawn from the same numbers the 3D
+            diorama uses (Rule 9.1 parity, ambient.ts streetTraffic). */}
+        <StreetStrip />
       </svg>
 
       {/* HR Door with '+' Button (Rule REQ-071: door with "+") */}

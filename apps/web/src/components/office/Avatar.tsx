@@ -7,9 +7,16 @@
  * - waiting_approval: Approval Gate, amber blink
  * - error: red glitch shake
  * - offline: greyed with "zzz"
+ *
+ * Tahap 5 (DESIGN_DIRECTION 4): the emoji-on-a-circle pawn is now a pixel
+ * sprite - a text map painted to a data URL, nearest-neighbour upscaled and
+ * wearing its department colour. The status ring becomes the sprite's hard
+ * pixel frame, so every badge and animation above still hangs off it, and the
+ * four walk frames cycle on one shared CSS loop that Rule 9.3 turns off for
+ * free under .low-power.
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   motion,
   useMotionValue,
@@ -17,10 +24,30 @@ import {
   useTransform,
   useAnimationFrame,
 } from 'framer-motion';
-import { agentMotion, PX_PER_UNIT } from '@hermes-office/shared';
+import {
+  agentMotion,
+  directionFrames,
+  ROOM_LAYOUTS,
+  spritePalette,
+  PX_PER_UNIT,
+} from '@hermes-office/shared';
 import type { OfficeAgent } from '../../stores/office';
 import { usePowerStore } from '../../stores/power';
+import { spriteDataUrl } from '../../lib/sprites';
 import { tma } from '../../services/tma';
+
+/** Walk cycle length; index.css splits it into four step-end frames. */
+const CYCLE_SECONDS = 0.8;
+/** 10x15 cells at scale 2 = 20x30 px inside the 54 px hit area. */
+const SPRITE_W = 20;
+const SPRITE_H = 30;
+
+function shirtOf(agent: OfficeAgent): string {
+  const dept = agent.department;
+  return dept && dept in ROOM_LAYOUTS
+    ? ROOM_LAYOUTS[dept as keyof typeof ROOM_LAYOUTS].color
+    : '#94A3B8';
+}
 
 interface AvatarProps {
   agent: OfficeAgent;
@@ -41,6 +68,18 @@ export const Avatar: React.FC<AvatarProps> = ({ agent, targetX, targetY, onClick
     tma.hapticSelection();
     onClick(agent);
   };
+
+  // Tahap 5: four walk frames of the front-facing sprite in the wearer's
+  // department colour. spriteDataUrl is null without a canvas, so the emoji
+  // path below keeps the avatar visible instead of leaving an empty frame.
+  const palette = useMemo(
+    () => spritePalette(directionFrames('south').frames[0], shirtOf(agent)),
+    [agent]
+  );
+  const spriteUrls = useMemo(
+    () => directionFrames('south').frames.map((frame) => spriteDataUrl(frame, palette, 2)),
+    [palette]
+  );
 
   // Ring style determination
   let ringClasses = 'border-2 border-office-border';
@@ -136,16 +175,35 @@ export const Avatar: React.FC<AvatarProps> = ({ agent, targetX, targetY, onClick
 
   return (
     <motion.div
-      style={{ x, y, width: '54px', marginLeft: '-27px', marginTop: '-27px' }}
+      style={{ x, y, width: '54px', marginLeft: '-27px', marginTop: '-24px' }}
       onClick={handleClick}
       className="absolute top-0 left-0 cursor-pointer flex flex-col items-center select-none z-20 group"
     >
-      {/* Avatar circular frame with glowing status ring */}
+      {/* Pixel frame + sprite, standing in for the old circular status ring */}
       <div className="relative flex items-center justify-center">
         <div
-          className={`w-10 h-10 rounded-full bg-office-elevated flex items-center justify-center text-lg transition-transform group-hover:scale-105 active:scale-95 ${ringClasses}`}
+          className={`relative flex items-end justify-center w-[26px] h-[34px] bg-office-elevated transition-transform group-hover:scale-105 active:scale-95 ${ringClasses}`}
         >
-          <span>{agent.avatar || '🤖'}</span>
+          {spriteUrls.map((url, i) =>
+            url ? (
+              <img
+                key={i}
+                src={url}
+                alt=""
+                width={SPRITE_W}
+                height={SPRITE_H}
+                draggable={false}
+                className="sprite-cycle absolute bottom-[1px] left-1/2"
+                style={{
+                  animationDelay: `${-i * (CYCLE_SECONDS / 4)}s`,
+                  transform: `translateX(-50%) scaleX(${i === 3 ? -1 : 1})`,
+                }}
+              />
+            ) : null
+          )}
+          {!spriteUrls.some(Boolean) && (
+            <span className="text-lg leading-none pb-0.5">{agent.avatar || '🤖'}</span>
+          )}
         </div>
         {badgeContent}
       </div>

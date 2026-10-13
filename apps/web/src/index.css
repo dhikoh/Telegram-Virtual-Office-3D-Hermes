@@ -144,6 +144,27 @@ body {
   transition: none !important;
 }
 
+/* Tahap 5 — pixel sprite walk cycle. Four frames share one 0.8 s loop; each
+   <img> carries a negative animation-delay of -i * 0.2 s so its 0-25% visible
+   window lines up with the i-th quarter, and step-end keeps the swap crisp
+   instead of cross-fading pixels. Rule 9.3 already kills this under
+   .low-power and prefers-reduced-motion. */
+@keyframes sprite-cycle {
+  0% {
+    opacity: 1;
+  }
+  25% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.sprite-cycle {
+  animation: sprite-cycle 0.8s step-end infinite;
+}
+
 /* Room chips scroll sideways instead of wrapping (Tahap 4b). The row has
    11 entries, so a visible scrollbar strip would eat 10 px of the 390 px
    map canvas for a chrome element nobody uses. */
