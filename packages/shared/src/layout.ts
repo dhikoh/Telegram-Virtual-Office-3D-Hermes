@@ -3,7 +3,7 @@
  * Used by both 2D SVG Map and 3D WebGL Scene.
  */
 
-import type { Department } from './constants.js';
+import { DEPARTMENTS, type Department } from './constants.js';
 
 export interface RoomLayout {
   id: string;
@@ -186,4 +186,53 @@ export function getAgentPlacement(
     pos2d: room.desk2d,
     pos3d: room.desk3d,
   };
+}
+
+/**
+ * Room focus (Tahap 4b, docs/DESIGN_DIRECTION.md 7.4 "Konsekuensi Konsep A").
+ *
+ * Konsep A ends the "ten rooms at once" navigation: the world shows one active
+ * room and a chip row to jump between them. The focus target lives here,
+ * next to the placements, so 2D and 3D agree on which room the chips mean
+ * (Rule 9.1) instead of each renderer inventing its own centre.
+ */
+export type RoomFocusId = 'all' | Department | 'lounge' | 'approvalGate';
+
+/** Chip row order: overview first, then departments, then the shared rooms. */
+export const ROOM_FOCUS_IDS: RoomFocusId[] = ['all', ...DEPARTMENTS, 'lounge', 'approvalGate'];
+
+export function isRoomFocusId(value: string): value is RoomFocusId {
+  return (ROOM_FOCUS_IDS as string[]).includes(value);
+}
+
+/** 3D camera look-at for a focus id; 'all' is the full-diorama overview. */
+export function getRoomFocusTarget(id: RoomFocusId): [number, number, number] {
+  if (id === 'all') return [0, 0, 0];
+  if (id === 'lounge') return LOUNGE_AREA.pos3d;
+  if (id === 'approvalGate') return APPROVAL_GATE.pos3d;
+  const room = ROOM_LAYOUTS[id];
+  return room ? room.pos3d : [0, 0, 0];
+}
+
+/** i18n key for a focus id; 'all' has no entry in ROOM_LAYOUTS. */
+export function getRoomFocusNameKey(id: RoomFocusId): string {
+  if (id === 'all') return 'office.rooms.all';
+  if (id === 'lounge') return LOUNGE_AREA.nameKey;
+  if (id === 'approvalGate') return APPROVAL_GATE.nameKey;
+  const room = ROOM_LAYOUTS[id];
+  return room ? room.nameKey : 'office.rooms.all';
+}
+
+/** 2D highlight bounds in the 380x420 canvas; null means "no focus". */
+export function getRoomFocusRect2d(
+  id: RoomFocusId
+): { x: number; y: number; width: number; height: number } | null {
+  if (id === 'all') return null;
+  if (id === 'lounge') return LOUNGE_AREA.pos2d;
+  if (id === 'approvalGate') {
+    const { x, y } = APPROVAL_GATE.pos2d;
+    return { x: x - 45, y: y - 20, width: 90, height: 40 };
+  }
+  const room = ROOM_LAYOUTS[id];
+  return room ? room.pos2d : null;
 }

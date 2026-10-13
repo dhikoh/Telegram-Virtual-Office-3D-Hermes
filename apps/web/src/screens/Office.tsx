@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { RefreshCw } from 'lucide-react';
 import { HeaderHUD } from '../components/layout/HeaderHUD';
 import { Map } from '../components/office/Map';
+import { RoomChips } from '../components/office/RoomChips';
 import { EmptyOffice } from '../components/office/Empty';
 import { AskOffice } from '../components/office/AskOffice';
 import { AgentSheet } from '../components/agent-sheet/AgentSheet';
@@ -160,6 +161,10 @@ export const OfficeScreen: React.FC<OfficeScreenProps> = ({ onOpenRecruitment, o
                 </span>
               </div>
             )}
+
+            {/* Room chips: the active room + a row to jump between rooms
+                (Tahap 4b, Konsekuensi Konsep A) */}
+            <RoomChips />
 
             {/* View Mode Switching: 3D Isometric View (Lazy loaded) or 2D SVG Map */}
             {viewMode === '3D' ? (

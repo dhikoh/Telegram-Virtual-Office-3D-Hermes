@@ -41,6 +41,7 @@ export const resources = {
         hr: 'Ruang Rekrutmen',
         lounge: 'Ruang Istirahat',
         approvalGate: 'Gerbang Persetujuan',
+        all: 'Semua Ruang',
       },
       status: {
         idle: 'Santai',
@@ -70,6 +71,7 @@ export const resources = {
           hr: 'Ruang Rekrutmen',
           lounge: 'Ruang Istirahat',
           approvalGate: 'Gerbang Persetujuan',
+          all: 'Semua Ruang',
         },
       },
       power: {
@@ -118,6 +120,7 @@ export const resources = {
         hr: 'Recruitment Room',
         lounge: 'Lounge',
         approvalGate: 'Approval Gate',
+        all: 'All Rooms',
       },
       status: {
         idle: 'Idle',
@@ -147,6 +150,7 @@ export const resources = {
           hr: 'Recruitment Room',
           lounge: 'Lounge',
           approvalGate: 'Approval Gate',
+          all: 'All Rooms',
         },
       },
       power: {

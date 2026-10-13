@@ -17,6 +17,8 @@ import React, { useEffect, useRef } from 'react';
 import { useThree } from '@react-three/fiber';
 import { Vector3, PerspectiveCamera } from 'three';
 import { cameraDrag, CAMERA_RESET_EVENT } from './cameraState';
+import { getRoomFocusTarget } from '@hermes-office/shared';
+import { useRoomFocusStore } from '../../../stores/room-focus';
 
 /** Framing the diorama was designed for: direction of (10,12,12), radius 17. */
 export const DEFAULT_VIEW = {
@@ -30,6 +32,8 @@ const MIN_ELEVATION = (18 * Math.PI) / 180;
 const MAX_ELEVATION = (72 * Math.PI) / 180;
 const MIN_FOV = 25;
 const MAX_FOV = 60;
+/** Closer than the overview: a focused room should fill the diorama. */
+const FOCUS_RADIUS = 11;
 /** Pointer travel that turns a tap into a camera drag (and blocks selection). */
 const TAP_SLOP_PX = 6;
 
@@ -41,6 +45,7 @@ export const CameraController: React.FC = () => {
   const gestureStart = useRef({ x: 0, y: 0 });
   const pinch = useRef<{ midX: number; midY: number; dist: number } | null>(null);
   const panMode = useRef(false);
+  const activeRoom = useRoomFocusStore((s) => s.activeRoom);
 
   // Recompute the camera from the spherical state. Reads refs, so every
   // handler — however old its closure — applies the current view.
@@ -77,6 +82,17 @@ export const CameraController: React.FC = () => {
     return () => window.removeEventListener(CAMERA_RESET_EVENT, onReset);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [camera, invalidate]);
+
+  // Tahap 4b: the chip row drives the camera. Angling and rotation stay where
+  // the user left them — only the look-at point and the distance change.
+  useEffect(() => {
+    const focus = getRoomFocusTarget(activeRoom);
+    target.current.set(focus[0], 0, focus[2]);
+    clampTarget();
+    view.current.radius = activeRoom === 'all' ? DEFAULT_VIEW.radius : FOCUS_RADIUS;
+    apply();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRoom]);
 
   useEffect(() => {
     const dom = gl.domElement;

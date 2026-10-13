@@ -10,6 +10,7 @@ import { UserPlus } from 'lucide-react';
 import { getAgentPlacement } from '@hermes-office/shared';
 import { Avatar } from './Avatar';
 import { useOfficeStore, type OfficeAgent } from '../../stores/office';
+import { useRoomFocusStore } from '../../stores/room-focus';
 
 interface MapProps {
   onSelectAgent: (agent: OfficeAgent) => void;
@@ -19,6 +20,14 @@ interface MapProps {
 export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) => {
   const { t } = useTranslation();
   const { agents, selectedAgentId } = useOfficeStore();
+  const { activeRoom } = useRoomFocusStore();
+
+  // Tahap 4b: only the active room stays fully lit, the rest recede.
+  const focusKey = activeRoom === 'all' ? null : activeRoom;
+  const roomStyle = (roomId: string) => ({
+    opacity: !focusKey || focusKey === roomId ? 1 : 0.3,
+    transition: 'opacity 160ms ease',
+  });
 
   // Compute coordinate for each agent using shared single source of truth (Rule 9.1)
   let idleCount = 0;
@@ -64,7 +73,7 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
         <rect width="380" height="420" fill="url(#floor-grid)" />
 
         {/* 1. Command Center (Center Top) */}
-        <g id="room-command">
+        <g id="room-command" style={roomStyle('command')}>
           <rect
             x="120"
             y="12"
@@ -83,7 +92,7 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
         </g>
 
         {/* 2. Approval Gate (Below Command Center) */}
-        <g id="room-approval-gate">
+        <g id="room-approval-gate" style={roomStyle('approvalGate')}>
           <rect
             x="145"
             y="90"
@@ -100,7 +109,7 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
         </g>
 
         {/* 3. Social Studio (Left Top) */}
-        <g id="room-social">
+        <g id="room-social" style={roomStyle('social')}>
           <rect x="12" y="12" width="98" height="74" rx="8" fill="#FBFDFF" stroke="#D6DEEA" />
           <rect x="36" y="46" width="50" height="18" rx="4" fill="#EEF3F9" stroke="#D6DEEA" />
           <text x="61" y="26" textAnchor="middle" fill="#64748B" fontSize="8.5" fontWeight="600">
@@ -109,7 +118,7 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
         </g>
 
         {/* 4. Marketing Lab (Right Top) */}
-        <g id="room-marketing">
+        <g id="room-marketing" style={roomStyle('marketing')}>
           <rect x="270" y="12" width="98" height="74" rx="8" fill="#FBFDFF" stroke="#D6DEEA" />
           <rect x="294" y="46" width="50" height="18" rx="4" fill="#EEF3F9" stroke="#D6DEEA" />
           <text x="319" y="26" textAnchor="middle" fill="#64748B" fontSize="8.5" fontWeight="600">
@@ -118,7 +127,7 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
         </g>
 
         {/* 5. Sales Floor (Left Mid) */}
-        <g id="room-sales">
+        <g id="room-sales" style={roomStyle('sales')}>
           <rect x="12" y="96" width="98" height="74" rx="8" fill="#FBFDFF" stroke="#D6DEEA" />
           <rect x="36" y="130" width="50" height="18" rx="4" fill="#EEF3F9" stroke="#D6DEEA" />
           <text x="61" y="110" textAnchor="middle" fill="#64748B" fontSize="8.5" fontWeight="600">
@@ -127,7 +136,7 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
         </g>
 
         {/* 6. Analytics Hub (Right Mid) */}
-        <g id="room-analytics">
+        <g id="room-analytics" style={roomStyle('analytics')}>
           <rect x="270" y="96" width="98" height="74" rx="8" fill="#FBFDFF" stroke="#D6DEEA" />
           <rect x="294" y="130" width="50" height="18" rx="4" fill="#EEF3F9" stroke="#D6DEEA" />
           <text x="319" y="110" textAnchor="middle" fill="#64748B" fontSize="8.5" fontWeight="600">
@@ -136,7 +145,7 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
         </g>
 
         {/* 7. Finance Vault (Left Lower) */}
-        <g id="room-finance">
+        <g id="room-finance" style={roomStyle('finance')}>
           <rect x="12" y="180" width="98" height="74" rx="8" fill="#FBFDFF" stroke="#D6DEEA" />
           <rect x="36" y="214" width="50" height="18" rx="4" fill="#EEF3F9" stroke="#D6DEEA" />
           <text x="61" y="194" textAnchor="middle" fill="#64748B" fontSize="8.5" fontWeight="600">
@@ -145,7 +154,7 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
         </g>
 
         {/* 8. Support Desk (Right Lower) */}
-        <g id="room-support">
+        <g id="room-support" style={roomStyle('support')}>
           <rect x="270" y="180" width="98" height="74" rx="8" fill="#FBFDFF" stroke="#D6DEEA" />
           <rect x="294" y="214" width="50" height="18" rx="4" fill="#EEF3F9" stroke="#D6DEEA" />
           <text x="319" y="194" textAnchor="middle" fill="#64748B" fontSize="8.5" fontWeight="600">
@@ -154,7 +163,7 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
         </g>
 
         {/* 9. HR / Recruitment Room (Left Bottom with '+' Door) */}
-        <g id="room-hr">
+        <g id="room-hr" style={roomStyle('hr')}>
           <rect x="12" y="264" width="98" height="84" rx="8" fill="#FBFDFF" stroke="rgba(124, 92, 252, 0.5)" />
           <rect x="36" y="304" width="50" height="18" rx="4" fill="rgba(124, 92, 252, 0.1)" stroke="rgba(124, 92, 252, 0.45)" />
           <text x="61" y="279" textAnchor="middle" fill="#6D28D9" fontSize="8.5" fontWeight="600">
@@ -163,7 +172,7 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
         </g>
 
         {/* 10. Central Lounge (Center Large Zone for Idle agents) */}
-        <g id="room-lounge">
+        <g id="room-lounge" style={roomStyle('lounge')}>
           <rect
             x="125"
             y="136"
@@ -190,6 +199,7 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
         onClick={onOpenRecruitment}
         type="button"
         title={t('rooms.hr')}
+        style={roomStyle('hr')}
         className="absolute left-[92px] top-[266px] w-6 h-6 rounded-full bg-office-violet/20 border border-office-violet text-office-violet hover:bg-office-violet hover:text-office-text flex items-center justify-center text-xs font-bold shadow-nu-raised transition-transform active:scale-90 z-20"
       >
         <UserPlus className="w-3.5 h-3.5" />
