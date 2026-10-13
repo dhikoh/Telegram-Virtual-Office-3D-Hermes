@@ -19,7 +19,7 @@ import { Vector3, PerspectiveCamera } from 'three';
 import { cameraDrag, CAMERA_RESET_EVENT } from './cameraState';
 
 /** Framing the diorama was designed for: direction of (10,12,12), radius 17. */
-const DEFAULT_VIEW = {
+export const DEFAULT_VIEW = {
   azimuth: Math.atan2(10, 12),
   elevation: Math.atan2(12, Math.hypot(10, 12)),
   radius: 17,

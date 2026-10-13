@@ -16,12 +16,12 @@ import type { Mesh } from 'three';
 import { streetTraffic, STREET_SPAN, type StreetVehicle } from '@hermes-office/shared';
 import { usePowerStore } from '../../../stores/power';
 
-/** Wall geometry: opening for the window is x -6.5..6.5, y 1.1..3.0. */
-const WALL_Z = -11.9;
+/** Wall geometry: opening for the window is x -6.5..6.5, y 0.7..3.4. */
+export const WALL_Z = -11.9;
 const WALL_HEIGHT = 4.2;
-const WINDOW_HALF_WIDTH = 6.5;
-const WINDOW_SILL = 1.1;
-const WINDOW_HEAD = 3.0;
+export const WINDOW_HALF_WIDTH = 6.5;
+export const WINDOW_SILL = 0.7;
+export const WINDOW_HEAD = 3.4;
 const WALL_THICKNESS = 0.3;
 
 const WALL_COLOR = '#F1F5F9';
@@ -29,18 +29,18 @@ const WINDOW_FRAME_COLOR = '#CBD5E1';
 const GLASS_COLOR = '#E6EEF8';
 
 /** Lane centres on the street behind the glass. */
-const LANE_Z = [-14.2, -16.2];
+export const LANE_Z = [-13.6, -15.4];
 
 const Buildings: React.FC = () => {
   // Fixed silhouette — no animation, so a static array of boxes is enough.
   const blocks = useMemo(
     () =>
       [
-        { x: -16, w: 7, h: 6.5, z: -21 },
-        { x: -7, w: 6, h: 9, z: -21.5 },
-        { x: 1, w: 8, h: 5.5, z: -21 },
-        { x: 10, w: 7, h: 8, z: -21.5 },
-        { x: 17.5, w: 6, h: 6, z: -21 },
+        { x: -16, w: 7, h: 6.5, z: -18.8 },
+        { x: -7, w: 6, h: 9, z: -19.2 },
+        { x: 1, w: 8, h: 5.5, z: -18.8 },
+        { x: 10, w: 7, h: 8, z: -19.2 },
+        { x: 17.5, w: 6, h: 6, z: -18.8 },
       ],
     []
   );
@@ -53,7 +53,7 @@ const Buildings: React.FC = () => {
         </mesh>
       ))}
       {/* Sky plate: behind everything, light so the diorama never darkens. */}
-      <mesh position={[0, 8, -24]}>
+      <mesh position={[0, 8, -21]}>
         <planeGeometry args={[80, 40]} />
         <meshBasicMaterial color="#E9EFF8" />
       </mesh>
@@ -80,18 +80,18 @@ const Street: React.FC = () => {
   return (
     <group>
       {/* Sidewalk between the building and the road */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, -12.9]} receiveShadow>
-        <planeGeometry args={[48, 1.8]} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, -12.7]} receiveShadow>
+        <planeGeometry args={[48, 1.6]} />
         <meshStandardMaterial color="#E3E8EF" roughness={0.95} />
       </mesh>
       {/* Road */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.0, -15.4]} receiveShadow>
-        <planeGeometry args={[48, 3.4]} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.0, -14.6]} receiveShadow>
+        <planeGeometry args={[48, 4.4]} />
         <meshStandardMaterial color="#D8DDE6" roughness={0.98} />
       </mesh>
       {/* Centre dashes */}
       {Array.from({ length: 13 }, (_, i) => -STREET_SPAN + 1.6 + i * 3.2).map((x) => (
-        <mesh key={x} rotation={[-Math.PI / 2, 0, 0]} position={[x, 0.02, -15.4]}>
+        <mesh key={x} rotation={[-Math.PI / 2, 0, 0]} position={[x, 0.02, -14.6]}>
           <planeGeometry args={[1.4, 0.14]} />
           <meshStandardMaterial color="#F1F5F9" roughness={1} />
         </mesh>
