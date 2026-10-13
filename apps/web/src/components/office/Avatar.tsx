@@ -9,8 +9,15 @@
  * - offline: greyed with "zzz"
  */
 
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect } from 'react';
+import {
+  motion,
+  useMotionValue,
+  useSpring,
+  useTransform,
+  useAnimationFrame,
+} from 'framer-motion';
+import { agentMotion, PX_PER_UNIT } from '@hermes-office/shared';
 import type { OfficeAgent } from '../../stores/office';
 import { usePowerStore } from '../../stores/power';
 import { tma } from '../../services/tma';
@@ -102,23 +109,36 @@ export const Avatar: React.FC<AvatarProps> = ({ agent, targetX, targetY, onClick
       break;
   }
 
-  const animationProps = isLowPower
-    ? { style: { transform: `translate(${targetX}px, ${targetY}px)` } }
-    : {
-        animate: { x: targetX, y: targetY },
-        transition: { type: 'spring', damping: 22, stiffness: 140 },
-      };
+  // Tahap 3.5: spring to the placement from layout.ts, then add the shared
+  // ambient drift on top. Motion values keep the per-frame work off the React
+  // render path, and ECO (low power) reports zero drift from agentMotion.
+  const baseX = useMotionValue(targetX);
+  const baseY = useMotionValue(targetY);
+  const driftX = useMotionValue(0);
+  const driftY = useMotionValue(0);
+
+  useEffect(() => {
+    baseX.set(targetX);
+    baseY.set(targetY);
+  }, [targetX, targetY, baseX, baseY]);
+
+  const springX = useSpring(baseX, { damping: 22, stiffness: 140 });
+  const springY = useSpring(baseY, { damping: 22, stiffness: 140 });
+
+  useAnimationFrame((tMs) => {
+    const motion = agentMotion(agent.id, agent.status, tMs / 1000, isLowPower);
+    driftX.set(motion.offsetX * PX_PER_UNIT);
+    driftY.set(motion.offsetZ * PX_PER_UNIT);
+  });
+
+  const x = useTransform<number, number>([springX, driftX], ([bx, dx]) => bx + dx);
+  const y = useTransform<number, number>([springY, driftY], ([by, dy]) => by + dy);
 
   return (
     <motion.div
-      {...animationProps}
+      style={{ x, y, width: '54px', marginLeft: '-27px', marginTop: '-27px' }}
       onClick={handleClick}
       className="absolute top-0 left-0 cursor-pointer flex flex-col items-center select-none z-20 group"
-      style={{
-        width: '54px',
-        marginLeft: '-27px',
-        marginTop: '-27px',
-      }}
     >
       {/* Avatar circular frame with glowing status ring */}
       <div className="relative flex items-center justify-center">

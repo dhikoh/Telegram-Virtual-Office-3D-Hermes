@@ -12,6 +12,8 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { Vector3, Group } from 'three';
 import type { OfficeAgent } from '../../../stores/office';
+import { usePowerStore } from '../../../stores/power';
+import { agentMotion } from '@hermes-office/shared';
 
 interface Agent3DProps {
   agent: OfficeAgent;
@@ -38,6 +40,7 @@ export const Agent3D: React.FC<Agent3DProps> = ({
   showLabel = true,
 }) => {
   const { invalidate } = useThree();
+  const isLowPower = usePowerStore((s) => s.isLowPower);
   const groupRef = useRef<Group>(null);
   const ringRef = useRef<Group>(null);
   const currentPos = useRef(new Vector3(...targetPos));
@@ -48,20 +51,29 @@ export const Agent3D: React.FC<Agent3DProps> = ({
 
   const statusColor = STATUS_COLORS[agent.status] || STATUS_COLORS.idle;
 
-  // Smooth straight-path interpolation loop
-  useFrame((_, delta) => {
+  // Smooth straight-path interpolation loop + ambient body language
+  useFrame((state, delta) => {
     if (!groupRef.current) return;
 
     const dist = currentPos.current.distanceTo(destination.current);
     if (dist > 0.01) {
       // Interpolate towards target position smoothly
       currentPos.current.lerp(destination.current, Math.min(1, delta * 6));
-      groupRef.current.position.copy(currentPos.current);
       // frameloop is "demand": without this the walk would never repaint.
       invalidate();
-    } else {
-      groupRef.current.position.copy(destination.current);
     }
+
+    // Tahap 3.5: what the agent is actually doing — stroll, type, pace,
+    // bounce or glitch. Same module the 2D map uses (Rule 9.1 parity).
+    const motion = agentMotion(agent.id, agent.status, state.clock.elapsedTime, isLowPower);
+    groupRef.current.position.set(
+      currentPos.current.x + motion.offsetX,
+      currentPos.current.y + motion.bob,
+      currentPos.current.z + motion.offsetZ
+    );
+    groupRef.current.rotation.y = motion.rotation;
+    // Ambient animation must repaint the demand loop, unless ECO froze it.
+    if (!isLowPower) invalidate();
 
     // Subtle breathing or rotation animation when active
     if (ringRef.current && (agent.status === 'working' || agent.status === 'thinking')) {
