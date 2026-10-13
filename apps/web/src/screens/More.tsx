@@ -212,7 +212,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
               type="button"
               aria-pressed={isLowPower}
               className={`w-12 h-6 rounded-full transition-colors relative p-0.5 min-h-[44px] flex items-center ${
-                isLowPower ? 'bg-office-warn shadow-nu-inset' : 'bg-office-border shadow-nu-inset'
+                isLowPower ? 'bg-office-warn shadow-nu-inset' : 'bg-office-text/60 shadow-nu-inset'
               }`}
             >
               <div

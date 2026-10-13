@@ -111,7 +111,7 @@ export const HeaderHUD: React.FC = () => {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-office-accent opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-office-accent"></span>
           </span>
-          <span className="text-office-muted font-mono text-[10px] shrink-0">
+          <span className="text-office-text/70 font-mono text-[10px] shrink-0">
             {latestTicker?.time || '--:--'}
           </span>
           <span className="text-office-text/90 truncate">

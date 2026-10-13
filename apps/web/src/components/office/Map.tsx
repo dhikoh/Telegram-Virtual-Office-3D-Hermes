@@ -56,7 +56,7 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
 
           {/* Approval gate caution stripe pattern */}
           <pattern id="caution-stripes" width="10" height="10" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
-            <line x1="0" y1="0" x2="0" y2="10" stroke="rgba(180, 83, 9, 0.28)" strokeWidth="4" />
+            <line x1="0" y1="0" x2="0" y2="10" stroke="rgba(180, 83, 9, 0.14)" strokeWidth="4" />
           </pattern>
         </defs>
 
@@ -94,7 +94,7 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
             stroke="rgba(251, 191, 36, 0.45)"
             strokeWidth="1"
           />
-          <text x="190" y="103" textAnchor="middle" fill="#B45309" fontSize="8" fontWeight="600" letterSpacing="0.5">
+          <text x="190" y="103" textAnchor="middle" fill="#7C2D12" fontSize="8" fontWeight="600" letterSpacing="0.5">
             {t('rooms.approvalGate')}
           </text>
         </g>

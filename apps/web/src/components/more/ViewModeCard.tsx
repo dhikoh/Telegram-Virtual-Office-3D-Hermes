@@ -28,7 +28,7 @@ export const ViewModeCard: React.FC = () => {
           <Box className="w-4 h-4 text-office-accent-ink" />
           <span>Tampilan Denah Kantor</span>
         </div>
-        <span className="text-[10px] font-mono text-office-muted">
+        <span className="text-[10px] font-mono text-office-text/70">
           {viewMode} Mode Aktif
         </span>
       </div>
@@ -40,11 +40,11 @@ export const ViewModeCard: React.FC = () => {
           className={`py-2 px-3 rounded-lg text-xs font-medium transition-all min-h-[44px] flex flex-col items-center justify-center ${
             viewMode === '2D'
               ? 'bg-office-accent text-office-on-accent font-bold shadow-nu-raised'
-              : 'bg-office-hover text-office-muted hover:text-office-text'
+              : 'bg-office-hover text-office-text/75 hover:text-office-text'
           }`}
         >
           <span>2D Flat</span>
-          <span className="text-[9px] opacity-75 font-mono">Ringan & Standar</span>
+          <span className="text-[10px] opacity-90 font-mono">Ringan & Standar</span>
         </button>
 
         <button
@@ -56,12 +56,12 @@ export const ViewModeCard: React.FC = () => {
               ? 'bg-office-accent text-office-on-accent font-bold shadow-nu-raised'
               : is3DDisabled
               ? 'bg-office-hover text-office-muted cursor-not-allowed opacity-40 border border-office-border'
-              : 'bg-office-hover text-office-muted hover:text-office-text'
+              : 'bg-office-hover text-office-text/75 hover:text-office-text'
           }`}
         >
           <span>3D Isometrik</span>
-          <span className="text-[9px] opacity-75 font-mono">
-            {isLowPower ? 'Mati (Mode Hemat)' : !webGLSupported ? 'Tidak Didukung' : 'Procedural Neon'}
+          <span className="text-[10px] opacity-90 font-mono">
+            {isLowPower ? 'Mati (Mode Hemat)' : !webGLSupported ? 'Tidak Didukung' : 'Mode 2.5D Terang'}
           </span>
         </button>
       </div>
