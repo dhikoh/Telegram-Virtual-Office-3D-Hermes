@@ -19,6 +19,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { usePowerStore } from '../stores/power';
+import { GRAPHICS_PRESETS, type GraphicsPreset } from '@hermes-office/shared';
 import { useOfficeStore } from '../stores/office';
 import { tma } from '../services/tma';
 import { changeLanguage } from '../i18n';
@@ -34,7 +35,7 @@ interface MoreScreenProps {
 
 export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => {
   const { t, i18n } = useTranslation();
-  const { isLowPower, toggleLowPower } = usePowerStore();
+  const { isLowPower, preset, lastFps, setPreset } = usePowerStore();
   const { agents, setSelectedAgentId } = useOfficeStore();
 
   const [isRecruitmentOpen, setIsRecruitmentOpen] = useState(false);
@@ -46,9 +47,9 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
     changeLanguage(lang);
   };
 
-  const handleTogglePower = () => {
+  const handlePreset = (next: GraphicsPreset) => {
     tma.hapticImpact('medium');
-    toggleLowPower();
+    setPreset(next);
   };
 
   const handleFullscreen = () => {
@@ -188,39 +189,51 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
             </div>
           </div>
 
-          {/* Low-Power Mode Card (Rule REQ-067) */}
-          <div className="glass-panel rounded-xl p-3.5 border border-office-border flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div
-                className={`p-2 rounded-lg ${
-                  isLowPower ? 'bg-office-warn/20 text-office-warn' : 'bg-office-hover text-office-muted'
-                }`}
-              >
-                <Zap className="w-4 h-4" />
+          {/* Graphics preset card: penuh / rendah / otomatis (Tahap 6, Rule REQ-067).
+              The old binary ECO switch became three presets, and "otomatis" shows
+              the frame rate the probe is actually measuring. */}
+          <div className="glass-panel rounded-xl p-3.5 border border-office-border flex flex-col gap-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className={`p-2 rounded-lg ${
+                    isLowPower ? 'bg-office-warn/20 text-office-warn' : 'bg-office-hover text-office-muted'
+                  }`}
+                >
+                  <Zap className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-office-text">{t('power.label')}</span>
+                  <span className="text-[10px] text-office-muted">
+                    {isLowPower ? 'Animasi dinonaktifkan (hemat daya)' : 'Performa & animasi penuh'}
+                    {preset === 'otomatis' && lastFps !== null ? ` \u2022 ${lastFps} fps` : ''}
+                  </span>
+                </div>
               </div>
-              <div className="flex flex-col">
-                <span className="text-xs font-semibold text-office-text">{t('power.label')}</span>
-                <span className="text-[10px] text-office-muted">
-                  {isLowPower ? 'Animasi dinonaktifkan (hemat daya)' : 'Performa & animasi penuh'}
+              {preset === 'otomatis' && (
+                <span className="text-[9px] font-mono font-bold text-office-accent-ink bg-office-accent/20 px-1.5 py-0.5 rounded">
+                  AUTO
                 </span>
-              </div>
+              )}
             </div>
-            {/* Knob is intentionally plain white: against the inset track that is
-                the only pairing that reads in both states. */}
-            <button
-              onClick={handleTogglePower}
-              type="button"
-              aria-pressed={isLowPower}
-              className={`w-12 h-6 rounded-full transition-colors relative p-0.5 min-h-[44px] flex items-center ${
-                isLowPower ? 'bg-office-warn shadow-nu-inset' : 'bg-office-text/60 shadow-nu-inset'
-              }`}
-            >
-              <div
-                className={`w-5 h-5 rounded-full bg-white shadow-nu-flat transition-transform ${
-                  isLowPower ? 'translate-x-6' : 'translate-x-0'
-                }`}
-              />
-            </button>
+            <div className="flex gap-1.5" role="radiogroup" aria-label="Preset grafis">
+              {GRAPHICS_PRESETS.map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  role="radio"
+                  aria-checked={preset === p}
+                  onClick={() => handlePreset(p)}
+                  className={`flex-1 min-h-[44px] rounded-lg border text-xs font-semibold transition-colors active:scale-95 ${
+                    preset === p
+                      ? 'bg-office-accent text-office-on-accent border-office-accent shadow-nu-raised'
+                      : 'bg-office-inset text-office-text/75 border-office-border hover:border-office-accent/70'
+                  }`}
+                >
+                  {p === 'penuh' ? 'Penuh' : p === 'rendah' ? 'Rendah' : 'Otomatis'}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* View Mode 2D / 3D Selection Card (Rule 9.3 & REQ-108) */}

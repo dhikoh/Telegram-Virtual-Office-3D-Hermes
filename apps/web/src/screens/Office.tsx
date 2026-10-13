@@ -42,6 +42,7 @@ export const OfficeScreen: React.FC<OfficeScreenProps> = ({ onOpenRecruitment, o
 
   const { viewMode, webGLError, setWebGLError, retryWebGL } = useViewModeStore();
 
+
   const [showSimPanel, setShowSimPanel] = useState(false);
 
   const selectedAgent = agents.find((a) => a.id === selectedAgentId);
@@ -170,37 +171,44 @@ export const OfficeScreen: React.FC<OfficeScreenProps> = ({ onOpenRecruitment, o
                 (Tahap 4b, Konsekuensi Konsep A) */}
             <RoomChips />
 
-            {/* View Mode Switching: 3D Isometric View (Lazy loaded) or 2D SVG Map */}
-            {viewMode === '3D' ? (
-              <React.Suspense
-                fallback={
-                  <div className="w-full max-w-[390px] aspect-[380/420] flex flex-col items-center justify-center rounded-xl border border-office-border bg-office-surface">
-                    <div className="w-8 h-8 rounded-full border-2 border-office-accent border-t-transparent animate-spin mb-2" />
-                    <span className="text-xs text-office-muted font-mono">Memuat Tampilan 3D...</span>
-                  </div>
-                }
-              >
-                <Office3D
-                  isPaused={!!selectedAgent}
-                  onSelectAgent={handleSelectAgent}
-                  onOpenRecruitment={onOpenRecruitment}
-                />
-              </React.Suspense>
-            ) : (
-              <React.Suspense
-                fallback={
-                  <div className="w-full max-w-[390px] aspect-[380/420] flex flex-col items-center justify-center rounded-xl border border-office-border bg-office-surface">
-                    <div className="w-8 h-8 rounded-full border-2 border-office-accent border-t-transparent animate-spin mb-2" />
-                    <span className="text-xs text-office-text/80 font-mono">Memuat Peta 2D...</span>
-                  </div>
-                }
-              >
-                <Map
-                  onSelectAgent={handleSelectAgent}
-                  onOpenRecruitment={onOpenRecruitment}
-                />
-              </React.Suspense>
-            )}
+            {/* View Mode Switching: 3D Isometric View (Lazy loaded) or 2D SVG Map.
+                Tahap 6: the incoming renderer fades and settles in over 0.28s
+                instead of hard-cutting, so the switch reads as one continuous
+                space. Plain CSS on purpose — importing framer-motion here would
+                pull ~40 KB into the shell chunk (Rule 9.2), and Rule 9.3 turns
+                it off for free via `.low-power { animation: none }`. */}
+            <div key={viewMode} className="view-fade-in w-full flex justify-center">
+                {viewMode === '3D' ? (
+                  <React.Suspense
+                    fallback={
+                      <div className="w-full max-w-[390px] aspect-[380/420] flex flex-col items-center justify-center rounded-xl border border-office-border bg-office-surface">
+                        <div className="w-8 h-8 rounded-full border-2 border-office-accent border-t-transparent animate-spin mb-2" />
+                        <span className="text-xs text-office-muted font-mono">Memuat Tampilan 3D...</span>
+                      </div>
+                    }
+                  >
+                    <Office3D
+                      isPaused={!!selectedAgent}
+                      onSelectAgent={handleSelectAgent}
+                      onOpenRecruitment={onOpenRecruitment}
+                    />
+                  </React.Suspense>
+                ) : (
+                  <React.Suspense
+                    fallback={
+                      <div className="w-full max-w-[390px] aspect-[380/420] flex flex-col items-center justify-center rounded-xl border border-office-border bg-office-surface">
+                        <div className="w-8 h-8 rounded-full border-2 border-office-accent border-t-transparent animate-spin mb-2" />
+                        <span className="text-xs text-office-text/80 font-mono">Memuat Peta 2D...</span>
+                      </div>
+                    }
+                  >
+                    <Map
+                      onSelectAgent={handleSelectAgent}
+                      onOpenRecruitment={onOpenRecruitment}
+                    />
+                  </React.Suspense>
+                )}
+            </div>
           </div>
         )}
 

@@ -176,6 +176,25 @@ body {
   display: none;
 }
 
+/* Tahap 6: the view that takes over after a 2D/3D switch settles in instead
+   of hard-cutting. A plain CSS animation because framer-motion in the shell
+   chunk would break the 222 KB budget (Rule 9.2) — and .low-power above sets
+   animation: none, so Rule 9.3 disables this one for free. */
+.view-fade-in {
+  animation: view-fade-in 0.28s ease-out both;
+}
+
+@keyframes view-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* Chip row edge: fades the cut-off chip so the clipping reads as "there is
    more this way" instead of as a broken label. Removed by RoomChips as soon
    as the row is scrolled to the end. */
