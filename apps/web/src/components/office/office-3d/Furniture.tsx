@@ -48,9 +48,10 @@ export const Furniture: React.FC<FurnitureProps> = ({ onSelectRoom }) => {
               <meshStandardMaterial color="#E2E8F0" roughness={0.55} metalness={0.05} />
             </mesh>
             {/* Holographic Monitor Screen */}
-            <mesh position={[0, 0.6, -0.2]}>
-              <boxGeometry args={[0.8, 0.45, 0.04]} />
-              <meshBasicMaterial color={room.color} />
+            <mesh position={[0, 0.45, -0.35]}>
+              <boxGeometry args={[0.8, 0.5, 0.05]} />
+              {/* Lit, not emissive: an unlit screen reads as neon on a light room */}
+              <meshStandardMaterial color={room.color} roughness={0.8} metalness={0} />
             </mesh>
             {/* Desk Legs */}
             <mesh position={[-0.75, 0, 0]} castShadow>

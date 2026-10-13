@@ -24,7 +24,7 @@ interface SceneProps {
 
 export const Scene: React.FC<SceneProps> = ({ onSelectAgent, onOpenRecruitment }) => {
   const { t } = useTranslation();
-  const { agents } = useOfficeStore();
+  const { agents, selectedAgentId } = useOfficeStore();
   const [activeRoomNotice, setActiveRoomNotice] = useState<string | null>(null);
 
   // Compute 3D placement for each agent using shared single source of truth (Rule 9.1)
@@ -35,7 +35,9 @@ export const Scene: React.FC<SceneProps> = ({ onSelectAgent, onOpenRecruitment }
     return {
       agent,
       targetPos: placement.pos3d,
-      showLabel: idx < 20, // Cap visible HTML labels to 20 maximum (Rule REQ-111)
+      // Labels only where there is room: the idle lounge packs agents into a
+      // 2x4 grid (see LOUNGE_SLOTS), so idle pairs overlap on screen. Cap 20 (REQ-111).
+      showLabel: idx < 20 && (agent.status !== 'idle' || agent.id === selectedAgentId),
     };
   });
 

@@ -20,9 +20,14 @@ interface AvatarProps {
   targetX: number;
   targetY: number;
   onClick: (agent: OfficeAgent) => void;
+  /**
+   * The name pill is 70 px wide but the idle lounge packs agents 40 px apart,
+   * so labels are only drawn where there is room (and for the tapped agent).
+   */
+  showLabel?: boolean;
 }
 
-export const Avatar: React.FC<AvatarProps> = ({ agent, targetX, targetY, onClick }) => {
+export const Avatar: React.FC<AvatarProps> = ({ agent, targetX, targetY, onClick, showLabel = true }) => {
   const { isLowPower } = usePowerStore();
 
   const handleClick = () => {
@@ -126,7 +131,7 @@ export const Avatar: React.FC<AvatarProps> = ({ agent, targetX, targetY, onClick
       </div>
 
       {/* Agent Name & DEMO Badge */}
-      <div className="mt-1 flex flex-col items-center">
+      <div className={`mt-1 flex flex-col items-center ${showLabel ? '' : 'invisible'}`}>
         <div className="flex items-center gap-1 bg-office-inset backdrop-blur-xs px-1.5 py-0.5 rounded border border-office-border max-w-[70px]">
           <span className="text-[10px] font-medium text-office-text truncate leading-none">
             {agent.name}

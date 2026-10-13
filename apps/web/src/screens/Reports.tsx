@@ -99,8 +99,8 @@ export const ReportsScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* 8 Department Horizontal Scroll Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-3 mb-3 no-scrollbar">
+      {/* 8 Department Filter Chips (wraps: the row used to overflow the viewport) */}
+      <div className="flex flex-wrap gap-2 pb-3 mb-3">
         {DEPARTMENTS.map((dept) => {
           const isActive = activeDept === dept;
           return (
@@ -110,7 +110,7 @@ export const ReportsScreen: React.FC = () => {
               type="button"
               className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all min-h-[44px] ${
                 isActive
-                  ? 'bg-office-accent text-office-muted shadow-nu-raised'
+                  ? 'bg-office-accent text-office-on-accent shadow-nu-raised'
                   : 'bg-office-hover text-office-muted hover:text-office-text border border-office-border'
               }`}
             >
@@ -127,7 +127,7 @@ export const ReportsScreen: React.FC = () => {
           <h2 className="text-xs font-bold uppercase tracking-wider text-office-muted">
             Metrik KPI {activeDept}
           </h2>
-          <span className="text-[10px] text-office-muted font-mono">{departmentKpis.length} tercatat</span>
+          <span className="text-[11px] text-office-text/70 font-mono">{departmentKpis.length} tercatat</span>
         </div>
 
         {departmentKpis.length === 0 ? (
@@ -160,7 +160,7 @@ export const ReportsScreen: React.FC = () => {
                   className="glass-panel rounded-2xl p-3 border border-office-border flex flex-col justify-between relative overflow-hidden"
                 >
                   <div className="flex items-start justify-between gap-1 z-10">
-                    <span className="text-[11px] font-semibold text-office-muted leading-tight line-clamp-1">
+                    <span className="text-[11px] font-semibold text-office-text/75 leading-tight line-clamp-1">
                       {kpi.label}
                     </span>
                     <span
@@ -168,7 +168,7 @@ export const ReportsScreen: React.FC = () => {
                         kpi.source === 'agent'
                           ? 'bg-office-warn/20 text-office-warn border border-office-warn/30'
                           : kpi.source === 'import'
-                          ? 'bg-sky-500/20 text-sky-400'
+                          ? 'bg-sky-500/15 text-sky-700 border border-sky-500/30'
                           : 'bg-office-success/20 text-office-success'
                       }`}
                     >
@@ -178,9 +178,9 @@ export const ReportsScreen: React.FC = () => {
 
                   <div className="my-2 z-10">
                     <div className="text-base font-bold font-mono text-office-text">
-                      {kpi.value.toLocaleString()} <span className="text-[10px] text-office-muted font-sans">{kpi.unit}</span>
+                      {kpi.value.toLocaleString()} <span className="text-[10px] text-office-text/70 font-sans">{kpi.unit}</span>
                     </div>
-                    <div className="flex items-center gap-1 text-[9px] text-office-muted font-mono mt-0.5">
+                    <div className="flex items-center gap-1 text-[10px] text-office-text/70 font-mono mt-0.5">
                       <Clock className="w-2.5 h-2.5" />
                       <span>{kpi.period}</span>
                     </div>
@@ -214,7 +214,7 @@ export const ReportsScreen: React.FC = () => {
           <h2 className="text-xs font-bold uppercase tracking-wider text-office-muted">
             Laporan Kinerja ({activeDept})
           </h2>
-          <span className="text-[10px] text-office-muted font-mono">{departmentReports.length} laporan</span>
+          <span className="text-[11px] text-office-text/70 font-mono">{departmentReports.length} laporan</span>
         </div>
 
         {departmentReports.length === 0 ? (

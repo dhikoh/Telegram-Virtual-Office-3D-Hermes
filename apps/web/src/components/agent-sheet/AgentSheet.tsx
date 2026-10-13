@@ -48,7 +48,7 @@ export const AgentSheet: React.FC<AgentSheetProps> = ({ agent, onClose, onOpenTa
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-office-inset backdrop-blur-sm flex items-end justify-center select-none animate-in fade-in">
+    <div className="fixed inset-0 z-[100] isolate bg-office-inset backdrop-blur-sm flex items-end justify-center select-none animate-in fade-in">
       <div className="glass-panel-glow w-full max-w-md h-[86vh] max-h-[720px] rounded-t-3xl bg-office-elevated border-t border-office-accent/40 shadow-2xl flex flex-col overflow-hidden">
         {/* Header Drawer */}
         <div className="p-4 pb-3 border-b border-office-border flex items-center justify-between">

@@ -18,7 +18,7 @@ interface MapProps {
 
 export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) => {
   const { t } = useTranslation();
-  const { agents } = useOfficeStore();
+  const { agents, selectedAgentId } = useOfficeStore();
 
   // Compute coordinate for each agent using shared single source of truth (Rule 9.1)
   let idleCount = 0;
@@ -195,8 +195,15 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
         <UserPlus className="w-3.5 h-3.5" />
       </button>
 
-      {/* Agent Avatars Layer */}
-      <div className="absolute inset-0 pointer-events-auto">
+      {/* Agent Avatars Layer.
+          Hidden while a sheet/modal is open: the overlay already covers it,
+          and dropping the layer removes any chance of the pills painting on
+          top of the sheet content (review defect #1, 2026-10-13). */}
+      <div
+        className={`absolute inset-0 pointer-events-auto transition-opacity duration-150 ${
+          selectedAgentId ? 'opacity-0' : 'opacity-100'
+        }`}
+      >
         {agentPositions.map(({ agent, pos }) => (
           <Avatar
             key={agent.id}
@@ -204,6 +211,7 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
             targetX={pos.x}
             targetY={pos.y}
             onClick={onSelectAgent}
+            showLabel={agent.status !== 'idle' || agent.id === selectedAgentId}
           />
         ))}
       </div>

@@ -12,7 +12,7 @@ export const TaskResultModal: React.FC<TaskResultModalProps> = ({ task, onClose 
   if (!task) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-office-inset backdrop-blur-sm flex items-center justify-center p-3 animate-in fade-in">
+    <div className="fixed inset-0 z-[100] isolate bg-office-inset backdrop-blur-sm flex items-center justify-center p-3 animate-in fade-in">
       <div className="glass-panel-glow w-full max-w-md max-h-[80vh] rounded-2xl p-5 bg-office-elevated border border-office-accent/40 shadow-2xl flex flex-col">
         <div className="flex items-center justify-between pb-3 border-b border-office-border mb-3">
           <div className="flex items-center gap-2">

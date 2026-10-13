@@ -74,7 +74,7 @@ export const InboxScreen: React.FC = () => {
           </div>
 
           {pendingApprovals.length === 0 ? (
-            <div className="glass-panel rounded-xl p-4 text-center border border-office-border text-xs text-office-muted">
+            <div className="glass-panel rounded-xl p-4 text-center border border-office-border text-xs text-office-text/75">
               Tidak ada persetujuan yang memerlukan konfirmasi Anda saat ini.
             </div>
           ) : (

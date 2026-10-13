@@ -124,18 +124,29 @@ export const LOUNGE_AREA = {
   nameKey: 'office.rooms.lounge',
 };
 
+/**
+ * 8 idle slots as a strict 2 columns x 4 rows grid (P2 of the 2026-10-13
+ * review). The old layout put slots 7-8 on x=190, between the two columns,
+ * so with 8 idle demo agents every avatar overlapped its neighbour.
+ *
+ * 2D: columns 150/230 (80 px apart, avatar is 40 px wide), rows 170/210/250/290
+ * (40 px apart, avatar is 40 px tall — name pills are suppressed for the
+ * idle cluster). The coffee table at (190, 225) spans x 172-208, which the
+ * columns clear.
+ * 3D: x +/-2 clears the same coffee table (radius 0.9 at the room origin).
+ */
 export const LOUNGE_SLOTS: Array<{
   pos2d: { x: number; y: number };
   pos3d: [number, number, number];
 }> = [
-  { pos2d: { x: 160, y: 180 }, pos3d: [-1.5, 0, 1] },
-  { pos2d: { x: 220, y: 180 }, pos3d: [1.5, 0, 1] },
-  { pos2d: { x: 160, y: 230 }, pos3d: [-1.5, 0, 2.5] },
-  { pos2d: { x: 220, y: 230 }, pos3d: [1.5, 0, 2.5] },
-  { pos2d: { x: 160, y: 280 }, pos3d: [-1.5, 0, 4] },
-  { pos2d: { x: 220, y: 280 }, pos3d: [1.5, 0, 4] },
-  { pos2d: { x: 190, y: 205 }, pos3d: [0, 0, 1.8] },
-  { pos2d: { x: 190, y: 255 }, pos3d: [0, 0, 3.2] },
+  { pos2d: { x: 150, y: 170 }, pos3d: [-2, 0, 0.6] },
+  { pos2d: { x: 230, y: 170 }, pos3d: [2, 0, 0.6] },
+  { pos2d: { x: 150, y: 210 }, pos3d: [-2, 0, 2.2] },
+  { pos2d: { x: 230, y: 210 }, pos3d: [2, 0, 2.2] },
+  { pos2d: { x: 150, y: 250 }, pos3d: [-2, 0, 3.8] },
+  { pos2d: { x: 230, y: 250 }, pos3d: [2, 0, 3.8] },
+  { pos2d: { x: 150, y: 290 }, pos3d: [-2, 0, 5.4] },
+  { pos2d: { x: 230, y: 290 }, pos3d: [2, 0, 5.4] },
 ];
 
 /**

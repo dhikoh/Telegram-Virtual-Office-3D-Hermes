@@ -62,7 +62,7 @@ export const KpiEntryModal: React.FC<KpiEntryModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-office-inset backdrop-blur-md p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] isolate flex items-center justify-center bg-office-inset backdrop-blur-md p-4 animate-in fade-in duration-200">
       <div className="bg-office-elevated border border-office-accent/40 rounded-2xl w-full max-w-sm p-5 shadow-2xl flex flex-col gap-4">
         <div className="flex items-center justify-between pb-2 border-b border-office-border">
           <div className="flex items-center gap-2">

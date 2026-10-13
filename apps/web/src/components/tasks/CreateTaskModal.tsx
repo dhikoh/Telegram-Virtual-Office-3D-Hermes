@@ -57,7 +57,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-office-inset backdrop-blur-sm flex items-center justify-center p-3 animate-in fade-in">
+    <div className="fixed inset-0 z-[100] isolate bg-office-inset backdrop-blur-sm flex items-center justify-center p-3 animate-in fade-in">
       <form
         onSubmit={handleSubmit}
         className="glass-panel-glow w-full max-w-sm rounded-2xl p-5 bg-office-elevated border border-office-accent/40 shadow-2xl flex flex-col"

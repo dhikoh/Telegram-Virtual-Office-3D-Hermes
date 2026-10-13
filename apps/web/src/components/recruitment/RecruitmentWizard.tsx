@@ -46,7 +46,7 @@ export const RecruitmentWizard: React.FC<RecruitmentWizardProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-office-inset backdrop-blur-md p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] isolate flex items-center justify-center bg-office-inset backdrop-blur-md p-4 animate-in fade-in duration-200">
       <div className="bg-office-elevated border border-office-violet/40 rounded-2xl w-full max-w-md p-5 shadow-2xl flex flex-col gap-3.5 max-h-[92vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between pb-2.5 border-b border-office-border">
