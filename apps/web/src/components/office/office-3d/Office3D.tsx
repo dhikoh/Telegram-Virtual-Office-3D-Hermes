@@ -11,7 +11,9 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Scene } from './Scene';
+import { RotateCcw } from 'lucide-react';
 import { useViewModeStore } from '../../../stores/view-mode';
+import { requestCameraReset } from './cameraState';
 import type { OfficeAgent } from '../../../stores/office';
 
 interface Office3DProps {
@@ -122,8 +124,19 @@ export const Office3D: React.FC<Office3DProps> = ({
 
       {/* Control overlay hint for touch gestures */}
       <div className="absolute bottom-2 left-2 pointer-events-none text-[10px] text-office-text/70 bg-office-surface/85 border border-office-border px-2 py-0.5 rounded backdrop-blur-sm">
-        3D View • Seret untuk menggeser
+        Seret: putar • 2 jari: geser &amp; zoom
       </div>
+
+      {/* Reset the diorama to the framing it was cut for */}
+      <button
+        type="button"
+        onClick={requestCameraReset}
+        aria-label="Atur ulang tampilan 3D"
+        title="Atur ulang tampilan 3D"
+        className="absolute bottom-2 right-2 w-7 h-7 flex items-center justify-center rounded-md bg-office-surface border border-office-border text-office-text/75 hover:bg-office-accent hover:text-office-on-accent active:scale-95 transition-colors"
+      >
+        <RotateCcw size={14} aria-hidden="true" />
+      </button>
     </div>
   );
 };

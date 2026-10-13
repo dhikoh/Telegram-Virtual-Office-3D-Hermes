@@ -5,4 +5,5 @@ export * from './types.js';
 export * from './soul.js';
 export * from './layout.js';
 export * from './behaviour.js';
+export * from './ambient.js';
 export * from './schema-spec.js';

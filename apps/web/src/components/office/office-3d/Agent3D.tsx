@@ -14,6 +14,7 @@ import { Vector3, Group } from 'three';
 import type { OfficeAgent } from '../../../stores/office';
 import { usePowerStore } from '../../../stores/power';
 import { agentMotion } from '@hermes-office/shared';
+import { isCameraDrag } from './cameraState';
 
 interface Agent3DProps {
   agent: OfficeAgent;
@@ -86,6 +87,8 @@ export const Agent3D: React.FC<Agent3DProps> = ({
       ref={groupRef}
       position={targetPos}
       onClick={(e) => {
+        // Releasing a rotate gesture over an agent must not open its sheet.
+        if (isCameraDrag()) return;
         e.stopPropagation();
         onSelect(agent);
       }}

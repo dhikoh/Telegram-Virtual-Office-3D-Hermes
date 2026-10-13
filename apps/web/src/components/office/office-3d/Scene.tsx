@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { Html } from '@react-three/drei';
 import { getAgentPlacement } from '@hermes-office/shared';
 import { Furniture } from './Furniture';
+import { Backdrop } from './Backdrop';
 import { Agent3D } from './Agent3D';
 import { CameraController } from './CameraController';
 import { useOfficeStore, type OfficeAgent } from '../../../stores/office';
@@ -74,6 +75,9 @@ export const Scene: React.FC<SceneProps> = ({ onSelectAgent, onOpenRecruitment }
         shadow-bias={-0.0005}
       />
       <directionalLight position={[-9, 7, -7]} intensity={0.3} color="#E8F1FF" />
+
+      {/* Back wall + window + street (Tahap 4a): the office now sits in a city. */}
+      <Backdrop />
 
       {/* Main Floor (22 x 24 units) — light ground, receives the key shadow */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
