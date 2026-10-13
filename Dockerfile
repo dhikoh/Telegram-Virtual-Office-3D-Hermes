@@ -6,7 +6,10 @@
 
 FROM node:22-slim AS builder
 WORKDIR /app
-ENV NODE_ENV=development
+# Build in production mode: with NODE_ENV=development the web build emitted a
+# DEV bundle (jsxDEV runtime, import.meta.env.DEV = true), which shipped the
+# dev-only status simulator and dev banners to production.
+ENV NODE_ENV=production
 
 # Copy dependency manifests
 COPY package*.json ./
@@ -29,6 +32,12 @@ RUN npm --workspace=packages/shared run build
 RUN npm --workspace=tools/mock-hermes run build
 RUN npm --workspace=apps/server run build
 RUN npm --workspace=apps/web run build
+
+# Refuse to ship a development bundle: jsxDEV only appears when vite builds
+# outside production mode, and that also turns import.meta.env.DEV on.
+RUN if grep -rq "jsxDEV" apps/web/dist/assets; then \
+      echo "ERROR: development web bundle produced - check NODE_ENV" >&2; exit 1; \
+    fi
 
 # ==============================================================================
 # Stage 2: Production Server Runner
