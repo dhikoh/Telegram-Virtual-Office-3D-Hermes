@@ -4,7 +4,16 @@
  */
 
 import { tma } from './tma';
-import type { AgentPublic, Task, Approval, Kpi, Report, HiringDraft, AuditLog } from '@hermes-office/shared';
+import type {
+  AgentPublic,
+  Task,
+  Approval,
+  Kpi,
+  Report,
+  HiringDraft,
+  AuditLog,
+  OfficeDepartment,
+} from '@hermes-office/shared';
 
 const API_BASE = '/api';
 
@@ -92,6 +101,20 @@ export const api = {
         is_current: boolean;
       }[];
     }>(`/agents/${id}/sessions`),
+  /** Tahap 10 — daftar ruang/kantor (chip order, data-driven). */
+  getDepartments: () => request<OfficeDepartment[]>('/departments'),
+  /** Tahap 10 — buat ruang custom (nama + warna; id dibuat server). */
+  createDepartment: (body: { name: string; color: string }) =>
+    request<OfficeDepartment>('/departments', { method: 'POST', body: JSON.stringify(body) }),
+  /** Tahap 10 — ubah nama/warna/urutan/sembunyi ruang. */
+  updateDepartment: (id: string, body: Record<string, unknown>) =>
+    request<OfficeDepartment>(`/departments/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+  /** Tahap 10 — hapus ruang custom (403 untuk ruang bawaan, 409 bila masih berpenghuni). */
+  deleteDepartment: (id: string) =>
+    request<{ ok: boolean; id: string }>(`/departments/${id}`, { method: 'DELETE' }),
   /** Tahap 8 — skill yang benar-benar terpasang di gateway. */
   getSkills: () =>
     request<{

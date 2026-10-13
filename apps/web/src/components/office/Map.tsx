@@ -99,13 +99,38 @@ interface MapProps {
 
 export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) => {
   const { t } = useTranslation();
-  const { agents, selectedAgentId } = useOfficeStore();
+  const { agents, selectedAgentId, departments } = useOfficeStore();
   const { activeRoom } = useRoomFocusStore();
 
+  // Tahap 10 — the eight rects below stay static (the 380×420 canvas is
+  // full), but their labels now come from the departments table: a rename in
+  // More shows up here, and a hidden room dims. Custom rooms have no rect —
+  // their agents stand at the shared fallback desk (see shared placement).
+  const deptById: Record<string, { name: string | null; hidden: boolean }> = {};
+  for (const d of departments) deptById[d.id] = { name: d.name, hidden: d.hidden };
+  const roomLabel = (id: string) => deptById[id]?.name ?? t(`rooms.${id}`);
+  const MAP_ROOM_IDS = [
+    'command',
+    'social',
+    'marketing',
+    'sales',
+    'analytics',
+    'finance',
+    'support',
+    'hr',
+    'lounge',
+    'approvalGate',
+  ];
+
   // Tahap 4b: only the active room stays fully lit, the rest recede.
+  // Tahap 10: focusing a custom room (no rect on the map) dims nothing, so
+  // the agent cluster stays readable instead of fading the whole floor.
   const focusKey = activeRoom === 'all' ? null : activeRoom;
+  const focusOnMap = focusKey === null || MAP_ROOM_IDS.includes(focusKey);
   const roomStyle = (roomId: string) => ({
-    opacity: !focusKey || focusKey === roomId ? 1 : 0.3,
+    opacity: !focusOnMap || !focusKey || focusKey === roomId
+      ? (deptById[roomId]?.hidden ? 0.4 : 1)
+      : 0.3,
     transition: 'opacity 160ms ease',
   });
 
@@ -174,7 +199,7 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
           {/* Desk console */}
           <rect x="160" y="45" width="60" height="20" rx="4" fill="rgba(245, 158, 11, 0.16)" stroke="rgba(180, 83, 9, 0.55)" />
           <text x="190" y="27" textAnchor="middle" fill="#B45309" fontSize="9" fontWeight="bold" letterSpacing="0.8">
-            {t('rooms.command')}
+            {roomLabel('command')}
           </text>
         </g>
 
@@ -200,7 +225,7 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
           <rect x="12" y="12" width="98" height="74" rx="8" fill="#FBFDFF" stroke="#D6DEEA" />
           <rect x="36" y="46" width="50" height="18" rx="4" fill="#EEF3F9" stroke="#D6DEEA" />
           <text x="61" y="26" textAnchor="middle" fill="#64748B" fontSize="8.5" fontWeight="600">
-            {t('rooms.social')}
+            {roomLabel('social')}
           </text>
         </g>
 
@@ -209,7 +234,7 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
           <rect x="270" y="12" width="98" height="74" rx="8" fill="#FBFDFF" stroke="#D6DEEA" />
           <rect x="294" y="46" width="50" height="18" rx="4" fill="#EEF3F9" stroke="#D6DEEA" />
           <text x="319" y="26" textAnchor="middle" fill="#64748B" fontSize="8.5" fontWeight="600">
-            {t('rooms.marketing')}
+            {roomLabel('marketing')}
           </text>
         </g>
 
@@ -218,7 +243,7 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
           <rect x="12" y="96" width="98" height="74" rx="8" fill="#FBFDFF" stroke="#D6DEEA" />
           <rect x="36" y="130" width="50" height="18" rx="4" fill="#EEF3F9" stroke="#D6DEEA" />
           <text x="61" y="110" textAnchor="middle" fill="#64748B" fontSize="8.5" fontWeight="600">
-            {t('rooms.sales')}
+            {roomLabel('sales')}
           </text>
         </g>
 
@@ -227,7 +252,7 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
           <rect x="270" y="96" width="98" height="74" rx="8" fill="#FBFDFF" stroke="#D6DEEA" />
           <rect x="294" y="130" width="50" height="18" rx="4" fill="#EEF3F9" stroke="#D6DEEA" />
           <text x="319" y="110" textAnchor="middle" fill="#64748B" fontSize="8.5" fontWeight="600">
-            {t('rooms.analytics')}
+            {roomLabel('analytics')}
           </text>
         </g>
 
@@ -236,7 +261,7 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
           <rect x="12" y="180" width="98" height="74" rx="8" fill="#FBFDFF" stroke="#D6DEEA" />
           <rect x="36" y="214" width="50" height="18" rx="4" fill="#EEF3F9" stroke="#D6DEEA" />
           <text x="61" y="194" textAnchor="middle" fill="#64748B" fontSize="8.5" fontWeight="600">
-            {t('rooms.finance')}
+            {roomLabel('finance')}
           </text>
         </g>
 
@@ -245,7 +270,7 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
           <rect x="270" y="180" width="98" height="74" rx="8" fill="#FBFDFF" stroke="#D6DEEA" />
           <rect x="294" y="214" width="50" height="18" rx="4" fill="#EEF3F9" stroke="#D6DEEA" />
           <text x="319" y="194" textAnchor="middle" fill="#64748B" fontSize="8.5" fontWeight="600">
-            {t('rooms.support')}
+            {roomLabel('support')}
           </text>
         </g>
 
@@ -254,7 +279,7 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
           <rect x="12" y="264" width="98" height="84" rx="8" fill="#FBFDFF" stroke="rgba(124, 92, 252, 0.5)" />
           <rect x="36" y="304" width="50" height="18" rx="4" fill="rgba(124, 92, 252, 0.1)" stroke="rgba(124, 92, 252, 0.45)" />
           <text x="61" y="279" textAnchor="middle" fill="#6D28D9" fontSize="8.5" fontWeight="600">
-            {t('rooms.hr')}
+            {roomLabel('hr')}
           </text>
         </g>
 

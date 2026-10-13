@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { AgentSchema, type Agent } from '@hermes-office/shared';
 import { AgentRepository } from '../db/repositories/agents.js';
 import { AuditRepository } from '../db/repositories/audit.js';
+import { departmentExists } from '../db/repositories/departments.js';
 import { SettingRepository } from '../db/repositories/settings.js';
 import {
   getHermesClientForAgent,
@@ -139,6 +140,12 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const agent = parseResult.data;
+    // Tahap 10: department must resolve to a live room row.
+    if (!departmentExists(request.server.db, agent.department)) {
+      return reply
+        .code(400)
+        .send({ error: 'invalid_input', message: `Ruang/departemen '${agent.department}' tidak dikenal.` });
+    }
     agentRepo.create(agent);
     const keyStored = storeAgentKey(settingRepo, agent.id, rawBody.api_key);
 
@@ -201,6 +208,13 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
     }
     if ('name' in updates && (typeof updates.name !== 'string' || !updates.name.trim())) {
       return reply.code(400).send({ error: 'invalid_input', message: 'Name cannot be empty' });
+    }
+    // Tahap 10: moving an agent into a room requires a live department row.
+    if ('department' in updates && !departmentExists(db, String(updates.department))) {
+      return reply.code(400).send({
+        error: 'invalid_input',
+        message: `Ruang/departemen '${String(updates.department)}' tidak dikenal.`,
+      });
     }
 
     agentRepo.update(id, updates);

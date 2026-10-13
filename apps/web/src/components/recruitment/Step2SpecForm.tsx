@@ -2,11 +2,12 @@
  * Recruitment Wizard - Step 2: Specification Form (Rule REQ-082)
  */
 
-import React, { useState } from 'react';
-import type { AgentHiringSpec, Department } from '@hermes-office/shared';
+import React, { useEffect, useState } from 'react';
+import type { AgentHiringSpec, Department, OfficeDepartment } from '@hermes-office/shared';
 import { DEPARTMENTS, DEFAULT_APPROVAL_ACTIONS } from '@hermes-office/shared';
 import { ArrowLeft, ArrowRight, ShieldAlert, Check } from 'lucide-react';
 import { tma } from '../../services/tma';
+import { api } from '../../services/api';
 import { SpecListEditor } from './SpecListEditor';
 
 interface Step2SpecFormProps {
@@ -31,6 +32,26 @@ export const Step2SpecForm: React.FC<Step2SpecFormProps> = ({
   const [boundaries, setBoundaries] = useState<string[]>(initialSpec.boundaries);
   const [approvalActions, setApprovalActions] = useState<string[]>(initialSpec.approval_actions);
   const [reportingCadence, setReportingCadence] = useState(initialSpec.reporting_cadence);
+
+  // Tahap 10 — ruang jadi data: pilihan departemen ikut tabel departments,
+  // dengan fallback ke daftar statis kalau fetch gagal / kosong.
+  const [rooms, setRooms] = useState<OfficeDepartment[]>([]);
+  useEffect(() => {
+    let alive = true;
+    api
+      .getDepartments()
+      .then((rows) => {
+        if (alive && Array.isArray(rows) && rows.length > 0) setRooms(rows);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const departmentOptions: Department[] =
+    rooms.length > 0 ? rooms.map((room) => room.id) : [...DEPARTMENTS];
+  const departmentLabel = (id: Department) => rooms.find((room) => room.id === id)?.name ?? id;
 
   const toggleApprovalAction = (action: string) => {
     tma.hapticSelection();
@@ -106,9 +127,9 @@ export const Step2SpecForm: React.FC<Step2SpecFormProps> = ({
             onChange={(e) => setDepartment(e.target.value as Department)}
             className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text focus:outline-none focus:border-office-accent min-h-[44px]"
           >
-            {DEPARTMENTS.map((d) => (
+            {departmentOptions.map((d) => (
               <option key={d} value={d}>
-                {d.toUpperCase()}
+                {departmentLabel(d).toUpperCase()}
               </option>
             ))}
           </select>

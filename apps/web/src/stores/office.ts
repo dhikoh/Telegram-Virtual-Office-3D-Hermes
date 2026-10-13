@@ -5,7 +5,15 @@
  */
 
 import { create } from 'zustand';
-import type { AgentPublic, Task, Approval, Kpi, Report, AgentNormalizedStatus } from '@hermes-office/shared';
+import type {
+  AgentPublic,
+  Task,
+  Approval,
+  Kpi,
+  Report,
+  AgentNormalizedStatus,
+  OfficeDepartment,
+} from '@hermes-office/shared';
 import { api } from '../services/api';
 import { tma } from '../services/tma';
 
@@ -28,6 +36,8 @@ interface OfficeState {
   approvals: Approval[];
   kpis: Kpi[];
   reports: Report[];
+  /** Tahap 10 — ruang kantor sebagai data (chip order, nama, warna, sembunyi). */
+  departments: OfficeDepartment[];
   streamStatus: 'connecting' | 'connected' | 'disconnected' | 'error';
   ticker: TickerItem[];
   selectedAgentId: string | null;
@@ -46,6 +56,8 @@ interface OfficeState {
   patchAgent: (id: string, body: Record<string, unknown>) => Promise<AgentPublic | null>;
   /** Tahap 8 — hapus agen dari server lalu muat ulang roster & tugas. */
   deleteAgent: (id: string) => Promise<void>;
+  /** Tahap 10 — muat ulang daftar ruang (dipanggil setelah kelola ruang). */
+  reloadDepartments: () => Promise<void>;
 }
 
 export { DEMO_AGENTS, DEMO_KPIS } from './demo-data.js';
@@ -57,6 +69,7 @@ export const useOfficeStore = create<OfficeState>((set, get) => ({
   approvals: [],
   kpis: [],
   reports: [],
+  departments: [],
   streamStatus: 'connecting',
   ticker: [
     {
@@ -73,13 +86,15 @@ export const useOfficeStore = create<OfficeState>((set, get) => ({
   fetchInitialData: async () => {
     set({ isLoading: true, error: null });
     try {
-      const [agentsData, tasksData, approvalsData, kpisData, reportsData] = await Promise.allSettled([
-        api.getAgents(),
-        api.getTasks(),
-        api.getApprovals(),
-        api.getKpis(),
-        api.getReports(),
-      ]);
+      const [agentsData, tasksData, approvalsData, kpisData, reportsData, departmentsData] =
+        await Promise.allSettled([
+          api.getAgents(),
+          api.getTasks(),
+          api.getApprovals(),
+          api.getKpis(),
+          api.getReports(),
+          api.getDepartments(),
+        ]);
 
       const loadedAgents: OfficeAgent[] =
         agentsData.status === 'fulfilled'
@@ -90,6 +105,9 @@ export const useOfficeStore = create<OfficeState>((set, get) => ({
       const loadedApprovals = approvalsData.status === 'fulfilled' ? approvalsData.value : [];
       const loadedKpis = kpisData.status === 'fulfilled' ? (kpisData.value as Kpi[]) : [];
       const loadedReports = reportsData.status === 'fulfilled' ? (reportsData.value as Report[]) : [];
+      // Tahap 10 — ruang data-driven; kosong = fallback statis di komponen.
+      const loadedDepartments: OfficeDepartment[] =
+        departmentsData.status === 'fulfilled' ? departmentsData.value : [];
 
       set({
         agents: loadedAgents,
@@ -99,6 +117,7 @@ export const useOfficeStore = create<OfficeState>((set, get) => ({
         // "no data yet", not fabricated KPIs (Rule C7 honesty).
         kpis: loadedKpis,
         reports: loadedReports,
+        departments: loadedDepartments,
         isLoading: false,
       });
     } catch (err: unknown) {
@@ -269,5 +288,14 @@ export const useOfficeStore = create<OfficeState>((set, get) => ({
     set((state) => ({
       ticker: [newItem, ...state.ticker.slice(0, 19)],
     }));
+  },
+
+  reloadDepartments: async () => {
+    try {
+      const departments = await api.getDepartments();
+      set({ departments });
+    } catch {
+      // Daftar lama tetap dipakai; kegagalan muat tidak menghancurkan UI.
+    }
   },
 }));

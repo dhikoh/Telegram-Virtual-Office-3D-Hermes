@@ -5,7 +5,7 @@
  * - Modular modals for Manual KPI Entry, Anti-Hallucination Generator, and Report Viewer
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   BarChart3,
@@ -16,9 +16,10 @@ import {
   Clock,
   ArrowRight,
 } from 'lucide-react';
-import type { Department, Report } from '@hermes-office/shared';
+import type { Department, OfficeDepartment, Report } from '@hermes-office/shared';
 import { DEPARTMENTS } from '@hermes-office/shared';
 import { useOfficeStore } from '../stores/office';
+import { api } from '../services/api';
 import { tma } from '../services/tma';
 import { KpiEntryModal } from '../components/reports/KpiEntryModal';
 import { GenerateReportModal } from '../components/reports/GenerateReportModal';
@@ -43,6 +44,34 @@ export const ReportsScreen: React.FC = () => {
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [viewingReport, setViewingReport] = useState<Report | null>(null);
+
+  // Tahap 10 — chips follow the departments table (renamed / added rooms show
+  // up here too); an empty or failed fetch keeps the static seed list so the
+  // screen never renders a filter row with nothing in it.
+  const [rooms, setRooms] = useState<OfficeDepartment[]>([]);
+  useEffect(() => {
+    let alive = true;
+    api
+      .getDepartments()
+      .then((rows) => {
+        if (alive && Array.isArray(rows) && rows.length > 0) setRooms(rows);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const filterRooms = useMemo<{ id: Department; label: string; icon: string }[]>(() => {
+    if (rooms.length > 0) {
+      return rooms.map((room) => ({
+        id: room.id,
+        label: room.name ?? room.id,
+        icon: DEPARTMENT_ICONS[room.id] ?? '🏢',
+      }));
+    }
+    return DEPARTMENTS.map((id) => ({ id, label: id, icon: DEPARTMENT_ICONS[id] ?? '🏢' }));
+  }, [rooms]);
 
   const departmentKpis = useMemo(() => {
     return kpis.filter((k) => k.department === activeDept);
@@ -101,12 +130,12 @@ export const ReportsScreen: React.FC = () => {
 
       {/* 8 Department Filter Chips (wraps: the row used to overflow the viewport) */}
       <div className="flex flex-wrap gap-2 pb-3 mb-3">
-        {DEPARTMENTS.map((dept) => {
-          const isActive = activeDept === dept;
+        {filterRooms.map((room) => {
+          const isActive = activeDept === room.id;
           return (
             <button
-              key={dept}
-              onClick={() => handleTabChange(dept)}
+              key={room.id}
+              onClick={() => handleTabChange(room.id)}
               type="button"
               className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all min-h-[44px] ${
                 isActive
@@ -114,8 +143,8 @@ export const ReportsScreen: React.FC = () => {
                   : 'bg-office-hover text-office-muted hover:text-office-text border border-office-border'
               }`}
             >
-              <span>{DEPARTMENT_ICONS[dept]}</span>
-              <span className="capitalize">{dept}</span>
+              <span>{room.icon}</span>
+              <span className="capitalize">{room.label}</span>
             </button>
           );
         })}

@@ -45,9 +45,13 @@ describe('Shared Package Schema & Contracts', () => {
     const parsed = AgentSchema.safeParse(validAgent);
     expect(parsed.success).toBe(true);
 
-    const invalidAgent = { ...validAgent, department: 'invalid_dept' };
-    const invalidParsed = AgentSchema.safeParse(invalidAgent);
-    expect(invalidParsed.success).toBe(false);
+    // Tahap 10: department ids are data-driven (tabel departments) — the
+    // shared schema accepts any non-empty id, and an empty id still fails.
+    const customDept = AgentSchema.safeParse({ ...validAgent, department: 'riset' });
+    expect(customDept.success).toBe(true);
+
+    const blankDept = AgentSchema.safeParse({ ...validAgent, department: '' });
+    expect(blankDept.success).toBe(false);
   });
 
   it('validates AntiHallucinationReportSchema strictly', () => {

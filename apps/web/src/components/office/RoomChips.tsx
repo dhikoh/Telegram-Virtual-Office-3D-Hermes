@@ -21,6 +21,21 @@ import {
 import { useOfficeStore } from '../../stores/office';
 import { useRoomFocusStore } from '../../stores/room-focus';
 
+/**
+ * Tahap 10 — chip row is data-driven: "all", every visible room (chip order
+ * from the departments table, custom rooms included), then lounge + gate.
+ * An empty store falls back to the static focus ids so a failed fetch never
+ * blanks the row.
+ */
+function chipIds(departments: { id: string; hidden: boolean }[]): RoomFocusId[] {
+  const rooms = departments
+    .filter((d) => !d.hidden)
+    .map((d) => d.id as RoomFocusId);
+  return rooms.length > 0
+    ? ['all', ...rooms, 'lounge', 'approvalGate']
+    : ROOM_FOCUS_IDS;
+}
+
 /** Agents worth counting for a focus id (Rule: numbers come from live state). */
 function countAgents(agents: Array<{ department?: string; status: string }>, id: RoomFocusId): number {
   if (id === 'all') return agents.length;
@@ -31,7 +46,7 @@ function countAgents(agents: Array<{ department?: string; status: string }>, id:
 
 export const RoomChips: React.FC = () => {
   const { t } = useTranslation();
-  const { agents } = useOfficeStore();
+  const { agents, departments } = useOfficeStore();
   const { activeRoom, setActiveRoom } = useRoomFocusStore();
   // The row has 11 chips in a 390 px canvas: the right edge is always cut.
   // Fade it while there is more to scroll, drop the fade at the end so the
@@ -70,9 +85,12 @@ export const RoomChips: React.FC = () => {
           setAtStart(el.scrollLeft <= 2);
         }}
       >
-        {ROOM_FOCUS_IDS.map((id) => {
+        {chipIds(departments).map((id) => {
           const isActive = id === activeRoom;
           const count = countAgents(agents, id);
+          // Tahap 10 — nama data menimpa label i18n (rename dari More).
+          const custom = departments.find((d) => d.id === id);
+          const label = custom?.name ?? t(getRoomFocusNameKey(id));
           return (
             <button
               key={id}
@@ -90,7 +108,7 @@ export const RoomChips: React.FC = () => {
                   : 'bg-office-inset text-office-text/75 border-office-border hover:border-office-accent/70',
               ].join(' ')}
             >
-              <span>{t(getRoomFocusNameKey(id))}</span>
+              <span>{label}</span>
               <span
                 className={[
                   'text-[10px] font-mono tabular-nums font-bold',

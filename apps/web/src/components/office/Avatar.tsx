@@ -32,6 +32,7 @@ import {
   PX_PER_UNIT,
 } from '@hermes-office/shared';
 import type { OfficeAgent } from '../../stores/office';
+import { useOfficeStore } from '../../stores/office';
 import { usePowerStore } from '../../stores/power';
 import { spriteDataUrl } from '../../lib/sprites';
 import { tma } from '../../services/tma';
@@ -42,11 +43,14 @@ const CYCLE_SECONDS = 0.8;
 const SPRITE_W = 20;
 const SPRITE_H = 30;
 
-function shirtOf(agent: OfficeAgent): string {
+function shirtOf(agent: OfficeAgent, deptColor?: string): string {
   // Tahap 9 — warna baju kustom milik agen (avatar editor) mengalahkan warna
   // departemen; kalau belum diatur, jatuh ke warna ruangannya seperti biasa.
   const custom = agent.avatar_style?.shirt;
   if (custom) return custom;
+  // Tahap 10 — warna ruang dari tabel departments mengalahkan warna statis
+  // ROOM_LAYOUTS (Owner bisa mengganti warna dari More → Kelola Ruang).
+  if (deptColor) return deptColor;
   const dept = agent.department;
   return dept && dept in ROOM_LAYOUTS
     ? ROOM_LAYOUTS[dept as keyof typeof ROOM_LAYOUTS].color
@@ -110,9 +114,13 @@ export const Avatar: React.FC<AvatarProps> = ({ agent, targetX, targetY, onClick
   // Tahap 5: four walk frames of the front-facing sprite in the wearer's
   // department colour. spriteDataUrl is null without a canvas, so the emoji
   // path below keeps the avatar visible instead of leaving an empty frame.
+  // Tahap 10: the room's data color (if the owner recolored it) wins.
+  const deptColor = useOfficeStore((s) =>
+    s.departments.find((d) => d.id === agent.department)?.color
+  );
   const palette = useMemo(
-    () => spritePalette(directionFrames('south').frames[0], shirtOf(agent)),
-    [agent]
+    () => spritePalette(directionFrames('south').frames[0], shirtOf(agent, deptColor)),
+    [agent, deptColor]
   );
   const spriteUrls = useMemo(
     () => directionFrames('south').frames.map((frame) => spriteDataUrl(frame, palette, 2)),

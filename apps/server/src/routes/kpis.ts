@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { KpiSchema, type Department } from '@hermes-office/shared';
 import { KpiRepository } from '../db/repositories/kpis.js';
 import { AuditRepository } from '../db/repositories/audit.js';
+import { departmentExists } from '../db/repositories/departments.js';
 
 export const kpiRoutes: FastifyPluginAsync = async (fastify) => {
   // F-09: Typed decorations via types/fastify.d.ts
@@ -35,6 +36,13 @@ export const kpiRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const kpi = parseResult.data;
+    // Tahap 10: a KPI can only be recorded against a live room.
+    if (!departmentExists(db, kpi.department)) {
+      return reply.code(400).send({
+        error: 'invalid_input',
+        message: `Ruang/departemen '${kpi.department}' tidak dikenal.`,
+      });
+    }
     kpiRepo.create(kpi);
 
     auditRepo.logAction(request.user!.id, 'kpi.create', kpi.id, JSON.stringify({ key: kpi.key }));

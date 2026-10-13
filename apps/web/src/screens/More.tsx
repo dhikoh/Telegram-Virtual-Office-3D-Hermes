@@ -18,6 +18,7 @@ import {
   Shield,
   Sparkles,
   ChevronRight,
+  Building2,
 } from 'lucide-react';
 import { usePowerStore } from '../stores/power';
 import { GRAPHICS_PRESETS, type GraphicsPreset } from '@hermes-office/shared';
@@ -28,6 +29,7 @@ import { RecruitmentWizard } from '../components/recruitment/RecruitmentWizard';
 import { AgentsRegistryModal } from '../components/more/AgentsRegistryModal';
 import { AuditLogModal } from '../components/more/AuditLogModal';
 import { SkillsModal } from '../components/more/SkillsModal';
+import { RoomsManagerModal } from '../components/more/RoomsManagerModal';
 import { AccountCard } from '../components/more/AccountCard';
 import { TelegramNotificationsCard } from '../components/more/TelegramNotificationsCard';
 import { ViewModeCard } from '../components/more/ViewModeCard';
@@ -39,12 +41,13 @@ interface MoreScreenProps {
 export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => {
   const { t, i18n } = useTranslation();
   const { isLowPower, preset, lastFps, setPreset } = usePowerStore();
-  const { agents, setSelectedAgentId } = useOfficeStore();
+  const { agents, departments, setSelectedAgentId } = useOfficeStore();
 
   const [isRecruitmentOpen, setIsRecruitmentOpen] = useState(false);
   const [isRegistryOpen, setIsRegistryOpen] = useState(false);
   const [isAuditOpen, setIsAuditOpen] = useState(false);
   const [isSkillsOpen, setIsSkillsOpen] = useState(false);
+  const [isRoomsOpen, setIsRoomsOpen] = useState(false);
 
   const handleLanguageChange = (lang: 'id' | 'en') => {
     tma.hapticSelection();
@@ -148,6 +151,29 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
                 <span className="font-semibold text-office-text">Kemampuan Gateway</span>
                 <span className="text-[10px] text-office-muted">
                   Skill terpasang & fitur runtime yang dilaporkan Hermes
+                </span>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-office-muted" />
+          </button>
+
+          {/* Tahap 10 — ruang jadi data: rename, warna, urutan, sembunyikan */}
+          <button
+            onClick={() => {
+              tma.hapticImpact('light');
+              setIsRoomsOpen(true);
+            }}
+            type="button"
+            className="glass-panel rounded-xl p-3.5 border border-office-border hover:bg-office-hover flex items-center justify-between text-xs text-office-text transition-all min-h-[48px]"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-office-inset text-office-muted">
+                <Building2 className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col text-left">
+                <span className="font-semibold text-office-text">Kelola Ruang Kantor</span>
+                <span className="text-[10px] text-office-muted">
+                  {departments.length} ruang • Nama, warna, urutan, sembunyikan
                 </span>
               </div>
             </div>
@@ -335,6 +361,12 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
       <SkillsModal
         isOpen={isSkillsOpen}
         onClose={() => setIsSkillsOpen(false)}
+      />
+
+      {/* Tahap 10 — Kelola Ruang Kantor */}
+      <RoomsManagerModal
+        isOpen={isRoomsOpen}
+        onClose={() => setIsRoomsOpen(false)}
       />
     </div>
   );

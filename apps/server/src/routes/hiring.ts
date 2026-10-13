@@ -3,6 +3,7 @@ import { HiringDraftSchema } from '@hermes-office/shared';
 import { HiringRepository } from '../db/repositories/hiring.js';
 import { AgentRepository } from '../db/repositories/agents.js';
 import { AuditRepository } from '../db/repositories/audit.js';
+import { departmentExists } from '../db/repositories/departments.js';
 import { config } from '../config.js';
 
 export const hiringRoutes: FastifyPluginAsync = async (fastify) => {
@@ -49,12 +50,20 @@ export const hiringRoutes: FastifyPluginAsync = async (fastify) => {
 
       const agentData = request.body?.agent;
       if (agentData && agentData.id && agentData.name) {
+        // Tahap 10: the hiring form's room must resolve to a live department.
+        const wantedDept = String(agentData.department || 'command');
+        if (!departmentExists(db, wantedDept)) {
+          return reply.code(400).send({
+            error: 'invalid_input',
+            message: `Ruang/departemen '${wantedDept}' tidak dikenal.`,
+          });
+        }
         // F-08: hermes_base_url comes from server config, not client request
         agentRepo.create({
           id: String(agentData.id),
           name: String(agentData.name),
           role: String(agentData.role || 'Operasional Agent'),
-          department: (agentData.department as 'command' | 'social' | 'sales' | 'finance' | 'marketing' | 'analytics' | 'support' | 'hr') || 'command',
+          department: wantedDept,
           avatar: String(agentData.avatar || '🤖'),
           soul_summary: String(agentData.soul_summary || ''),
           hermes_base_url: config.HERMES_BASE_URL,

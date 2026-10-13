@@ -10,7 +10,26 @@ import {
   HIRING_STATUSES,
 } from './constants.js';
 
-export const DepartmentSchema = z.enum(DEPARTMENTS);
+// Tahap 10: rooms are data now (table `departments`, routes /api/departments).
+// Any non-empty id is accepted here; write routes additionally resolve the id
+// against the departments table so unknown rooms are rejected server-side.
+export const DepartmentSchema = z.string().min(1);
+
+/**
+ * Tahap 10 — an office room row (server-owned). `name` null means "use the
+ * i18n label" (office.rooms.<id>); `hidden` chips disappear from the office
+ * UI while agents may still live there.
+ */
+export const OfficeDepartmentSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().nullable().default(null),
+  color: z.string().default('#94A3B8'),
+  sort_order: z.number().int(),
+  is_system: z.boolean().default(false),
+  hidden: z.boolean().default(false),
+  created_at: z.number().int(),
+});
+export type OfficeDepartment = z.infer<typeof OfficeDepartmentSchema>;
 export const TaskPrioritySchema = z.enum(TASK_PRIORITIES);
 export const TaskStatusSchema = z.enum(TASK_STATUSES);
 export const ApprovalStatusSchema = z.enum(APPROVAL_STATUSES);

@@ -14,7 +14,12 @@ export const DEPARTMENTS = [
   'hr',
 ] as const;
 
-export type Department = (typeof DEPARTMENTS)[number];
+/**
+ * Tahap 10: department ids are data-driven (table `departments`, seeded from
+ * the list above). The id is an open string — write routes resolve it against
+ * the departments table, and ROOM_LAYOUTS lookups fall back for unknown ids.
+ */
+export type Department = string;
 
 export const TASK_PRIORITIES = ['low', 'normal', 'high', 'urgent'] as const;
 export type TaskPriority = (typeof TASK_PRIORITIES)[number];
