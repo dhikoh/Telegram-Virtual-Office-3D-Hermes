@@ -19,7 +19,7 @@
  */
 
 import { AnimationClip, AnimationMixer, Box3, Group, Mesh, MeshStandardMaterial, Vector3 } from 'three';
-import { CHARACTER_MODEL_IDS, CHARACTER_MODEL_URLS, type CharacterModelId } from './glbCharacter';
+import { CHARACTER_MODEL_URLS, type CharacterModelId } from './glbCharacter';
 
 /**
  * Target standing height in world units. The pack's models are 0.67–0.78 units
@@ -33,9 +33,6 @@ export interface CharacterInstance {
   root: Group;
   /** Drives the clips below; call `mixer.update(delta)` every frame. */
   mixer: AnimationMixer;
-  /** `Idle`, `Walk`, `SitDown` — app-facing names; resolve their real
-   *  source names through `resolveClip` (Kenney ships `idle`, `walk`, `sit`). */
-  clipNames: string[];
 }
 
 const cache = new Map<CharacterModelId, Promise<Group | null>>();
@@ -124,22 +121,7 @@ export async function loadCharacterInstance(id: CharacterModelId): Promise<Chara
   return {
     root,
     mixer: new AnimationMixer(root),
-    clipNames: root.animations.map((clip) => clip.name),
   };
-}
-
-/** Fire every character at once; missing ones simply stay absent. */
-export function loadCharacterInstances(
-  ids: readonly CharacterModelId[] = CHARACTER_MODEL_IDS
-): Promise<Partial<Record<CharacterModelId, CharacterInstance>>> {
-  return Promise.all(
-    ids.map(async (id) => [id, await loadCharacterInstance(id)] as const)
-  ).then(
-    (entries) =>
-      Object.fromEntries(
-        entries.filter(([, instance]) => instance !== null)
-      ) as Partial<Record<CharacterModelId, CharacterInstance>>
-  );
 }
 
 /** Test/dev helper: drop the memoised promises so a retry really re-fetches. */

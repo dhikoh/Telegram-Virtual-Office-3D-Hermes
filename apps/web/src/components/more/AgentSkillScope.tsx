@@ -13,6 +13,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ListChecks, Loader2, Save, ShieldAlert } from 'lucide-react';
 import { api, type AgentSkillScope as SkillScopeData } from '../../services/api';
+import { serverMessage } from '../../lib/httpError';
 import { tma } from '../../services/tma';
 
 export interface SkillScopeAgent {
@@ -25,22 +26,6 @@ export interface SkillScopeAgent {
 
 interface AgentSkillScopeProps {
   agents: SkillScopeAgent[];
-}
-
-/** Galat request() membawa bodi JSON server di ujung pesan — ambil pesannya. */
-function serverMessage(err: unknown): string {
-  const raw = err instanceof Error ? err.message : String(err);
-  const start = raw.indexOf('{');
-  if (start >= 0) {
-    try {
-      const parsed = JSON.parse(raw.slice(start)) as { message?: string; error?: string };
-      if (parsed.message) return parsed.message;
-      if (parsed.error) return parsed.error;
-    } catch {
-      // bukan JSON — pakai pesan mentah
-    }
-  }
-  return raw;
 }
 
 export const AgentSkillScope: React.FC<AgentSkillScopeProps> = ({ agents }) => {

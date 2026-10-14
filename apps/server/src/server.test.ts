@@ -42,6 +42,64 @@ describe('Server Core, Routes & Lifecycle (Phase 2 & 5)', () => {
     }
   });
 
+  /**
+   * Rule 9.4 + the Tahap 17 texture regression. The character GLBs embed their
+   * texture as `data:image/png`, and three.js loads it through
+   * ImageBitmapLoader, which uses `fetch()` — a connect-src request. With
+   * `data:` missing from connect-src the loader's catch() swaps in a default
+   * white texture and every agent renders as an untextured grey blob. Nothing
+   * in the suite caught that, so the policy is pinned here.
+   */
+  describe('CSP (Rule 9.4 + texture loading)', () => {
+    const policyOf = async (): Promise<string> => {
+      const res = await app.inject({ method: 'GET', url: '/api/health' });
+      const header = res.headers['content-security-policy'];
+      return Array.isArray(header) ? header.join('; ') : String(header ?? '');
+    };
+
+    it('allows data: in connect-src so GLB textures can load', async () => {
+      const csp = await policyOf();
+      expect(csp).toContain('connect-src');
+      // Parse the directive rather than substring-matching, so 'data:' in some
+      // other directive cannot satisfy this.
+      const connect = csp
+        .split(';')
+        .map((d) => d.trim())
+        .find((d) => d.startsWith('connect-src'));
+      expect(connect).toBeDefined();
+      expect(connect!.split(/\s+/)).toContain('data:');
+    });
+
+    it('stays locked down everywhere else', async () => {
+      const csp = await policyOf();
+      const directive = (name: string) =>
+        csp
+          .split(';')
+          .map((d) => d.trim())
+          .find((d) => d.startsWith(name));
+
+      // No wildcard default, no remote scripts, no remote frames.
+      expect(directive('default-src')).toBe("default-src 'self'");
+      expect(directive('script-src')).not.toContain('*');
+      expect(directive('frame-ancestors')).not.toContain('*');
+      expect(csp).not.toContain("'unsafe-eval'");
+    });
+
+    it('grants no remote origin through connect-src (rule 9.4)', async () => {
+      const csp = await policyOf();
+      const connect = csp
+        .split(';')
+        .map((d) => d.trim())
+        .find((d) => d.startsWith('connect-src'))!;
+      const remote = connect
+        .split(/\s+/)
+        .slice(1)
+        .filter((src) => src.startsWith('http') || src.startsWith('ws'));
+      // Only the analytics beacon may be remote — no asset host, no CDN.
+      expect(remote).toEqual(['https://cloudflareinsights.com']);
+    });
+  });
+
   describe('Database Tables & Maintenance (Section 6)', () => {
     it('executes 14-day pruning routine for run_events', () => {
       const pruned = pruneOldRunEvents(db);

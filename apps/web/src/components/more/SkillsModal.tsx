@@ -11,6 +11,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Sparkles, X, RefreshCw, AlertTriangle, Cpu, Download, Trash2 } from 'lucide-react';
 import { api } from '../../services/api';
+import { serverMessage } from '../../lib/httpError';
 import { tma } from '../../services/tma';
 import { useOfficeStore } from '../../stores/office';
 import { AgentSkillScope } from './AgentSkillScope';
@@ -33,25 +34,6 @@ interface CapabilitiesShape {
   runtime?: { mode?: string; tool_execution?: string };
   features?: Record<string, boolean>;
   endpoints?: Record<string, { method?: string; path?: string }>;
-}
-
-/**
- * Galat dari request() membawa bodi JSON server di ujung pesannya —
- * tampilkan pesan server apa adanya (409/400/404), bukan teks teknis.
- */
-function serverMessage(err: unknown): string {
-  const raw = err instanceof Error ? err.message : String(err);
-  const start = raw.indexOf('{');
-  if (start >= 0) {
-    try {
-      const parsed = JSON.parse(raw.slice(start)) as { message?: string; error?: string };
-      if (parsed.message) return parsed.message;
-      if (parsed.error) return parsed.error;
-    } catch {
-      // bukan JSON — pakai pesan mentah
-    }
-  }
-  return raw;
 }
 
 export const SkillsModal: React.FC<SkillsModalProps> = ({ isOpen, onClose }) => {

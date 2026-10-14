@@ -22,18 +22,29 @@ import { Vector3, Group, BackSide, LoopOnce, LoopRepeat, type AnimationAction } 
 import type { OfficeAgent } from '../../../stores/office';
 import { useOfficeStore } from '../../../stores/office';
 import { usePowerStore } from '../../../stores/power';
-import { agentMotion, ROOM_LAYOUTS, speechLine } from '@hermes-office/shared';
+import { agentMotion, approach, gaitFor, ROOM_LAYOUTS, speechLine, turnTowards, WALK_SPEED } from '@hermes-office/shared';
 import { isCameraDrag } from './cameraState';
-import { characterModelFor, resolveClip } from './glbCharacter';
+import { characterModelFor, CHARACTER_MODEL_LABELS, resolveClip } from './glbCharacter';
 import { loadCharacterInstance, type CharacterInstance } from './loadCharacterModels';
 
 /** Cross-fade between walk/idle/sit so the feet never teleport. */
 const CLIP_FADE = 0.2;
 
+/** How fast an agent can turn, in radians per second. A 180° about-face takes
+ *  ~0.9 s, which reads as a turn rather than a snap. */
+const TURN_RATE = Math.PI * 1.1;
+
 interface Agent3DProps {
   agent: OfficeAgent;
   targetPos: [number, number, number];
   onSelect: (agent: OfficeAgent) => void;
+  /**
+   * `true` draws the full name pill, `false` the compact one — the idle lounge
+   * packs slots 40 px apart and REQ-111 bounds how many labels are drawn wide.
+   * Either way the name is DRAWN: this prop picks a width, never visibility.
+   * Same contract as the 2D `Avatar` (Rule 9.1 parity) — the 3D scene used to
+   * drop the label entirely, which is why idle agents had no name at all.
+   */
   showLabel?: boolean;
 }
 
@@ -86,8 +97,8 @@ export const Agent3D: React.FC<Agent3DProps> = ({
     return () => clearInterval(tick);
   }, [lastSpeech, invalidate]);
 
-  // Update target destination when prop changes
-  destination.current.set(...targetPos);
+  // `destination` is recomputed every frame in `useFrame` (placement + ambient
+  // offset), so there is nothing to seed here.
 
   useEffect(() => {
     // ECO / low-power never fetches a GLB (Rule 9.3) — procedural body only.
@@ -120,6 +131,9 @@ export const Agent3D: React.FC<Agent3DProps> = ({
   }, [character]);
 
   const statusColor = STATUS_COLORS[agent.status] || STATUS_COLORS.idle;
+  // The label under the name names the model the agent actually wears, from the
+  // same table the picker draws (Rule 9.1 parity with the 2D sprite).
+  const characterLabel = characterId ? CHARACTER_MODEL_LABELS[characterId] : null;
   // Tahap 4 polish: wear your department (DESIGN_DIRECTION 3.1 "pakaian
   // berwarna per departemen") instead of eight identical grey pawns.
   const shirtColor =
@@ -131,22 +145,44 @@ export const Agent3D: React.FC<Agent3DProps> = ({
   useFrame((state, delta) => {
     if (!groupRef.current) return;
 
-    const dist = currentPos.current.distanceTo(destination.current);
-    if (dist > 0.01) {
-      // Interpolate towards target position smoothly
-      currentPos.current.lerp(destination.current, Math.min(1, delta * 6));
+    // What the agent is actually doing — stroll, type, pace, bounce or glitch.
+    // Same module the 2D map uses (Rule 9.1 parity).
+    const motion = agentMotion(agent.id, agent.status, state.clock.elapsedTime, isLowPower);
+
+    // Tahap 17b — the destination is the placement PLUS the ambient offset, and
+    // a patrolling agent's offset moves at a constant `WALK_SPEED`. Tracking a
+    // target that moves at walking pace is what makes the body move at walking
+    // pace: the old `lerp(target, delta * 6)` eased in over ~1 s and slid the
+    // feet, because the walk clip can only stride at one honest speed.
+    destination.current.set(
+      targetPos[0] + motion.offsetX,
+      targetPos[1],
+      targetPos[2] + motion.offsetZ
+    );
+
+    const dx = destination.current.x - currentPos.current.x;
+    const dz = destination.current.z - currentPos.current.z;
+    const gap = Math.hypot(dx, dz);
+    // Close the gap by at most one frame of honest walking — never overshoot.
+    const step = approach(0, gap, WALK_SPEED * delta);
+    if (gap > 1e-6) {
+      currentPos.current.x += (dx / gap) * step;
+      currentPos.current.z += (dz / gap) * step;
       // frameloop is "demand": without this the walk would never repaint.
       invalidate();
     }
 
-    // Tahap 15 — animate the CC0 character. `dist` is measured before the
-    // lerp, so > 0.01 still means "walking to its destination". The procedural
-    // body is untouched: this block only runs when a model actually loaded.
+    // The speed the feet actually travelled this frame, in units/s.
+    const speed = delta > 0 ? step / delta : 0;
+    const gait = gaitFor(speed);
+
+    // Tahap 15 — animate the CC0 character. `gap` is measured before the step,
+    // so the procedural body is untouched: this block only runs when a model
+    // actually loaded.
     if (character) {
-      const moving = dist > 0.01;
       const sitting =
         agent.status === 'waiting_approval' && resolveClip(character.root.animations, 'SitDown');
-      const wanted = moving ? 'Walk' : sitting ? 'SitDown' : 'Idle';
+      const wanted = gait.moving ? 'Walk' : sitting ? 'SitDown' : 'Idle';
 
       if (activeClip.current !== wanted) {
         const clip =
@@ -171,6 +207,14 @@ export const Agent3D: React.FC<Agent3DProps> = ({
         activeClip.current = wanted;
       }
 
+      // Match the clip's cadence to the ground actually covered: the `walk`
+      // clip strides at `WALK_SPEED`, so anything slower or faster is paid for
+      // here instead of by sliding the feet (measured off the GLB: leg joint
+      // 0.176 units above the sole, ±60° swing, 0.667 s cycle).
+      if (activeAction.current && wanted === 'Walk') {
+        activeAction.current.timeScale = gait.timeScale;
+      }
+
       character.mixer.update(delta);
       // The canvas is frameloop="demand": an animated clip must repaint it.
       if (!isLowPower) invalidate();
@@ -179,15 +223,21 @@ export const Agent3D: React.FC<Agent3DProps> = ({
       activeAction.current = null;
     }
 
-    // Tahap 3.5: what the agent is actually doing — stroll, type, pace,
-    // bounce or glitch. Same module the 2D map uses (Rule 9.1 parity).
-    const motion = agentMotion(agent.id, agent.status, state.clock.elapsedTime, isLowPower);
     groupRef.current.position.set(
-      currentPos.current.x + motion.offsetX,
+      currentPos.current.x,
       currentPos.current.y + motion.bob,
-      currentPos.current.z + motion.offsetZ
+      currentPos.current.z
     );
-    groupRef.current.rotation.y = motion.rotation;
+    // Face the way it is going while walking; face the ambient direction while
+    // standing. The model faces +Z (measured off the GLB geometry), so a
+    // direction (dx, dz) is `atan2(dx, dz)`. Turning is rate-limited so a
+    // 180° turnaround reads as a turn, not a snap.
+    const facing = gait.moving ? Math.atan2(dx, dz) : motion.rotation;
+    groupRef.current.rotation.y = turnTowards(
+      groupRef.current.rotation.y,
+      facing,
+      TURN_RATE * delta
+    );
     // Ambient animation must repaint the demand loop, unless ECO froze it.
     if (!isLowPower) invalidate();
 
@@ -261,38 +311,57 @@ export const Agent3D: React.FC<Agent3DProps> = ({
         </group>
       )}
 
-      {/* Floating HTML Label (capped to 20 visible labels via distance factor) */}
-      {showLabel && (
-        <Html
-          position={[0, 1.3, 0]}
-          center
-          distanceFactor={14}
-          zIndexRange={[100, 0]}
-        >
-          <div className="flex flex-col items-center pointer-events-none select-none">
-            {/* Tahap 17 — the agent's last real line from the chat sheet, same
-                source and same rules as the 2D sprite (Rule 9.1 parity). */}
-            {bubble && (
-              <div
-                data-testid="agent3d-bubble"
-                title={bubble}
-                className="mb-0.5 max-w-[92px] truncate rounded-[3px] border border-office-border bg-white px-1 py-px text-center font-mono text-[7px] leading-tight text-black shadow-nu-raised"
-              >
-                {bubble}
-              </div>
-            )}
-            <div className="bg-office-surface/90 backdrop-blur-md px-2 py-0.5 rounded-full border border-office-border shadow-nu-raised flex items-center space-x-1 whitespace-nowrap">
-              <span className="text-xs">{agent.avatar || '🤖'}</span>
-              <span className="text-[11px] font-semibold text-office-text">{agent.name}</span>
+      {/* Floating HTML Label — the name is NEVER hidden: `showLabel` picks the
+          wide pill or the compact 38 px one (the idle lounge packs slots 40 px
+          apart, REQ-111 caps how many are wide). Same rule as the 2D sprite;
+          a nameless agent was the Tahap 17 regression this restores. */}
+      <Html
+        position={[0, 1.3, 0]}
+        center
+        distanceFactor={14}
+        zIndexRange={[100, 0]}
+      >
+        <div className="flex flex-col items-center pointer-events-none select-none">
+          {/* Tahap 17 — the agent's last real line from the chat sheet, same
+              source and same rules as the 2D sprite (Rule 9.1 parity). */}
+          {bubble && (
+            <div
+              data-testid="agent3d-bubble"
+              title={bubble}
+              className={`mb-0.5 truncate rounded-[3px] border border-office-border bg-white px-1 py-px text-center font-mono text-[7px] leading-tight text-black shadow-nu-raised ${
+                showLabel ? 'max-w-[92px]' : 'max-w-[54px]'
+              }`}
+            >
+              {bubble}
             </div>
-            {agent.status === 'working' && agent.currentTool && (
-              <span className="text-[9px] text-office-accent-ink bg-office-hover px-1.5 rounded border border-office-border mt-0.5">
-                ⚡ {agent.currentTool}
-              </span>
-            )}
+          )}
+          <div
+            data-testid="agent3d-name"
+            title={agent.name}
+            className={`bg-office-surface/90 backdrop-blur-md py-0.5 rounded-full border border-office-border shadow-nu-raised flex items-center space-x-1 ${
+              showLabel ? 'px-2 max-w-[92px]' : 'px-1.5 max-w-[54px]'
+            }`}
+          >
+            <span className="text-xs">{agent.avatar || '🤖'}</span>
+            <span className="text-[11px] font-semibold text-office-text truncate">
+              {agent.name}
+            </span>
           </div>
-        </Html>
-      )}
+          {showLabel && characterLabel && (
+            <span
+              data-testid="agent3d-character"
+              className="mt-0.5 text-[9px] font-mono text-office-muted leading-none"
+            >
+              {characterLabel}
+            </span>
+          )}
+          {agent.status === 'working' && agent.currentTool && (
+            <span className="text-[9px] text-office-accent-ink bg-office-hover px-1.5 rounded border border-office-border mt-0.5">
+              ⚡ {agent.currentTool}
+            </span>
+          )}
+        </div>
+      </Html>
     </group>
   );
 };

@@ -36,9 +36,11 @@ export const Scene: React.FC<SceneProps> = ({ onSelectAgent, onOpenRecruitment }
     return {
       agent,
       targetPos: placement.pos3d,
-      // Tahap 17 — the name is never hidden: the idle lounge packs agents into
-      // a 2x4 grid (see LOUNGE_SLOTS), so idle pairs get the compact 38 px pill
-      // instead of the full one. Cap 20 (REQ-111).
+      // Tahap 17 — the name is never hidden, exactly as in the 2D map: the idle
+      // lounge packs agents into a 2x4 grid (see LOUNGE_SLOTS), so idle pairs
+      // and everyone past the 20-label budget get the compact 38 px pill
+      // instead of the full one. `false` means "narrow", never "invisible"
+      // (REQ-111 cap, see Avatar.tsx for the 2D half of the same rule).
       showLabel: idx < 20 && (agent.status !== 'idle' || agent.id === selectedAgentId),
     };
   });

@@ -275,8 +275,15 @@ describe('Agent3D: model menggantikan badan prosedural, fallback tetap utuh', ()
   });
 
   it('AnimationMixer memilih clip: Walk saat bergerak, Idle berdiri, SitDown menunggu', () => {
-    expect(agent3d).toContain("const wanted = moving ? 'Walk' : sitting ? 'SitDown' : 'Idle';");
-    expect(agent3d).toContain('dist > 0.01');
+    // Movement is decided by the gait rule (shared with the 2D map), not by a
+    // raw distance test: a body creeping at 0.05 units/s must not be "walking".
+    expect(agent3d).toContain("const wanted = gait.moving ? 'Walk' : sitting ? 'SitDown' : 'Idle';");
+    expect(agent3d).toContain('const gait = gaitFor(speed);');
+    // The cadence is matched to the ground actually covered, so feet never skate.
+    expect(agent3d).toContain('activeAction.current.timeScale = gait.timeScale;');
+    // The old eased lerp is what made the walk look unnatural.
+    expect(agent3d).not.toContain('currentPos.current.lerp(');
+    expect(agent3d).toContain('const step = approach(0, gap, WALK_SPEED * delta);');
     expect(agent3d).toContain("agent.status === 'waiting_approval'");
     expect(agent3d).toContain('character.mixer.update(delta)');
     expect(agent3d).toContain('loadCharacterInstance');

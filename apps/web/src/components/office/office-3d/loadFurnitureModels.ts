@@ -25,7 +25,7 @@ const cache = new Map<FurnitureModelId, Promise<Group | null>>();
  * footprint centre sits on [0, 0, 0] and its base on y = 0 — which is what the
  * slot table in GLTFurniture assumes.
  */
-function prepareForScene(scene: Group): Group {
+function preparePropForScene(scene: Group): Group {
   scene.traverse((child) => {
     if (!(child instanceof Mesh)) return;
     child.castShadow = true;
@@ -60,7 +60,7 @@ export function loadFurnitureModel(id: FurnitureModelId): Promise<Group | null> 
       const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
       const loader = new GLTFLoader();
       const gltf = await loader.loadAsync(FURNITURE_URLS[id]);
-      return prepareForScene(gltf.scene);
+      return preparePropForScene(gltf.scene);
     } catch {
       // Fallback utuh: the procedural primitives already describe this object.
       return null;

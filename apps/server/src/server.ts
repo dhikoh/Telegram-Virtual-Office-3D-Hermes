@@ -56,7 +56,18 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", 'https://telegram.org', 'https://static.cloudflareinsights.com'],
         styleSrc: ["'self'", "'unsafe-inline'"],
-        connectSrc: ["'self'", 'https://cloudflareinsights.com'],
+        // `data:` is load-bearing, not a relaxation for convenience. The CC0
+        // character GLBs embed their texture as a `data:image/png` URI, and
+        // three.js loads GLB textures through ImageBitmapLoader, which uses
+        // `fetch()` — so the texture is a connect-src request, not an img-src
+        // one. Without it the loader's catch() swaps in a default white
+        // texture and every agent renders as an untextured grey blob, while
+        // geometry, skinning and all 32 clips keep working (verified: a GLB
+        // through this policy reports NO TEXTURE; with `data:` it reports
+        // 512x512 with 115384 saturated pixels). `data:` grants no network
+        // access, so the "zero remote 3D requests" rule (9.4) still holds —
+        // https://example.com stays blocked either way.
+        connectSrc: ["'self'", 'data:', 'https://cloudflareinsights.com'],
         // Telegram Web membuka Mini App di dalam iframe — izinkan hanya
         // origin Telegram (bukan 'self' semata), tanpa membuka frame ke pihak lain.
         frameAncestors: ["'self'", 'https://web.telegram.org'],

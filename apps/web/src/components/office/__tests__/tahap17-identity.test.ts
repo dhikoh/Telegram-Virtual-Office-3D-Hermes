@@ -47,6 +47,28 @@ describe('identitas: satu karakter, satu label', () => {
     expect(avatar).not.toMatch(/\$\{showLabel \? '' : 'invisible'\}/);
   });
 
+  it('sprite 3D memakai aturan label yang sama — nama tidak pernah hilang', () => {
+    // Regresi Tahap 17: <Html> dibungkus `{showLabel && …}`, jadi setiap agen
+    // idle tanpa seleksi tampil tanpa nama sama sekali. Kontraknya sama dengan
+    // sprite 2D: prop hanya memilih lebar (92 px vs 54 px), bukan visibilitas.
+    expect(agent3d).toContain('data-testid="agent3d-name"');
+    expect(agent3d).not.toMatch(/\{showLabel && \(\s*<Html/);
+    expect(agent3d).toMatch(/showLabel \? 'px-2 max-w-\[92px\]' : 'px-1\.5 max-w-\[54px\]'/);
+    // Label model ikut menyusut, bukan menghilang.
+    expect(agent3d).toContain('data-testid="agent3d-character"');
+    expect(agent3d).toContain('CHARACTER_MODEL_LABELS[characterId]');
+  });
+
+  it('kedua sprite menamai model yang sama, dari tabel yang sama', () => {
+    // Satu sumber label: manifest 3D. Avatar 2D mengimpornya, tidak menyalin.
+    expect(manifest).toMatch(/CHARACTER_MODEL_LABELS[^=]*=\s*\{/);
+    expect(avatar).toContain('CHARACTER_MODEL_LABELS');
+    expect(agent3d).toContain('CHARACTER_MODEL_LABELS');
+    // Tidak ada komponen yang menulis tabelnya sendiri.
+    expect(avatar).not.toMatch(/const CHARACTER_MODEL_LABELS\s*=/);
+    expect(agent3d).not.toMatch(/const CHARACTER_MODEL_LABELS\s*=/);
+  });
+
   it('label model 3D di bawah nama, memakai daftar label bersama', () => {
     expect(avatar).toContain('data-testid="avatar-character"');
     expect(avatar).toContain('CHARACTER_MODEL_LABELS');
