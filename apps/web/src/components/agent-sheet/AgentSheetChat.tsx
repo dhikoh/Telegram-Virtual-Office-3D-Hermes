@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, History, RefreshCw, Plus, Archive, ArrowLeft, Pencil, Paperclip } from 'lucide-react';
 import type { OfficeAgent } from '../../stores/office';
+import { useOfficeStore } from '../../stores/office';
 import { api } from '../../services/api';
 import { tma } from '../../services/tma';
 import { MarkdownView } from '../common/MarkdownView';
@@ -49,6 +50,7 @@ function formatSessionDate(ts: number): string {
 }
 
 export const AgentSheetChat: React.FC<AgentSheetChatProps> = ({ agent }) => {
+  const recordSpeech = useOfficeStore((s) => s.recordSpeech);
   // Tahap 8: no invented welcome message — the transcript is exactly what the
   // gateway session holds, and an empty history says so instead of pretending.
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -182,16 +184,22 @@ export const AgentSheetChat: React.FC<AgentSheetChatProps> = ({ agent }) => {
       content: m.id === userMsg.id ? wireContent : m.content,
     }));
 
+    // Tahap 17 — assemble the reply here so the office floor can show its last
+    // line as a bubble. `recordSpeech` normalises and clips it.
+    let assembled = '';
+
     await api.streamChat(
       agent.id,
       historyPayload,
       (delta) => {
+        assembled += delta;
         setMessages((prev) =>
           prev.map((m) => (m.id === assistantMsgId ? { ...m, content: m.content + delta } : m))
         );
       },
       () => {
         setIsStreaming(false);
+        if (assembled.trim()) recordSpeech(agent.id, assembled);
         tma.hapticNotification('success');
       },
       (err) => {

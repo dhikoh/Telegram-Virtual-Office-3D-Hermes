@@ -13,7 +13,9 @@ import type {
   Report,
   AgentNormalizedStatus,
   OfficeDepartment,
+  SpeechEntry,
 } from '@hermes-office/shared';
+import { toSpeechEntry } from '@hermes-office/shared';
 import { api } from '../services/api';
 import { tma } from '../services/tma';
 
@@ -38,6 +40,13 @@ interface OfficeState {
   reports: Report[];
   /** Tahap 10 — ruang kantor sebagai data (chip order, nama, warna, sembunyi). */
   departments: OfficeDepartment[];
+  /**
+   * Tahap 17 — the last thing each agent said, keyed by agent id. The office
+   * floor shows it as a bubble (both 2D and 3D read this one map, so the two
+   * views can never disagree). Entries expire on their own through
+   * `speechLine`/`isSpeechFresh` — nothing has to sweep them.
+   */
+  speech: Record<string, SpeechEntry>;
   streamStatus: 'connecting' | 'connected' | 'disconnected' | 'error';
   ticker: TickerItem[];
   selectedAgentId: string | null;
@@ -58,6 +67,12 @@ interface OfficeState {
   deleteAgent: (id: string) => Promise<void>;
   /** Tahap 10 — muat ulang daftar ruang (dipanggil setelah kelola ruang). */
   reloadDepartments: () => Promise<void>;
+  /**
+   * Tahap 17 — catat kalimat terakhir seorang agen untuk bubble di kantor.
+   * Dipanggil dari chat sheet saat balasan gateway selesai; teks dinormalkan
+   * di sini supaya tidak ada komponen yang menyimpan versi sendiri.
+   */
+  recordSpeech: (agentId: string, text: string) => void;
 }
 
 export { DEMO_AGENTS, DEMO_KPIS } from './demo-data.js';
@@ -70,6 +85,7 @@ export const useOfficeStore = create<OfficeState>((set, get) => ({
   kpis: [],
   reports: [],
   departments: [],
+  speech: {},
   streamStatus: 'connecting',
   ticker: [
     {
@@ -297,5 +313,13 @@ export const useOfficeStore = create<OfficeState>((set, get) => ({
     } catch {
       // Daftar lama tetap dipakai; kegagalan muat tidak menghancurkan UI.
     }
+  },
+
+  recordSpeech: (agentId, text) => {
+    const entry = toSpeechEntry(text, Date.now());
+    // Nothing to say (empty or syntax-only reply) leaves the previous line
+    // alone rather than blanking the bubble.
+    if (!entry) return;
+    set((state) => ({ speech: { ...state.speech, [agentId]: entry } }));
   },
 }));

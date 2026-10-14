@@ -9,3 +9,6 @@ export * from './ambient.js';
 export * from './sprites.js';
 export * from './perf.js';
 export * from './schema-spec.js';
+export * from './characters.js';
+export * from './speech.js';
+export * from './roomVariants.js';

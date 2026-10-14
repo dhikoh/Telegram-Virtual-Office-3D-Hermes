@@ -5,7 +5,8 @@
  *    PATCH hanya menerima whitelist field, is_system tidak bisa dimatikan;
  *  - "Sesi baru" menandai sesi lama terarsip di agent_sessions, riwayat arsip
  *    bisa dibaca kembali, sesi agen lain tidak pernah bisa dibaca lintas agen;
- *  - avatar_style tervalidasi (warna hex + aksesori whitelist) sebelum tersimpan.
+ *  - avatar_style tervalidasi (warna hex + id karakter 3D dari daftar bersama)
+ *    sebelum tersimpan; key Tahap 9 `accessory` dibuang, bukan di-round-trip.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
@@ -69,7 +70,7 @@ describe('Tahap 9 — orchestrator, sessions, avatar style', () => {
       is_system: boolean;
       name: string;
       active: number;
-      avatar_style: { shirt?: string; accessory?: string } | null;
+      avatar_style: { shirt?: string; character?: string; accessory?: string } | null;
     }[];
   };
 
@@ -128,24 +129,37 @@ describe('Tahap 9 — orchestrator, sessions, avatar style', () => {
     expect(body.session_id ?? null).toBeNull();
   });
 
-  it('validates avatar_style: hex colours and whitelisted accessories only', async () => {
+  it('validates avatar_style: hex colours and committed character ids only', async () => {
     const good = await app.inject({
+      method: 'PATCH',
+      url: '/api/agents/agent_orchestrator',
+      headers: authHeader,
+      body: JSON.stringify({ avatar_style: { shirt: '#38BDF8', character: 'female-c' } }),
+    });
+    expect(good.statusCode).toBe(200);
+    expect((JSON.parse(good.body) as { avatar_style: unknown }).avatar_style).toEqual({
+      shirt: '#38BDF8',
+      character: 'female-c',
+    });
+
+    // A stale Tahap 9 `accessory` key is dropped, not stored and not echoed.
+    const stale = await app.inject({
       method: 'PATCH',
       url: '/api/agents/agent_orchestrator',
       headers: authHeader,
       body: JSON.stringify({ avatar_style: { shirt: '#38BDF8', accessory: 'cap' } }),
     });
-    expect(good.statusCode).toBe(200);
-    expect((JSON.parse(good.body) as { avatar_style: unknown }).avatar_style).toEqual({
+    expect(stale.statusCode).toBe(200);
+    expect((JSON.parse(stale.body) as { avatar_style: unknown }).avatar_style).toEqual({
       shirt: '#38BDF8',
-      accessory: 'cap',
     });
 
+    // An unknown model id must not reach SQL either.
     const bad = await app.inject({
       method: 'PATCH',
       url: '/api/agents/agent_orchestrator',
       headers: authHeader,
-      body: JSON.stringify({ avatar_style: { shirt: 'javascript:alert(1)', accessory: 'wings' } }),
+      body: JSON.stringify({ avatar_style: { shirt: 'javascript:alert(1)', character: 'knight' } }),
     });
     expect(bad.statusCode).toBe(200);
     expect((JSON.parse(bad.body) as { avatar_style: unknown }).avatar_style).toBeNull();

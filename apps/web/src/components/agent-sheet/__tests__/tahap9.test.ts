@@ -61,10 +61,14 @@ describe('avatar life', () => {
     expect(avatar).toContain("'butuh persetujuanmu'");
   });
 
-  it('lets the owner override the shirt colour and overlay an accessory', () => {
+  it('lets the owner override the shirt colour and pick the 3D character', () => {
     expect(avatar).toContain('agent.avatar_style?.shirt');
-    expect(avatar).toContain('ACCESSORY_GLYPHS');
-    expect(avatar).toContain('data-testid="avatar-accessory"');
+    // Tahap 17 — the accessory glyph was removed: the 3D character never had
+    // one, so it was a second identity that lied. The name + model label took
+    // its place (see tahap17-identity.test.ts for the full contract).
+    expect(avatar).not.toContain('ACCESSORY_GLYPHS');
+    expect(avatar).toContain('data-testid="avatar-name"');
+    expect(avatar).toContain('data-testid="avatar-character"');
   });
 });
 
@@ -99,10 +103,15 @@ describe('chat sessions & corrections', () => {
 });
 
 describe('avatar editor', () => {
-  it('exposes colour swatches and accessories, saved through the API whitelist', () => {
+  it('exposes colour swatches and the 3D character picker, saved through the API whitelist', () => {
     expect(profile).toContain('data-testid="avatar-editor"');
     expect(profile).toContain('SHIRT_SWATCHES');
-    expect(profile).toContain('ACCESSORY_OPTIONS');
+    // Tahap 17 — the accessory row was replaced by the character picker: the
+    // 3D character IS the identity, so one picker, validated against
+    // CHARACTER_MODEL_IDS on the server (see tahap17-identity.test.ts).
+    expect(profile).not.toContain('ACCESSORY_OPTIONS');
+    expect(profile).toContain('data-testid="character-picker"');
+    expect(profile).toContain('CHARACTER_MODEL_IDS.map');
     expect(profile).toContain('Simpan Avatar');
   });
 });

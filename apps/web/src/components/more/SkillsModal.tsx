@@ -70,6 +70,9 @@ export const SkillsModal: React.FC<SkillsModalProps> = ({ isOpen, onClose }) => 
   const [confirmUninstall, setConfirmUninstall] = useState<string | null>(null);
   const [busySkill, setBusySkill] = useState<string | null>(null);
   const [uninstallError, setUninstallError] = useState<string | null>(null);
+  // Tahap 17 — pencarian daftar terpasang. Murni tampilan: tidak menyentuh
+  // permintaan instal/hapus, dan tidak menyimpan apa pun ke gateway.
+  const [search, setSearch] = useState('');
 
   const load = useCallback(async () => {
     setState('loading');
@@ -141,6 +144,17 @@ export const SkillsModal: React.FC<SkillsModalProps> = ({ isOpen, onClose }) => 
   const features = Object.entries(capabilities?.features || {}).filter(([, on]) => on === true);
   const endpoints = Object.values(capabilities?.endpoints || {});
 
+  // Tahap 17 — saring nama & deskripsi apa adanya dari gateway (case-insensitive).
+  const query = search.trim();
+  const needle = query.toLowerCase();
+  const shown = needle
+    ? skills.filter(
+        (s) =>
+          s.name.toLowerCase().includes(needle) ||
+          (s.description || '').toLowerCase().includes(needle)
+      )
+    : skills;
+
   return (
     <div className="fixed inset-0 z-[100] isolate flex items-center justify-center bg-office-inset backdrop-blur-md p-4 animate-in fade-in duration-200">
       <div className="bg-office-elevated border border-office-accent/40 rounded-2xl w-full max-w-md p-5 shadow-2xl flex flex-col gap-4 max-h-[85vh] overflow-hidden">
@@ -157,6 +171,7 @@ export const SkillsModal: React.FC<SkillsModalProps> = ({ isOpen, onClose }) => 
                 void load();
               }}
               aria-label="Muat ulang kemampuan gateway"
+              title="Muat ulang kemampuan gateway"
               className="text-office-muted hover:text-office-text p-2 min-h-[36px]"
             >
               <RefreshCw className={`w-4 h-4 ${state === 'loading' ? 'animate-spin' : ''}`} />
@@ -165,6 +180,7 @@ export const SkillsModal: React.FC<SkillsModalProps> = ({ isOpen, onClose }) => 
               type="button"
               onClick={onClose}
               aria-label="Tutup"
+              title="Tutup"
               className="text-office-muted hover:text-office-text p-2 min-h-[36px]"
             >
               <X className="w-4 h-4" />
@@ -172,7 +188,8 @@ export const SkillsModal: React.FC<SkillsModalProps> = ({ isOpen, onClose }) => 
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 overflow-y-auto pr-1">
+        {/* pr-2.5: kolom gulir tidak boleh menutupi kartu (tombol hapus / badge NONAKTIF). */}
+        <div className="flex flex-col gap-3 overflow-y-auto pr-2.5">
           {gateway && (
             <span className="text-[10px] font-mono text-office-muted break-all">
               Gateway: {gateway}
@@ -205,73 +222,103 @@ export const SkillsModal: React.FC<SkillsModalProps> = ({ isOpen, onClose }) => 
           {state === 'ready' && available && skills.length > 0 && (
             <div className="flex flex-col gap-2">
               <span className="text-[11px] font-bold text-office-muted uppercase tracking-wider">
-                Skill terpasang ({skills.length})
+                Skill terpasang ({shown.length})
               </span>
-              {skills.map((s) => (
-                <div
-                  key={s.name}
-                  className="p-3 rounded-xl bg-office-inset border border-office-border flex flex-col gap-1"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-office-text">{s.name}</span>
-                    {s.enabled === false && (
-                      <span className="text-[9px] font-mono text-office-muted">NONAKTIF</span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setConfirmUninstall(confirmUninstall === s.name ? null : s.name);
-                        setUninstallError(null);
-                      }}
-                      aria-label={`Minta hapus ${s.name}`}
-                      data-testid={`skill-remove-${s.name}`}
-                      className="ml-auto px-2 py-1 rounded-lg bg-office-hover text-office-danger hover:text-office-danger text-[10px] font-bold min-h-[32px] flex items-center gap-1"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                      Minta Hapus
-                    </button>
-                  </div>
-                  {s.description && (
-                    <span className="text-[10px] text-office-muted">{s.description}</span>
-                  )}
-                  {confirmUninstall === s.name && (
-                    <div className="mt-1 p-3 rounded-xl bg-office-elevated border border-office-danger/50 flex flex-col gap-2">
-                      <span className="text-[11px] text-office-text">
-                        Hapus skill <strong>{s.name}</strong> dari gateway?
-                      </span>
-                      <span className="text-[10px] text-office-muted">
-                        Penghapusan dijalankan orkestrator lewat tugas; progres tampil di layar
-                        Tugas. Skill lain tidak disentuh.
-                      </span>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => void uninstall(s.name)}
-                          disabled={busySkill === s.name}
-                          className="px-3 py-2 rounded-lg bg-office-danger text-office-on-accent text-[11px] font-bold min-h-[36px] disabled:opacity-50"
-                        >
-                          {busySkill === s.name ? 'Mengirim...' : 'Ya, hapus'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setConfirmUninstall(null)}
-                          className="px-3 py-2 rounded-lg bg-office-hover border border-office-border text-[11px] text-office-muted min-h-[36px]"
-                        >
-                          Batal
-                        </button>
-                      </div>
-                      {uninstallError && (
-                        <span
-                          className="text-[10px] font-mono text-office-danger break-all"
-                          data-testid="skill-uninstall-error"
-                        >
-                          {uninstallError}
-                        </span>
+
+              {/* Tahap 17 — saring daftar terpasang; murni tampilan. */}
+              <label className="sr-only" htmlFor="skill-search">
+                Cari skill
+              </label>
+              <input
+                id="skill-search"
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="cari nama skill…"
+                aria-label="Cari skill"
+                data-testid="skill-search"
+                className="bg-office-inset border border-office-border rounded-lg px-3 py-2 text-xs text-office-text min-h-[44px]"
+              />
+
+              {query !== '' && (
+                <span className="text-[10px] text-office-muted" data-testid="skill-count">
+                  Menampilkan {shown.length} dari {skills.length} skill
+                </span>
+              )}
+
+              {shown.length === 0 && (
+                <span className="text-[11px] text-office-muted" data-testid="skill-empty-filter">
+                  {`Tidak ada skill yang cocok dengan "${query}".`}
+                </span>
+              )}
+
+              <div className="flex flex-col gap-2" data-testid="skill-list">
+                {shown.map((s) => (
+                  <div
+                    key={s.name}
+                    className="p-3 rounded-xl bg-office-inset border border-office-border flex flex-col gap-1"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-office-text">{s.name}</span>
+                      {s.enabled === false && (
+                        <span className="text-[9px] font-mono text-office-muted">NONAKTIF</span>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConfirmUninstall(confirmUninstall === s.name ? null : s.name);
+                          setUninstallError(null);
+                        }}
+                        aria-label={`Minta hapus ${s.name}`}
+                        data-testid={`skill-remove-${s.name}`}
+                        className="ml-auto px-2 py-1 rounded-lg bg-office-hover text-office-danger hover:text-office-danger text-[10px] font-bold min-h-[32px] flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        Minta Hapus
+                      </button>
                     </div>
-                  )}
-                </div>
-              ))}
+                    {s.description && (
+                      <span className="text-[10px] text-office-muted">{s.description}</span>
+                    )}
+                    {confirmUninstall === s.name && (
+                      <div className="mt-1 p-3 rounded-xl bg-office-elevated border border-office-danger/50 flex flex-col gap-2">
+                        <span className="text-[11px] text-office-text">
+                          Hapus skill <strong>{s.name}</strong> dari gateway?
+                        </span>
+                        <span className="text-[10px] text-office-muted">
+                          Penghapusan dijalankan orkestrator lewat tugas; progres tampil di layar
+                          Tugas. Skill lain tidak disentuh.
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => void uninstall(s.name)}
+                            disabled={busySkill === s.name}
+                            className="px-3 py-2 rounded-lg bg-office-danger text-office-on-accent text-[11px] font-bold min-h-[36px] disabled:opacity-50"
+                          >
+                            {busySkill === s.name ? 'Mengirim...' : 'Ya, hapus'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmUninstall(null)}
+                            className="px-3 py-2 rounded-lg bg-office-hover border border-office-border text-[11px] text-office-muted min-h-[36px]"
+                          >
+                            Batal
+                          </button>
+                        </div>
+                        {uninstallError && (
+                          <span
+                            className="text-[10px] font-mono text-office-danger break-all"
+                            data-testid="skill-uninstall-error"
+                          >
+                            {uninstallError}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

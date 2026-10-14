@@ -6,11 +6,13 @@
  * into it), cast shadows, and an explicit invalidate() while walking so the
  * demand-based loop actually repaints the movement.
  *
- * Tahap 15: when the department has a CC0 character GLB, that model renders
- * INSTEAD of the procedural body — status ring, label, department colour and
- * every movement rule above are untouched. The robot body stays the whole
- * avatar whenever the model is still loading, failed to load, has no clip, or
- * ECO/low-power skipped the fetch.
+ * Tahap 15: a department could render a CC0 character GLB INSTEAD of the
+ * procedural body. Tahap 17: the model is the agent's identity —
+ * `avatar_style.character` when picked, the department default otherwise.
+ * Status ring, label, department colour and every movement rule above are
+ * untouched. The robot body stays the whole avatar whenever the model is
+ * still loading, failed to load, has no clip, or ECO/low-power skipped the
+ * fetch.
  */
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -18,10 +20,11 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { Vector3, Group, BackSide, LoopOnce, LoopRepeat, type AnimationAction } from 'three';
 import type { OfficeAgent } from '../../../stores/office';
+import { useOfficeStore } from '../../../stores/office';
 import { usePowerStore } from '../../../stores/power';
-import { agentMotion, ROOM_LAYOUTS } from '@hermes-office/shared';
+import { agentMotion, ROOM_LAYOUTS, speechLine } from '@hermes-office/shared';
 import { isCameraDrag } from './cameraState';
-import { characterIdFor } from './glbCharacter';
+import { characterModelFor, resolveClip } from './glbCharacter';
 import { loadCharacterInstance, type CharacterInstance } from './loadCharacterModels';
 
 /** Cross-fade between walk/idle/sit so the feet never teleport. */
@@ -58,11 +61,30 @@ export const Agent3D: React.FC<Agent3DProps> = ({
   const currentPos = useRef(new Vector3(...targetPos));
   const destination = useRef(new Vector3(...targetPos));
 
-  // Tahap 15 — the CC0 character for this agent's department, if any.
-  const characterId = characterIdFor(agent.department);
+  // Tahap 17 — this agent's CC0 character: its own pick, else the
+  // department default, else `null` (procedural robot).
+  const characterId = characterModelFor(agent.department, agent.avatar_style);
   const [character, setCharacter] = useState<CharacterInstance | null>(null);
   const activeClip = useRef<string | null>(null);
   const activeAction = useRef<AnimationAction | null>(null);
+
+  // Tahap 17 — the agent's last real chat line, read from the same office
+  // store the 2D sprite uses (Rule 9.1 parity: one source, one trimming rule).
+  // The canvas runs frameloop="demand", so the slow tick below both re-checks
+  // the TTL and asks for the repaint that shows or hides the bubble.
+  const lastSpeech = useOfficeStore((s) => s.speech[agent.id]);
+  const [now, setNow] = useState(() => Date.now());
+  const bubble = speechLine(lastSpeech, now);
+
+  useEffect(() => {
+    if (!lastSpeech) return undefined;
+    setNow(Date.now());
+    const tick = setInterval(() => {
+      setNow(Date.now());
+      invalidate();
+    }, 5000);
+    return () => clearInterval(tick);
+  }, [lastSpeech, invalidate]);
 
   // Update target destination when prop changes
   destination.current.set(...targetPos);
@@ -123,19 +145,19 @@ export const Agent3D: React.FC<Agent3DProps> = ({
     if (character) {
       const moving = dist > 0.01;
       const sitting =
-        agent.status === 'waiting_approval' && character.clipNames.includes('SitDown');
+        agent.status === 'waiting_approval' && resolveClip(character.root.animations, 'SitDown');
       const wanted = moving ? 'Walk' : sitting ? 'SitDown' : 'Idle';
 
       if (activeClip.current !== wanted) {
-        const clips = character.root.animations;
         const clip =
-          clips.find((candidate) => candidate.name === wanted) ??
-          clips.find((candidate) => candidate.name === 'Idle') ??
-          clips[0];
+          resolveClip(character.root.animations, wanted) ??
+          resolveClip(character.root.animations, 'Idle') ??
+          character.root.animations[0] ??
+          null;
 
         if (clip) {
           const next = character.mixer.clipAction(clip);
-          if (clip.name === 'SitDown') {
+          if (wanted === 'SitDown') {
             // Sit once and hold the seated pose instead of stand-sit looping.
             next.setLoop(LoopOnce, Infinity);
             next.clampWhenFinished = true;
@@ -248,6 +270,17 @@ export const Agent3D: React.FC<Agent3DProps> = ({
           zIndexRange={[100, 0]}
         >
           <div className="flex flex-col items-center pointer-events-none select-none">
+            {/* Tahap 17 — the agent's last real line from the chat sheet, same
+                source and same rules as the 2D sprite (Rule 9.1 parity). */}
+            {bubble && (
+              <div
+                data-testid="agent3d-bubble"
+                title={bubble}
+                className="mb-0.5 max-w-[92px] truncate rounded-[3px] border border-office-border bg-white px-1 py-px text-center font-mono text-[7px] leading-tight text-black shadow-nu-raised"
+              >
+                {bubble}
+              </div>
+            )}
             <div className="bg-office-surface/90 backdrop-blur-md px-2 py-0.5 rounded-full border border-office-border shadow-nu-raised flex items-center space-x-1 whitespace-nowrap">
               <span className="text-xs">{agent.avatar || '🤖'}</span>
               <span className="text-[11px] font-semibold text-office-text">{agent.name}</span>

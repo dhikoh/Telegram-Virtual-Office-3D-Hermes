@@ -30,7 +30,7 @@ const FURNITURE_GLBS = [
 ];
 
 describe('GLB CC0 ada dan valid di repo', () => {
-  it('6 furnitur + 1 karakter tersimpan dengan isi bukan kosong dan header glTF', () => {
+  it('6 furnitur tersimpan dengan isi bukan kosong dan header glTF', () => {
     for (const name of FURNITURE_GLBS) {
       const path = `${PUBLIC_DIR}furniture/${name}`;
       expect(existsSync(path), path).toBe(true);
@@ -38,18 +38,18 @@ describe('GLB CC0 ada dan valid di repo', () => {
       const magic = readFileSync(path).subarray(0, 4).toString('latin1');
       expect(magic, `${name} bukan GLB valid`).toBe('glTF');
     }
-    const knight = `${PUBLIC_DIR}character/knight.glb`;
-    expect(existsSync(knight)).toBe(true);
-    expect(readFileSync(knight).subarray(0, 4).toString('latin1')).toBe('glTF');
+    // Tahap 17 — karakter pindah ke pack Kenney (12 GLB); kontraknya dikunci
+    // di character-3d.test.ts. KayKit knight dihapus bersama pack Quaternius.
+    expect(existsSync(`${PUBLIC_DIR}character/knight.glb`)).toBe(false);
   });
 
   it('lisensi teks ikut ter-commit di sebelah modelnya', () => {
     const kenneyLicense = `${PUBLIC_DIR}furniture/LICENSE-Kenney.txt`;
-    const kaykitLicense = `${PUBLIC_DIR}character/LICENSE-KayKit-Adventurers.txt`;
+    const charLicense = `${PUBLIC_DIR}character/LICENSE-Kenney.txt`;
     expect(existsSync(kenneyLicense)).toBe(true);
-    expect(existsSync(kaykitLicense)).toBe(true);
+    expect(existsSync(charLicense)).toBe(true);
     expect(readFileSync(kenneyLicense, 'utf8')).toMatch(/CC0|Creative Commons/i);
-    expect(readFileSync(kaykitLicense, 'utf8')).toMatch(/CC0|Creative Commons/i);
+    expect(readFileSync(charLicense, 'utf8')).toMatch(/CC0|Creative Commons/i);
   });
 });
 
@@ -90,13 +90,15 @@ describe('provenance (Rule R3)', () => {
   it('docs/ASSETS.md mencatat sumber, penulis, dan lisensi CC0', () => {
     expect(assetsDoc).toContain('CC0');
     expect(assetsDoc).toContain('Kenney');
-    expect(assetsDoc).toContain('KayKit');
     expect(assetsDoc).toContain('kenney.nl/assets/furniture-kit');
-    expect(assetsDoc).toContain('github.com/KayKit-Game-Assets');
+    // Tahap 17 — pack karakter sekarang juga Kenney (Mini Characters 1.0).
+    expect(assetsDoc).toContain('Mini Characters 1.0');
   });
 
-  it('mengakui gap jujur: knight belum dipakai dan Character Animations belum terunduh', () => {
-    expect(assetsDoc).toMatch(/Not yet wired/);
-    expect(assetsDoc).toMatch(/itch\.io/);
+  it('mengakui penggantian pack karakter apa adanya (bukan gap tersembunyi)', () => {
+    // Alasan Quaternius dibuang (material hampir hitam) dan di mana buktinya.
+    expect(assetsDoc).toMatch(/Why the previous pack was replaced/);
+    expect(assetsDoc).toContain('PROVENANCE.md');
+    expect(assetsDoc).toMatch(/Quaternius/);
   });
 });

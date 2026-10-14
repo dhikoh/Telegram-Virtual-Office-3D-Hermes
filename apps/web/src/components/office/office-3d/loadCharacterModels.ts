@@ -1,7 +1,8 @@
 /**
- * Tahap 15 — lazy GLB loader for the CC0 character pack.
+ * Tahap 17 — lazy GLB loader for the CC0 character pack (Kenney Mini
+ * Characters, one file per character model id).
  *
- * Mirrors loadFurnitureModels.ts, with two extras a skinned character needs:
+ * Mirrors loadFurnitureModels.ts, with three extras a skinned character needs:
  *
  *  1. GLTFLoader (and SkeletonUtils, for one skeleton per agent) come in via
  *     dynamic `import()`, so neither rides in the Office3D chunk and neither
@@ -9,6 +10,8 @@
  *  2. Every model is normalised once: feet on y = 0, height 1.0 unit, centred
  *     on x/z — the office lays agents out in ~1-unit bodies (Agent3D's
  *     procedural robot is 1.17 units tall).
+ *  3. The GLB carries its texture as an embedded `data:` URI, so one request
+ *     per model is the whole fetch — nothing else can 404 (Rule 9.4).
  *
  * Any failure — 404, CSP block, decode error, offline, a department with no
  * character — resolves to `null` instead of throwing, so the procedural robot
@@ -16,9 +19,13 @@
  */
 
 import { AnimationClip, AnimationMixer, Box3, Group, Mesh, MeshStandardMaterial, Vector3 } from 'three';
-import { CHARACTER_IDS, CHARACTER_URLS, type CharacterId } from './glbCharacter';
+import { CHARACTER_MODEL_IDS, CHARACTER_MODEL_URLS, type CharacterModelId } from './glbCharacter';
 
-/** Target standing height in world units (the pack's raw models are ~3 units). */
+/**
+ * Target standing height in world units. The pack's models are 0.67–0.78 units
+ * tall in bind pose (measured from their position accessors), so they are
+ * scaled up once at load — never per frame.
+ */
 export const CHARACTER_HEIGHT = 1.0;
 
 export interface CharacterInstance {
@@ -26,16 +33,18 @@ export interface CharacterInstance {
   root: Group;
   /** Drives the clips below; call `mixer.update(delta)` every frame. */
   mixer: AnimationMixer;
-  /** `Idle`, `Walk`, `SitDown` — clip names the source actually carries. */
+  /** `Idle`, `Walk`, `SitDown` — app-facing names; resolve their real
+   *  source names through `resolveClip` (Kenney ships `idle`, `walk`, `sit`). */
   clipNames: string[];
 }
 
-const cache = new Map<CharacterId, Promise<Group | null>>();
+const cache = new Map<CharacterModelId, Promise<Group | null>>();
 
 /**
- * Quaternius characters ship textured-less PBR with their origin at the
- * armature root and ~3 units tall. Bake in the office key light and re-origin
- * so the standing bounding box lands on y = 0 with its centre on [0, 0].
+ * Kenney's models arrive with their texture embedded in the GLB and their
+ * origin at the armature root. Force a matte, non-metallic surface — a
+ * metalness of 1 with no environment map renders black — then re-origin so the
+ * standing bounding box lands on y = 0 with its centre on [0, 0].
  */
 function prepareForScene(scene: Group, clips: readonly AnimationClip[]): Group {
   scene.traverse((child) => {
@@ -75,7 +84,7 @@ function prepareForScene(scene: Group, clips: readonly AnimationClip[]): Group {
  * Resolves to `null` on any failure — never rejects, never throws.
  * The returned group is a shared source; clone it per instance.
  */
-export function loadCharacterModel(id: CharacterId): Promise<Group | null> {
+export function loadCharacterModel(id: CharacterModelId): Promise<Group | null> {
   const cached = cache.get(id);
   if (cached) return cached;
 
@@ -83,7 +92,7 @@ export function loadCharacterModel(id: CharacterId): Promise<Group | null> {
     try {
       const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
       const loader = new GLTFLoader();
-      const gltf = await loader.loadAsync(CHARACTER_URLS[id]);
+      const gltf = await loader.loadAsync(CHARACTER_MODEL_URLS[id]);
       return prepareForScene(gltf.scene, gltf.animations);
     } catch {
       // Fallback utuh: the procedural robot body already describes this agent.
@@ -99,7 +108,7 @@ export function loadCharacterModel(id: CharacterId): Promise<Group | null> {
  * A private copy for one agent: several agents share a department, and two
  * mixers must never drive the same skeleton.
  */
-export async function loadCharacterInstance(id: CharacterId): Promise<CharacterInstance | null> {
+export async function loadCharacterInstance(id: CharacterModelId): Promise<CharacterInstance | null> {
   const source = await loadCharacterModel(id);
   if (!source) return null;
 
@@ -121,15 +130,15 @@ export async function loadCharacterInstance(id: CharacterId): Promise<CharacterI
 
 /** Fire every character at once; missing ones simply stay absent. */
 export function loadCharacterInstances(
-  ids: readonly CharacterId[] = CHARACTER_IDS
-): Promise<Partial<Record<CharacterId, CharacterInstance>>> {
+  ids: readonly CharacterModelId[] = CHARACTER_MODEL_IDS
+): Promise<Partial<Record<CharacterModelId, CharacterInstance>>> {
   return Promise.all(
     ids.map(async (id) => [id, await loadCharacterInstance(id)] as const)
   ).then(
     (entries) =>
       Object.fromEntries(
         entries.filter(([, instance]) => instance !== null)
-      ) as Partial<Record<CharacterId, CharacterInstance>>
+      ) as Partial<Record<CharacterModelId, CharacterInstance>>
   );
 }
 

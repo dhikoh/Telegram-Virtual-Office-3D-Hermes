@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
-import { AgentSchema, type Agent } from '@hermes-office/shared';
+import { AgentSchema, isCharacterModelId, type Agent } from '@hermes-office/shared';
 import { AgentRepository } from '../db/repositories/agents.js';
 import { AgentSkillRepository } from '../db/repositories/agent-skills.js';
 import { AuditRepository } from '../db/repositories/audit.js';
@@ -26,14 +26,22 @@ import {
 import { normalizeBaseUrl, probeModels } from '../services/hermes/detect.js';
 import { config } from '../config.js';
 
-/** Tahap 9 — avatar style stored as JSON on the agent row, parsed for the client. */
-function parseAvatarStyle(raw: string | null | undefined): { shirt?: string; accessory?: string } | null {
+/**
+ * Avatar style stored as JSON on the agent row, parsed for the client.
+ * Tahap 17: `{ shirt, character }` — `character` must be a committed model id
+ * (single list in @hermes-office/shared/characters.ts), anything else is
+ * dropped. A stale Tahap 9 `accessory` key is dropped too, so clients only
+ * ever see fields that still exist.
+ */
+function parseAvatarStyle(
+  raw: string | null | undefined
+): { shirt?: string; character?: string } | null {
   if (!raw) return null;
   try {
-    const parsed = JSON.parse(raw) as { shirt?: unknown; accessory?: unknown };
-    const style: { shirt?: string; accessory?: string } = {};
+    const parsed = JSON.parse(raw) as { shirt?: unknown; character?: unknown };
+    const style: { shirt?: string; character?: string } = {};
     if (typeof parsed.shirt === 'string') style.shirt = parsed.shirt;
-    if (typeof parsed.accessory === 'string') style.accessory = parsed.accessory;
+    if (isCharacterModelId(parsed.character)) style.character = parsed.character;
     return Object.keys(style).length > 0 ? style : null;
   } catch {
     return null;
@@ -105,19 +113,21 @@ const PATCHABLE_AGENT_FIELDS = new Set([
   'hermes_base_url',
 ]);
 
-const AVATAR_ACCESSORIES = new Set(['none', 'glasses', 'cap', 'headset']);
-
-/** Tahap 9 — validate + serialize the avatar style before it touches the row. */
+/**
+ * Tahap 17 — validate + serialize the avatar style before it touches the row.
+ * `shirt` must be a hex colour, `character` must be a committed model id;
+ * every other key is discarded, so an unknown id can never reach SQL.
+ */
 function encodeAvatarStyle(value: unknown): string | null {
   if (value === null || value === undefined) return null;
   if (typeof value !== 'object') return null;
-  const raw = value as { shirt?: unknown; accessory?: unknown };
-  const style: { shirt?: string; accessory?: string } = {};
+  const raw = value as { shirt?: unknown; character?: unknown };
+  const style: { shirt?: string; character?: string } = {};
   if (typeof raw.shirt === 'string' && /^#[0-9a-fA-F]{6}$/.test(raw.shirt)) {
     style.shirt = raw.shirt;
   }
-  if (typeof raw.accessory === 'string' && AVATAR_ACCESSORIES.has(raw.accessory)) {
-    style.accessory = raw.accessory;
+  if (isCharacterModelId(raw.character)) {
+    style.character = raw.character;
   }
   return Object.keys(style).length > 0 ? JSON.stringify(style) : null;
 }

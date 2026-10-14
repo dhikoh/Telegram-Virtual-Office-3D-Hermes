@@ -13,7 +13,13 @@
 import React, { useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import type { Mesh } from 'three';
-import { streetTraffic, STREET_SPAN, type StreetVehicle } from '@hermes-office/shared';
+import {
+  streetTraffic,
+  STREET_SPAN,
+  WORLD_FLOOR,
+  GLAZING,
+  type StreetVehicle,
+} from '@hermes-office/shared';
 import { usePowerStore } from '../../../stores/power';
 
 /** Wall geometry: opening for the window is x -6.5..6.5, y 0.7..3.4. */
@@ -24,9 +30,16 @@ export const WINDOW_SILL = 0.7;
 export const WINDOW_HEAD = 3.4;
 const WALL_THICKNESS = 0.3;
 
-const WALL_COLOR = '#F1F5F9';
-const WINDOW_FRAME_COLOR = '#8A97A9';
-const GLASS_COLOR = '#E6EEF8';
+/**
+ * Tahap 17 — the diorama shell and its glass take the shared tokens:
+ * `WORLD_FLOOR` for the wall/skirting and `GLAZING` for the pane and its
+ * frame, the very same `GLAZING` every room partition in Furniture.tsx is
+ * built from, so the window the street is seen through and a room's glazed
+ * front can never drift apart.
+ */
+const WALL_COLOR = WORLD_FLOOR.wall;
+const WINDOW_FRAME_COLOR = GLAZING.frame;
+const GLASS_COLOR = GLAZING.color;
 
 /** Lane centres on the street behind the glass. */
 export const LANE_Z = [-13.6, -15.4];
@@ -146,13 +159,15 @@ export const Backdrop: React.FC = () => (
       <boxGeometry args={[WINDOW_HALF_WIDTH * 2 + 0.2, 0.1, 0.14]} />
       <meshStandardMaterial color={WINDOW_FRAME_COLOR} roughness={0.7} />
     </mesh>
-    {/* Glass: a tinted pane, not a mirror — it must not blacken the street. */}
+    {/* Glass: a tinted pane, not a mirror — it must not blacken the street.
+        Opacity comes from the shared GLAZING token, like every room front. */}
     <mesh position={[0, (WINDOW_SILL + WINDOW_HEAD) / 2, WALL_Z - 0.02]}>
       <planeGeometry args={[WINDOW_HALF_WIDTH * 2, WINDOW_HEAD - WINDOW_SILL]} />
       <meshStandardMaterial
         color={GLASS_COLOR}
         transparent
-        opacity={0.22}
+        opacity={GLAZING.opacity}
+        depthWrite={false}
         roughness={0.15}
         metalness={0}
       />

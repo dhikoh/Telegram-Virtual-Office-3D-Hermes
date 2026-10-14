@@ -11,7 +11,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Html } from '@react-three/drei';
-import { getAgentPlacement } from '@hermes-office/shared';
+import { getAgentPlacement, WORLD_FLOOR } from '@hermes-office/shared';
 import { Furniture } from './Furniture';
 import { Backdrop } from './Backdrop';
 import { Agent3D } from './Agent3D';
@@ -36,8 +36,9 @@ export const Scene: React.FC<SceneProps> = ({ onSelectAgent, onOpenRecruitment }
     return {
       agent,
       targetPos: placement.pos3d,
-      // Labels only where there is room: the idle lounge packs agents into a
-      // 2x4 grid (see LOUNGE_SLOTS), so idle pairs overlap on screen. Cap 20 (REQ-111).
+      // Tahap 17 — the name is never hidden: the idle lounge packs agents into
+      // a 2x4 grid (see LOUNGE_SLOTS), so idle pairs get the compact 38 px pill
+      // instead of the full one. Cap 20 (REQ-111).
       showLabel: idx < 20 && (agent.status !== 'idle' || agent.id === selectedAgentId),
     };
   });
@@ -79,14 +80,19 @@ export const Scene: React.FC<SceneProps> = ({ onSelectAgent, onOpenRecruitment }
       {/* Back wall + window + street (Tahap 4a): the office now sits in a city. */}
       <Backdrop />
 
-      {/* Main Floor (22 x 24 units) — light ground, receives the key shadow */}
+      {/* Main Floor (22 x 24 units) — light ground, receives the key shadow.
+          The colour is the shared `WORLD_FLOOR` token, the same one the 2D
+          plan tiles its ground with, so the two views stand on one floor. */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
         <planeGeometry args={[22, 24]} />
-        <meshStandardMaterial color="#E7ECF3" roughness={0.95} metalness={0} />
+        <meshStandardMaterial color={WORLD_FLOOR.base} roughness={0.95} metalness={0} />
       </mesh>
 
       {/* Soft floor grid — measurement aid, not a neon effect */}
-      <gridHelper args={[22, 22, '#C3CCDA', '#DCE3EC']} position={[0, 0.005, 0]} />
+      <gridHelper
+        args={[22, WORLD_FLOOR.divisions, WORLD_FLOOR.skirting, WORLD_FLOOR.line]}
+        position={[0, 0.005, 0]}
+      />
 
       {/* 3D Rooms & Procedural Furniture */}
       <Furniture onSelectRoom={handleSelectRoom} />

@@ -14,6 +14,14 @@
  * pixel frame, so every badge and animation above still hangs off it, and the
  * four walk frames cycle on one shared CSS loop that Rule 9.3 turns off for
  * free under .low-power.
+ *
+ * Tahap 17: the Tahap 9 accessory glyph is gone — it never reached the 3D
+ * character, so it was a second identity that lied. What replaces it is the
+ * name, and the name is now always drawn: the wide pill when there is room,
+ * a 38 px compact pill when the idle lounge packs slots 40 px apart, so the
+ * collision rule above still holds. The bubble also carries the agent's last
+ * real chat line from the office store when there is one; the status text is
+ * only the fallback for "nothing said yet".
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -29,6 +37,7 @@ import {
   directionFrames,
   ROOM_LAYOUTS,
   spritePalette,
+  speechLine,
   PX_PER_UNIT,
 } from '@hermes-office/shared';
 import type { OfficeAgent } from '../../stores/office';
@@ -36,6 +45,10 @@ import { useOfficeStore } from '../../stores/office';
 import { usePowerStore } from '../../stores/power';
 import { spriteDataUrl } from '../../lib/sprites';
 import { tma } from '../../services/tma';
+import {
+  CHARACTER_MODEL_LABELS,
+  characterModelFor,
+} from './office-3d/glbCharacter';
 
 /** Walk cycle length; index.css splits it into four step-end frames. */
 const CYCLE_SECONDS = 0.8;
@@ -57,12 +70,16 @@ function shirtOf(agent: OfficeAgent, deptColor?: string): string {
     : '#94A3B8';
 }
 
-/** Tahap 9 — aksesori overlay pilihan Owner di atas sprite. */
-const ACCESSORY_GLYPHS: Record<string, string> = {
-  glasses: '🕶️',
-  cap: '🧢',
-  headset: '🎧',
-};
+/**
+ * Tahap 17 — the avatar wears the same identity as the 3D office: the model
+ * its owner picked (or the department default). The 2D sprite cannot render a
+ * GLB, so it names the model instead — one identity, shown honestly, instead
+ * of the Tahap 9 accessory glyph that the 3D character never had.
+ */
+function characterLabelOf(agent: OfficeAgent): string | null {
+  const id = characterModelFor(agent.department, agent.avatar_style);
+  return id ? CHARACTER_MODEL_LABELS[id] : null;
+}
 
 interface AvatarProps {
   agent: OfficeAgent;
@@ -70,8 +87,9 @@ interface AvatarProps {
   targetY: number;
   onClick: (agent: OfficeAgent) => void;
   /**
-   * The name pill is 70 px wide but the idle lounge packs agents 40 px apart,
-   * so labels are only drawn where there is room (and for the tapped agent).
+   * The wide name pill is 70 px but the idle lounge packs agents 40 px apart.
+   * `true` draws it in full; `false` draws a 38 px compact pill. The name is
+   * never hidden — "which agent is this?" must always have an answer.
    */
   showLabel?: boolean;
 }
@@ -80,11 +98,33 @@ export const Avatar: React.FC<AvatarProps> = ({ agent, targetX, targetY, onClick
   const { isLowPower } = usePowerStore();
   const [bubbleText, setBubbleText] = useState<string | null>(null);
 
-  // Tahap 9 — bubble teks di atas avatar: muncul saat status berubah, hilang
+  // Tahap 17 — what this agent last actually SAID (from the chat sheet, via
+  // the office store). One map feeds both the 2D sprite and the 3D character,
+  // so the two views can never show different words.
+  const lastSpeech = useOfficeStore((s) => s.speech[agent.id]);
+  const [now, setNow] = useState(() => Date.now());
+  const speech = speechLine(lastSpeech, now);
+
+  // A bubble expires on its own after SPEECH_TTL_MS, and nothing else would
+  // re-render this avatar in the meantime — so while there is a line to show,
+  // re-check it on a slow tick (5 s) and stop the moment it expires.
+  useEffect(() => {
+    if (!lastSpeech) return undefined;
+    setNow(Date.now());
+    const tick = setInterval(() => setNow(Date.now()), 5000);
+    return () => clearInterval(tick);
+  }, [lastSpeech]);
+
+  // Tahap 9 — status fallback bubble: muncul saat status berubah, hilang
   // sendiri ~4 dtk (satu bubble per perubahan status = throttle, tidak menumpuk).
   // Status 'working' dengan alat tertentu tidak ikut — chip alat di bawah sudah
   // mewakilinya, bubble hanya muncul saat bekerja tanpa alat terlihat.
+  // Tahap 17: hanya dipakai bila agen belum pernah bicara.
   useEffect(() => {
+    if (speech) {
+      setBubbleText(null);
+      return undefined;
+    }
     const text =
       agent.status === 'thinking'
         ? 'sedang berpikir…'
@@ -99,12 +139,15 @@ export const Avatar: React.FC<AvatarProps> = ({ agent, targetX, targetY, onClick
               : null;
     if (!text) {
       setBubbleText(null);
-      return;
+      return undefined;
     }
     setBubbleText(text);
     const timer = setTimeout(() => setBubbleText(null), 4200);
     return () => clearTimeout(timer);
-  }, [agent.status, agent.currentTool]);
+  }, [agent.status, agent.currentTool, speech]);
+
+  const bubble = speech ?? bubbleText;
+  const characterLabel = characterLabelOf(agent);
 
   const handleClick = () => {
     tma.hapticSelection();
@@ -227,13 +270,15 @@ export const Avatar: React.FC<AvatarProps> = ({ agent, targetX, targetY, onClick
     >
       {/* Pixel frame + sprite, standing in for the old circular status ring */}
       <div className="relative flex items-center justify-center">
-        {/* Tahap 9 — bubble teks status (otomatis hilang, di atas chip alat) */}
-        {bubbleText && (
+        {/* Tahap 17 — the agent's last real line from the chat sheet; falls
+            back to the Tahap 9 status text when it has not spoken yet. */}
+        {bubble && (
           <div
             data-testid="avatar-bubble"
+            title={bubble}
             className="absolute bottom-full left-1/2 z-30 mb-2 max-w-[76px] -translate-x-1/2 truncate rounded-[3px] border border-office-border bg-white px-1 py-px text-center font-mono text-[7px] leading-tight text-black shadow-nu-raised"
           >
-            {bubbleText}
+            {bubble}
           </div>
         )}
         <div
@@ -259,32 +304,37 @@ export const Avatar: React.FC<AvatarProps> = ({ agent, targetX, targetY, onClick
           {!spriteUrls.some(Boolean) && (
             <span className="text-lg leading-none pb-0.5">{agent.avatar || '🤖'}</span>
           )}
-          {/* Tahap 9 — aksesori pilihan Owner (avatar editor) */}
-          {ACCESSORY_GLYPHS[agent.avatar_style?.accessory || ''] && (
-            <span
-              data-testid="avatar-accessory"
-              className="absolute -right-0.5 -top-0.5 text-[9px] leading-none"
-              aria-hidden
-            >
-              {ACCESSORY_GLYPHS[agent.avatar_style!.accessory!]}
-            </span>
-          )}
         </div>
         {badgeContent}
       </div>
 
-      {/* Agent Name & DEMO Badge */}
-      <div className={`mt-1 flex flex-col items-center ${showLabel ? '' : 'invisible'}`}>
-        <div className="flex items-center gap-1 bg-office-inset backdrop-blur-xs px-1.5 py-0.5 rounded border border-office-border max-w-[70px]">
+      {/* Agent Name & DEMO Badge — Tahap 17: always drawn (compact when the
+          lounge packs slots 40 px apart), because the name is now the only
+          identity marker the 2D sprite and the 3D character share. */}
+      <div className="mt-1 flex flex-col items-center" data-testid="avatar-name">
+        <div
+          title={agent.name}
+          className={`flex items-center gap-1 bg-office-inset backdrop-blur-xs px-1.5 py-0.5 rounded border border-office-border ${
+            showLabel ? 'max-w-[70px]' : 'max-w-[38px]'
+          }`}
+        >
           <span className="text-[10px] font-medium text-office-text truncate leading-none">
             {agent.name}
           </span>
-          {agent.isDemo && (
+          {showLabel && agent.isDemo && (
             <span className="text-[7px] font-mono font-bold bg-office-accent/20 text-office-accent-ink px-0.5 rounded leading-none">
               DEMO
             </span>
           )}
         </div>
+        {showLabel && characterLabel && (
+          <span
+            data-testid="avatar-character"
+            className="mt-0.5 text-[7px] font-mono text-office-muted leading-none"
+          >
+            {characterLabel}
+          </span>
+        )}
       </div>
     </motion.div>
   );

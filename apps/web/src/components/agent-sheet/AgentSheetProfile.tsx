@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
-import { HeartPulse, CheckCircle, AlertCircle, PlugZap, Cpu, Loader2, Sparkles } from 'lucide-react';
+import { HeartPulse, CheckCircle, AlertCircle, PlugZap, Cpu, Loader2, Sparkles, Check } from 'lucide-react';
 import type { OfficeAgent } from '../../stores/office';
 import { useOfficeStore } from '../../stores/office';
 import { api } from '../../services/api';
 import { tma } from '../../services/tma';
+import {
+  CHARACTER_MODEL_IDS,
+  CHARACTER_MODEL_LABELS,
+  CHARACTER_MODEL_URLS,
+  characterModelFor,
+} from '../office/office-3d/glbCharacter';
 
 /** Tahap 9 — pilihan warna baju avatar (Rule 9.4: palet lokal, nol aset eksternal). */
 const SHIRT_SWATCHES = [
@@ -15,14 +21,6 @@ const SHIRT_SWATCHES = [
   '#F472B6',
   '#94A3B8',
   '#F97316',
-];
-
-/** Tahap 9 — aksesori overlay di atas sprite (disetujui server sebagai whitelist). */
-const ACCESSORY_OPTIONS = [
-  { id: 'none', glyph: '·', label: 'Tanpa' },
-  { id: 'glasses', glyph: '🕶️', label: 'Kacamata' },
-  { id: 'cap', glyph: '🧢', label: 'Topi' },
-  { id: 'headset', glyph: '🎧', label: 'Headset' },
 ];
 
 interface AgentSheetProfileProps {
@@ -45,9 +43,15 @@ export const AgentSheetProfile: React.FC<AgentSheetProfileProps> = ({ agent }) =
   const [probing, setProbing] = useState(false);
   const [probeMessage, setProbeMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
-  // Tahap 9 — avatar editor dasar: warna baju + aksesori overlay.
+  // Tahap 17 — avatar editor: warna baju + karakter 3D (identitas tunggal).
   const [shirt, setShirt] = useState(agent.avatar_style?.shirt ?? '');
-  const [accessory, setAccessory] = useState(agent.avatar_style?.accessory ?? 'none');
+  const [character, setCharacter] = useState(
+    agent.avatar_style?.character ?? characterModelFor(agent.department, null) ?? CHARACTER_MODEL_IDS[0]
+  );
+  // Tahap 17 — apa yang terjadi bila agen tidak memilih: default ruangannya.
+  // Dihitung sekali supaya teks bantuan tidak menyalin logika pemilihan.
+  const departmentDefaultLabel =
+    CHARACTER_MODEL_LABELS[characterModelFor(agent.department, null) ?? CHARACTER_MODEL_IDS[0]];
   const [avatarSaving, setAvatarSaving] = useState(false);
   const [avatarMsg, setAvatarMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -55,10 +59,9 @@ export const AgentSheetProfile: React.FC<AgentSheetProfileProps> = ({ agent }) =
     setAvatarSaving(true);
     setAvatarMsg(null);
     try {
-      const style =
-        shirt || accessory !== 'none'
-          ? { ...(shirt ? { shirt } : {}), ...(accessory !== 'none' ? { accessory } : {}) }
-          : null;
+      // `character` is always sent: it IS the agent's identity, and the server
+      // validates it against CHARACTER_MODEL_IDS before it reaches SQL.
+      const style = { ...(shirt ? { shirt } : {}), character };
       await api.updateAgent(agent.id, { avatar_style: style });
       await fetchInitialData();
       setAvatarMsg({ ok: true, text: 'Avatar diperbarui.' });
@@ -176,24 +179,37 @@ export const AgentSheetProfile: React.FC<AgentSheetProfileProps> = ({ agent }) =
             Otomatis
           </button>
         </div>
-        <span className="text-[11px] text-office-muted pt-1">Aksesori</span>
-        <div className="flex gap-1.5">
-          {ACCESSORY_OPTIONS.map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => setAccessory(opt.id)}
-              className={`flex items-center gap-1.5 h-9 px-2.5 rounded-lg border text-[11px] transition-colors ${
-                accessory === opt.id
-                  ? 'border-office-accent text-office-text bg-office-accent/10'
-                  : 'border-office-border text-office-muted'
-              }`}
-            >
-              <span aria-hidden>{opt.glyph}</span>
-              <span>{opt.label}</span>
-            </button>
-          ))}
+        <span className="text-[11px] text-office-muted pt-1">
+          Karakter 3D (identitas di kantor)
+        </span>
+        <div className="grid grid-cols-3 gap-1.5" data-testid="character-picker">
+          {CHARACTER_MODEL_IDS.map((id) => {
+            const selected = character === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={selected}
+                title={CHARACTER_MODEL_URLS[id].split('/').pop()}
+                onClick={() => {
+                  setCharacter(id);
+                  tma.hapticSelection();
+                }}
+                className={`flex items-center justify-center gap-1 h-11 rounded-lg border text-[10px] font-semibold transition-colors min-h-[44px] ${
+                  selected
+                    ? 'border-office-accent text-office-text bg-office-accent/10'
+                    : 'border-office-border text-office-muted'
+                }`}
+              >
+                {selected && <Check className="w-3 h-3 shrink-0" aria-hidden />}
+                <span className="truncate">{CHARACTER_MODEL_LABELS[id]}</span>
+              </button>
+            );
+          })}
         </div>
+        <span className="text-[10px] text-office-muted leading-snug">
+          {`Karakter ini yang tampil di kantor 2D & 3D. Kosong = default ruangan (${departmentDefaultLabel}).`}
+        </span>
         <button
           type="button"
           onClick={() => void handleSaveAvatar()}

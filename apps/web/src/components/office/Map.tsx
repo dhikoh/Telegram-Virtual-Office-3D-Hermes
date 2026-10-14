@@ -2,6 +2,13 @@
  * 2D Interactive SVG Floor Plan (Rule REQ-071 & Section 8)
  * 8 Department Rooms + Lounge + Approval Gate.
  * Smooth avatar placement and movement based on status.
+ *
+ * Tahap 17 — every room now takes its footprint, its floor and its glazing
+ * from `roomVariants.ts` in the shared package (Rule 9.1), the same table the
+ * 3D diorama reads. The room rectangles come from `ROOM_LAYOUTS` /
+ * `LOUNGE_AREA` / `APPROVAL_GATE`; this file declares no room geometry of its
+ * own, so the plan and the diorama cannot disagree about where a room is or
+ * what it looks like.
  */
 
 import React, { useMemo, useRef } from 'react';
@@ -15,6 +22,17 @@ import {
   STREET_SPAN,
   VEHICLE_BUS,
   VEHICLE_CAR,
+  ROOM_LAYOUTS,
+  LOUNGE_AREA,
+  APPROVAL_GATE,
+  roomVariant,
+  roomShapePoints,
+  roomFrontEdge,
+  roomFloorBand2d,
+  GLAZING,
+  type PlanRect,
+  type RoomFloor,
+  type RoomVariant,
 } from '@hermes-office/shared';
 import { Avatar } from './Avatar';
 import { useOfficeStore, type OfficeAgent } from '../../stores/office';
@@ -169,6 +187,127 @@ interface MapProps {
   onOpenRecruitment?: () => void;
 }
 
+/**
+ * Approval gate plate: 90 x 34 centred on the shared gate point, so the drawn
+ * plate and `getRoomFocusRect2d('approvalGate')` describe the same place.
+ */
+const GATE_RECT: PlanRect = {
+  x: APPROVAL_GATE.pos2d.x - 45,
+  y: APPROVAL_GATE.pos2d.y - 18,
+  width: 90,
+  height: 34,
+};
+
+/**
+ * The body of one room's floor `<pattern>`. Tile pitch, base fill, rule ink
+ * and accent all come from the shared `floor` data, so Finance's ledger tiles
+ * cannot come out looking like Social's studio dots.
+ */
+const floorPatternBody = (floor: RoomFloor): React.ReactElement => {
+  const t = floor.tile;
+  const half = t / 2;
+  switch (floor.pattern) {
+    case 'grid':
+      return (
+        <>
+          <rect width={t} height={t} fill={floor.base} />
+          <path d={`M ${t} 0 L 0 0 0 ${t}`} fill="none" stroke={floor.line} strokeWidth="1" />
+        </>
+      );
+    case 'stripe':
+      return (
+        <>
+          <rect width={t} height={t} fill={floor.base} />
+          <rect y={half - 1} width={t} height="1.4" fill={floor.line} />
+          <rect y={t - 2.4} width={t} height="1.4" fill={floor.accent} fillOpacity="0.4" />
+        </>
+      );
+    case 'checker':
+      return (
+        <>
+          <rect width={t} height={t} fill={floor.base} />
+          <rect width={half} height={half} fill={floor.line} />
+          <rect x={half} y={half} width={half} height={half} fill={floor.accent} fillOpacity="0.3" />
+        </>
+      );
+    case 'dots':
+      return (
+        <>
+          <rect width={t} height={t} fill={floor.base} />
+          <circle cx={half} cy={half} r={Math.max(1, t / 8)} fill={floor.accent} fillOpacity="0.45" />
+          <path d={`M ${t} 0 L 0 0 0 ${t}`} fill="none" stroke={floor.line} strokeWidth="0.6" />
+        </>
+      );
+    case 'ledger':
+      return (
+        <>
+          <rect width={t} height={t} fill={floor.base} />
+          <rect y={t - 1} width={t} height="1" fill={floor.line} />
+          <rect x={half - 0.5} width="1" height={t} fill={floor.line} />
+          <rect x={t - 2} y={t / 3} width="1.6" height={t / 3} fill={floor.accent} fillOpacity="0.55" />
+        </>
+      );
+    case 'plain':
+      return <rect width={t} height={t} fill={floor.base} />;
+  }
+};
+
+/** The footprint outline of a room as an SVG `points` string. */
+const polygonPoints = (variant: RoomVariant, rect: PlanRect): string =>
+  roomShapePoints(variant.shape, rect)
+    .map(([px, py]) => `${px.toFixed(2)},${py.toFixed(2)}`)
+    .join(' ');
+
+/**
+ * One room's shell: the footprint cut from the shared `shape`, painted with
+ * the room's own floor pattern, edged with its outline ink, with the accent
+ * band and the `partition` glazing along the front edge.
+ */
+const RoomShell: React.FC<{ variant: RoomVariant; rect: PlanRect; children?: React.ReactNode }> = ({
+  variant,
+  rect,
+  children,
+}) => {
+  const points = polygonPoints(variant, rect);
+  const band = roomFloorBand2d(variant.floor, variant.shape, rect);
+  const front = roomFrontEdge(variant.shape, rect);
+  const glazingHeight = variant.partition === 'half-wall' ? 5 : 3;
+
+  return (
+    <>
+      {/* Flat base under the pattern: if a pattern def ever goes missing the
+          room still reads as a room instead of a hole. */}
+      <polygon points={points} fill={variant.floor.base} />
+      <polygon points={points} fill={`url(#room-floor-${variant.id})`} />
+      {band && (
+        <rect
+          x={band.x}
+          y={band.y}
+          width={band.width}
+          height={band.height}
+          fill={variant.floor.accent}
+          fillOpacity="0.6"
+        />
+      )}
+      <polygon points={points} fill="none" stroke={variant.stroke} strokeWidth="1.2" />
+      {/* Partition glazing: a pane standing just inside the room's front edge. */}
+      {variant.partition !== 'none' && (
+        <rect
+          x={front.x}
+          y={front.y - glazingHeight}
+          width={front.width}
+          height={glazingHeight}
+          rx="1"
+          fill={variant.partition === 'half-wall' ? GLAZING.halfWall : GLAZING.pane}
+          stroke={GLAZING.frame}
+          strokeWidth="0.6"
+        />
+      )}
+      {children}
+    </>
+  );
+};
+
 export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) => {
   const { t } = useTranslation();
   const { agents, selectedAgentId, departments } = useOfficeStore();
@@ -193,6 +332,17 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
     'lounge',
     'approvalGate',
   ];
+
+  // Tahap 17 — one lookup for the whole table: footprint, floor recipe and
+  // glazing come from the shared module, the room rectangles from the shared
+  // layout module. An unknown id falls back to a plain office room.
+  const variantOf = (id: string) => roomVariant(id);
+  const rectOf = (id: string): PlanRect =>
+    id === 'lounge'
+      ? LOUNGE_AREA.pos2d
+      : id === 'approvalGate'
+        ? GATE_RECT
+        : ROOM_LAYOUTS[id].pos2d;
 
   // Tahap 4b: only the active room stays fully lit, the rest recede.
   // Tahap 10: focusing a custom room (no rect on the map) dims nothing, so
@@ -250,6 +400,23 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
           <pattern id="caution-stripes" width="10" height="10" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
             <line x1="0" y1="0" x2="0" y2="10" stroke="rgba(180, 83, 9, 0.14)" strokeWidth="4" />
           </pattern>
+
+          {/* Tahap 17 — one floor pattern per room, straight from the shared
+              variant table: tile pitch, base fill, rule ink and accent. */}
+          {MAP_ROOM_IDS.map((id) => {
+            const floor = variantOf(id).floor;
+            return (
+              <pattern
+                key={id}
+                id={`room-floor-${id}`}
+                width={floor.tile}
+                height={floor.tile}
+                patternUnits="userSpaceOnUse"
+              >
+                {floorPatternBody(floor)}
+              </pattern>
+            );
+          })}
         </defs>
 
         {/* Floor Background Grid over the pixel tiles */}
@@ -258,118 +425,97 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
 
         {/* 1. Command Center (Center Top) */}
         <g id="room-command" style={roomStyle('command')}>
-          <rect
-            x="120"
-            y="12"
-            width="140"
-            height="70"
-            rx="8"
-            fill="url(#command-glow)"
-            stroke="rgba(180, 83, 9, 0.5)"
-            strokeWidth="1.2"
-          />
+          <RoomShell variant={variantOf('command')} rect={rectOf('command')}>
+            <polygon points={polygonPoints(variantOf('command'), rectOf('command'))} fill="url(#command-glow)" />
+          </RoomShell>
           {/* Desk console */}
           <rect x="160" y="45" width="60" height="20" rx="4" fill="rgba(245, 158, 11, 0.16)" stroke="rgba(180, 83, 9, 0.55)" />
-          <text x="190" y="27" textAnchor="middle" fill="#B45309" fontSize="9" fontWeight="bold" letterSpacing="0.8">
+          <text x="190" y="27" textAnchor="middle" fill={variantOf('command').labelInk} fontSize="9" fontWeight="bold" letterSpacing="0.8">
             {roomLabel('command')}
           </text>
         </g>
 
         {/* 2. Approval Gate (Below Command Center) */}
         <g id="room-approval-gate" style={roomStyle('approvalGate')}>
-          <rect
-            x="145"
-            y="90"
-            width="90"
-            height="34"
-            rx="6"
-            fill="url(#caution-stripes)"
-            stroke="rgba(251, 191, 36, 0.45)"
-            strokeWidth="1"
-          />
-          <text x="190" y="103" textAnchor="middle" fill="#7C2D12" fontSize="7" fontWeight="600" letterSpacing="0.3">
+          <RoomShell variant={variantOf('approvalGate')} rect={rectOf('approvalGate')}>
+            <rect x="145" y="90" width="90" height="34" rx="6" fill="url(#caution-stripes)" />
+          </RoomShell>
+          <text x="190" y="103" textAnchor="middle" fill={variantOf('approvalGate').labelInk} fontSize="7" fontWeight="600" letterSpacing="0.3">
             {t('rooms.approvalGate')}
           </text>
         </g>
 
         {/* 3. Social Studio (Left Top) */}
         <g id="room-social" style={roomStyle('social')}>
-          <rect x="12" y="12" width="98" height="74" rx="8" fill="#FBFDFF" stroke="#D6DEEA" />
+          <RoomShell variant={variantOf('social')} rect={rectOf('social')} />
           <rect x="36" y="46" width="50" height="18" rx="4" fill="#EEF3F9" stroke="#D6DEEA" />
-          <text x="61" y="26" textAnchor="middle" fill="#64748B" fontSize="8.5" fontWeight="600">
+          <text x="61" y="26" textAnchor="middle" fill={variantOf('social').labelInk} fontSize="8.5" fontWeight="600">
             {roomLabel('social')}
           </text>
         </g>
 
         {/* 4. Marketing Lab (Right Top) */}
         <g id="room-marketing" style={roomStyle('marketing')}>
-          <rect x="270" y="12" width="98" height="74" rx="8" fill="#FBFDFF" stroke="#D6DEEA" />
+          <RoomShell variant={variantOf('marketing')} rect={rectOf('marketing')} />
           <rect x="294" y="46" width="50" height="18" rx="4" fill="#EEF3F9" stroke="#D6DEEA" />
-          <text x="319" y="26" textAnchor="middle" fill="#64748B" fontSize="8.5" fontWeight="600">
+          <text x="319" y="26" textAnchor="middle" fill={variantOf('marketing').labelInk} fontSize="8.5" fontWeight="600">
             {roomLabel('marketing')}
           </text>
         </g>
 
         {/* 5. Sales Floor (Left Mid) */}
         <g id="room-sales" style={roomStyle('sales')}>
-          <rect x="12" y="96" width="98" height="74" rx="8" fill="#FBFDFF" stroke="#D6DEEA" />
+          <RoomShell variant={variantOf('sales')} rect={rectOf('sales')} />
           <rect x="36" y="130" width="50" height="18" rx="4" fill="#EEF3F9" stroke="#D6DEEA" />
-          <text x="61" y="110" textAnchor="middle" fill="#64748B" fontSize="8.5" fontWeight="600">
+          <text x="61" y="110" textAnchor="middle" fill={variantOf('sales').labelInk} fontSize="8.5" fontWeight="600">
             {roomLabel('sales')}
           </text>
         </g>
 
         {/* 6. Analytics Hub (Right Mid) */}
         <g id="room-analytics" style={roomStyle('analytics')}>
-          <rect x="270" y="96" width="98" height="74" rx="8" fill="#FBFDFF" stroke="#D6DEEA" />
+          <RoomShell variant={variantOf('analytics')} rect={rectOf('analytics')} />
           <rect x="294" y="130" width="50" height="18" rx="4" fill="#EEF3F9" stroke="#D6DEEA" />
-          <text x="319" y="110" textAnchor="middle" fill="#64748B" fontSize="8.5" fontWeight="600">
+          <text x="319" y="110" textAnchor="middle" fill={variantOf('analytics').labelInk} fontSize="8.5" fontWeight="600">
             {roomLabel('analytics')}
           </text>
         </g>
 
         {/* 7. Finance Vault (Left Lower) */}
         <g id="room-finance" style={roomStyle('finance')}>
-          <rect x="12" y="180" width="98" height="74" rx="8" fill="#FBFDFF" stroke="#D6DEEA" />
+          <RoomShell variant={variantOf('finance')} rect={rectOf('finance')} />
           <rect x="36" y="214" width="50" height="18" rx="4" fill="#EEF3F9" stroke="#D6DEEA" />
-          <text x="61" y="194" textAnchor="middle" fill="#64748B" fontSize="8.5" fontWeight="600">
+          <text x="61" y="194" textAnchor="middle" fill={variantOf('finance').labelInk} fontSize="8.5" fontWeight="600">
             {roomLabel('finance')}
           </text>
         </g>
 
         {/* 8. Support Desk (Right Lower) */}
         <g id="room-support" style={roomStyle('support')}>
-          <rect x="270" y="180" width="98" height="74" rx="8" fill="#FBFDFF" stroke="#D6DEEA" />
+          <RoomShell variant={variantOf('support')} rect={rectOf('support')} />
           <rect x="294" y="214" width="50" height="18" rx="4" fill="#EEF3F9" stroke="#D6DEEA" />
-          <text x="319" y="194" textAnchor="middle" fill="#64748B" fontSize="8.5" fontWeight="600">
+          <text x="319" y="194" textAnchor="middle" fill={variantOf('support').labelInk} fontSize="8.5" fontWeight="600">
             {roomLabel('support')}
           </text>
         </g>
 
         {/* 9. HR / Recruitment Room (Left Bottom with '+' Door) */}
         <g id="room-hr" style={roomStyle('hr')}>
-          <rect x="12" y="264" width="98" height="84" rx="8" fill="#FBFDFF" stroke="rgba(124, 92, 252, 0.5)" />
+          <RoomShell variant={variantOf('hr')} rect={rectOf('hr')} />
           <rect x="36" y="304" width="50" height="18" rx="4" fill="rgba(124, 92, 252, 0.1)" stroke="rgba(124, 92, 252, 0.45)" />
-          <text x="61" y="279" textAnchor="middle" fill="#6D28D9" fontSize="8.5" fontWeight="600">
+          <text x="61" y="279" textAnchor="middle" fill={variantOf('hr').labelInk} fontSize="8.5" fontWeight="600">
             {roomLabel('hr')}
           </text>
         </g>
 
         {/* 10. Central Lounge (Center Large Zone for Idle agents) */}
         <g id="room-lounge" style={roomStyle('lounge')}>
-          <rect
-            x="125"
-            y="136"
-            width="130"
-            height="180"
-            rx="12"
-            fill="url(#lounge-glow)"
-            stroke="rgba(124, 92, 252, 0.45)"
-            strokeWidth="1"
-          />
+          <RoomShell variant={variantOf('lounge')} rect={rectOf('lounge')}>
+            <polygon points={polygonPoints(variantOf('lounge'), rectOf('lounge'))} fill="url(#lounge-glow)" />
+          </RoomShell>
           {/* Coffee table in lounge center */}
           <circle cx="190" cy="225" r="18" fill="#EEF3F9" stroke="#D6DEEA" />
-          <text x="190" y="311" textAnchor="middle" fill="#6D28D9" fontSize="9" fontWeight="bold" letterSpacing="0.6">
+          <text x="190" y="311" textAnchor="middle" fill={variantOf('lounge').labelInk} fontSize="9" fontWeight="bold" letterSpacing="0.6">
             {t('rooms.lounge')}
           </text>
           <text x="190" y="228" textAnchor="middle" fill="rgba(31, 41, 55, 0.35)" fontSize="10">
@@ -396,7 +542,10 @@ export const Map: React.FC<MapProps> = ({ onSelectAgent, onOpenRecruitment }) =>
       {/* Agent Avatars Layer.
           Hidden while a sheet/modal is open: the overlay already covers it,
           and dropping the layer removes any chance of the pills painting on
-          top of the sheet content (review defect #1, 2026-10-13). */}
+          top of the sheet content (review defect #1, 2026-10-13).
+          Tahap 17 — `showLabel` now means wide vs compact, not visible vs
+          invisible: an idle agent in the packed lounge still shows its name,
+          just in the 38 px pill (see Avatar.tsx). */}
       <div
         className={`absolute inset-0 pointer-events-auto transition-opacity duration-150 ${
           selectedAgentId ? 'opacity-0' : 'opacity-100'

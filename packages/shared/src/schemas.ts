@@ -10,6 +10,7 @@ import {
   REPORT_TEMPLATES,
   HIRING_STATUSES,
 } from './constants.js';
+import { isCharacterModelId } from './characters.js';
 
 // Tahap 10: rooms are data now (table `departments`, routes /api/departments).
 // Any non-empty id is accepted here; write routes additionally resolve the id
@@ -82,11 +83,19 @@ export const AgentPublicSchema = z.object({
   created_at: z.number(),
   // Tahap 9 — system agents (orchestrator) can never be deleted or disabled.
   is_system: z.boolean().optional(),
-  /** Tahap 9 — parsed avatar style: { shirt?: '#RRGGBB', accessory?: ... } */
+  /**
+   * Tahap 17 — parsed avatar style: `{ shirt?: '#RRGGBB', character?: model id }`.
+   * The picker chooses a committed 3D character (see `characters.ts`); the
+   * Tahap 9 `accessory` glyph was removed, and a stale key on an old row is
+   * simply dropped here instead of round-tripped to clients.
+   */
   avatar_style: z
     .object({
       shirt: z.string().optional(),
-      accessory: z.string().optional(),
+      character: z
+        .string()
+        .refine(isCharacterModelId, { message: 'unknown character model id' })
+        .optional(),
     })
     .nullable()
     .optional(),
