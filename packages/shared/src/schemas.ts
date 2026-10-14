@@ -134,6 +134,30 @@ export const TaskSchema = z.object({
 });
 
 /**
+ * Artefak otomatis hasil run (jalur Tahap 12 <-> dispatcher).
+ *
+ * Satu baris = satu berkas yang terdaftar di tabel `media` (kind='artifact'),
+ * jadi retensi Tahap 12 (umur + cap MB + sweep) otomatis berlaku padanya.
+ * `download_url` adalah rute autentikasi yang sama dengan unggahan manual;
+ * path fisik TIDAK PERNAH ikut (Rule F-08).
+ *
+ * Dipakai di dua tempat:
+ *   - GET /api/tasks            -> tiap task membawa `artifacts: TaskArtifact[]`
+ *   - SSE `task_update`         -> field `task.artifacts` saat status terminal
+ */
+export const TaskArtifactSchema = z.object({
+  id: z.string().min(1),
+  task_id: z.string().nullable().default(null),
+  agent_id: z.string().min(1),
+  filename: z.string().nullable().default(null),
+  mime: z.string().min(1),
+  size: z.number().int().min(0),
+  created_at: z.number().int(),
+  download_url: z.string().min(1),
+});
+export type TaskArtifact = z.infer<typeof TaskArtifactSchema>;
+
+/**
  * Tahap 14 — proyek pemilik yang dipecah orkestrator menjadi subtask DAG.
  * `decompose_error` null = dekomposisi sukses (atau belum dicoba);
  * berisi teks apa adanya bila balasan orkestrator tidak terbaca / tidak valid.

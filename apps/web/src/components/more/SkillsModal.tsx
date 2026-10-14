@@ -13,6 +13,7 @@ import { Sparkles, X, RefreshCw, AlertTriangle, Cpu, Download, Trash2 } from 'lu
 import { api } from '../../services/api';
 import { tma } from '../../services/tma';
 import { useOfficeStore } from '../../stores/office';
+import { AgentSkillScope } from './AgentSkillScope';
 
 interface SkillsModalProps {
   isOpen: boolean;
@@ -54,7 +55,7 @@ function serverMessage(err: unknown): string {
 }
 
 export const SkillsModal: React.FC<SkillsModalProps> = ({ isOpen, onClose }) => {
-  const { addTickerMessage } = useOfficeStore();
+  const { addTickerMessage, agents } = useOfficeStore();
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [skills, setSkills] = useState<SkillItem[]>([]);
   const [available, setAvailable] = useState(false);
@@ -318,6 +319,14 @@ export const SkillsModal: React.FC<SkillsModalProps> = ({ isOpen, onClose }) => 
               )}
             </div>
           )}
+
+          {/* Tahap 11 (bagian 2) — toggle skill aktif per agen (layer SOUL). */}
+          <div
+            className="flex flex-col gap-2 pt-1 border-t border-office-border"
+            data-testid="agent-skill-panel"
+          >
+            <AgentSkillScope agents={agents} />
+          </div>
 
           {/* Tahap 11 — instal skill: permintaan diteruskan ke orkestrator. */}
           <div className="flex flex-col gap-2 pt-1 border-t border-office-border" data-testid="skill-install-panel">

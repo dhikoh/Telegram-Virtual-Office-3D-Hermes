@@ -276,6 +276,14 @@ export const mediaRoutes: FastifyPluginAsync = async (fastify) => {
     reply.header('Content-Disposition', `attachment; filename="${downloadFileName(row.original_name, row.id, row.mime)}"`);
     reply.header('X-Content-Type-Options', 'nosniff');
     reply.header('Cache-Control', 'private, max-age=0, no-store');
+    // Jejak audit: setiap unduhan artefak tercatat — termasuk artefak otomatis
+    // hasil run (services/artifacts.ts), supaya penarikan berkas tidak tanpa jejak.
+    auditRepo.logAction(
+      request.user?.id ?? 0,
+      'media.artifact_download',
+      row.id,
+      JSON.stringify({ agent_id: row.agent_id, task_id: row.task_id, mime: row.mime, size: row.size })
+    );
     return reply.send(fs.createReadStream(abs));
   });
 };

@@ -23,6 +23,12 @@ export interface OfficeTaskUpdate {
   agent_id?: string;
   result_md?: string | null;
   updated_at?: number;
+  /**
+   * Artefak otomatis hasil run — hanya diisi pada status terminal
+   * (done/failed), supaya konsumen SSE tahu persis berkas mana yang bisa
+   * diunduh lewat `download_url` tanpa menunggu poll berikutnya.
+   */
+  artifacts?: schemas.TaskArtifact[];
 }
 
 export interface OfficeApprovalUpdate {

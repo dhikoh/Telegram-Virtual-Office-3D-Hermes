@@ -3,6 +3,7 @@ import { TaskSchema } from '@hermes-office/shared';
 import { TaskRepository } from '../db/repositories/tasks.js';
 import { AuditRepository } from '../db/repositories/audit.js';
 import { streamManager } from '../services/stream.js';
+import { listTaskArtifacts } from '../services/artifacts.js';
 import type { Task } from '@hermes-office/shared';
 
 /** Tahap 7: broadcast every task change so the board is live, not reload-bound. */
@@ -28,8 +29,19 @@ export const taskRoutes: FastifyPluginAsync = async (fastify) => {
   const taskRepo = new TaskRepository(db);
   const auditRepo = new AuditRepository(db);
 
+  /**
+   * Daftar task + artefaknya. `artifacts` selalu ada ([] bila kosong) supaya
+   * konsumen web bisa merender tombol unduh tanpa endpoint tambahan:
+   *   { id, task_id, agent_id, filename, mime, size, created_at, download_url }
+   * `download_url` = /api/artifacts/:id/download (butuh auth `tma …` yang sama).
+   */
   fastify.get('/api/tasks', async () => {
-    return taskRepo.getAll();
+    const tasks = taskRepo.getAll();
+    const artifacts = listTaskArtifacts(db, tasks.map((t) => t.id));
+    return tasks.map((task) => ({
+      ...task,
+      artifacts: artifacts.get(task.id) ?? [],
+    }));
   });
 
   fastify.post('/api/tasks', async (request, reply) => {

@@ -1,11 +1,25 @@
 import type Database from 'better-sqlite3';
-import type { Agent, AgentNormalizedStatus } from '@hermes-office/shared';
+import type { Agent, AgentNormalizedStatus, TaskArtifact } from '@hermes-office/shared';
 import { AgentRepository } from '../db/repositories/agents.js';
 import { TaskRepository } from '../db/repositories/tasks.js';
 import { ApprovalRepository } from '../db/repositories/approvals.js';
 import { getHermesClientForAgent } from './hermes/index.js';
 import { streamManager } from './stream.js';
 import { telegramNotifications } from './notifications.js';
+import { listTaskArtifacts, registerRunArtifacts } from './artifacts.js';
+
+/**
+ * Status tempat artefak run relevan untuk konsumen SSE — hanya saat itu
+ * `task_update.artifacts` ikut disiarkan (lihat services/artifacts.ts).
+ */
+const TERMINAL_TASK_STATUSES: ReadonlySet<string> = new Set(['done', 'failed']);
+
+/** Acara run yang diakhiri dispatcher sendiri (updateTask sudah mem-broadcast). */
+const TERMINAL_RUN_EVENTS: ReadonlySet<string> = new Set([
+  'run.completed',
+  'run.failed',
+  'run.cancelled',
+]);
 
 export class OfficeDispatcher {
   private agentRepo: AgentRepository;
@@ -55,6 +69,11 @@ export class OfficeDispatcher {
         agent_id: task.agent_id,
         result_md: task.result_md,
         updated_at: task.updated_at,
+        // Artefak otomatis: hanya pada status terminal, supaya konsumen SSE tahu
+        // berkas mana yang bisa diunduh tepat saat run selesai (lihat services/artifacts.ts).
+        ...(TERMINAL_TASK_STATUSES.has(task.status)
+          ? { artifacts: this.taskArtifacts(task.id) }
+          : {}),
       },
       timestamp: Date.now(),
     });
@@ -73,6 +92,15 @@ export class OfficeDispatcher {
 
   /** Tahap 14 — disetel server.ts ke ProjectService.handleSettled. */
   public onTaskSettled?: (taskId: string) => void;
+
+  /** Satu baris per artefak task (kosong bila tidak ada) — dipakai broadcast & API. */
+  private taskArtifacts(taskId: string): TaskArtifact[] {
+    try {
+      return listTaskArtifacts(this.db, [taskId]).get(taskId) ?? [];
+    } catch {
+      return [];
+    }
+  }
 
   public async runTask(taskId: string): Promise<{ run_id: string }> {
     const task = this.taskRepo.getById(taskId);
@@ -248,6 +276,12 @@ export class OfficeDispatcher {
       // ignore insert failure
     }
 
+    // Artefak otomatis (wiring Tahap 12) — deteksi keluaran berkas di stream run,
+    // simpan lewat saveMedia() supaya retensi Tahap 12 ikut berlaku. Gagal di sini
+    // TIDAK BOLEH merusak run: registerRunArtifacts menelan kegagalannya sendiri
+    // dan hasilnya dicatat audit, bukan dikarang.
+    this.captureRunArtifacts(taskId, agent, runId, event, data);
+
     switch (event) {
       case 'tool.started':
         this.setAgentStatus(agent.id, 'working', data.tool);
@@ -325,6 +359,59 @@ export class OfficeDispatcher {
         this.activeStreams.delete(runId);
         break;
     }
+  }
+
+  /**
+   * Hook artefak otomatis: setiap event run diperiksa oleh aturan deteksi di
+   * services/artifacts.ts. Bila ada keluaran berkas yang valid, ia disalin ke
+   * MEDIA_DIR/artifacts (retensi Tahap 12 otomatis berlaku) dan papan disiarkan
+   * ulang agar pemilik langsung melihat `task.artifacts` + `download_url`.
+   *
+   * Kegagalan apa pun di sini TIDAK boleh mengganggu run: registerRunArtifacts
+   * tidak pernah melempar dan hasilnya dicatat audit.
+   */
+  private captureRunArtifacts(
+    taskId: string,
+    agent: Agent,
+    runId: string,
+    event: string,
+    data: Record<string, unknown>
+  ): void {
+    let registered: TaskArtifact[] = [];
+    try {
+      registered = registerRunArtifacts({
+        db: this.db,
+        agentId: agent.id,
+        taskId,
+        runId,
+        event,
+        data,
+      }).registered;
+    } catch {
+      return;
+    }
+    if (registered.length === 0) return;
+
+    // Acara terminal (run.completed/failed/cancelled) mem-broadcast sendiri lewat
+    // updateTask tepat setelah hook ini dan sudah menyertakan artefaknya; siarkan
+    // hanya untuk event di tengah run supaya tidak dobel.
+    if (TERMINAL_RUN_EVENTS.has(event)) return;
+    const task = this.taskRepo.getById(taskId);
+    if (!task) return;
+    streamManager.broadcast({
+      type: 'task_update',
+      agent_id: task.agent_id,
+      task: {
+        id: task.id,
+        status: task.status,
+        title: task.title,
+        agent_id: task.agent_id,
+        result_md: task.result_md,
+        updated_at: task.updated_at,
+        artifacts: this.taskArtifacts(taskId),
+      },
+      timestamp: Date.now(),
+    });
   }
 
   private startPeriodicHealthChecks(): void {

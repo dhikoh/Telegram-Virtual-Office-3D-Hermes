@@ -237,6 +237,20 @@ export const ENDPOINTS: readonly EndpointDefinition[] = [
     description: 'List skills installed on the gateway, or report honestly why they cannot be listed',
   },
   {
+    method: 'GET',
+    path: '/api/agents/:id/skills',
+    phase: 11,
+    requiresAuth: true,
+    description: 'Per-agent skill scope (SOUL layer): gateway catalog minus the skills this agent has switched off',
+  },
+  {
+    method: 'PATCH',
+    path: '/api/agents/:id/skills',
+    phase: 11,
+    requiresAuth: true,
+    description: 'Save the skills an agent may use; names must come from the gateway catalog (400 unknown_skill otherwise)',
+  },
+  {
     method: 'POST',
     path: '/api/skills/install',
     phase: 11,

@@ -19,6 +19,18 @@ import type {
 
 const API_BASE = '/api';
 
+/** Tahap 11 (bagian 2) — isi GET/PATCH /api/agents/:id/skills. */
+export interface AgentSkillScope {
+  agent_id: string;
+  is_system: boolean;
+  catalog: { name: string; description: string }[];
+  skills: string[];
+  disabled: string[];
+  mode: 'default' | 'restricted';
+  available: boolean;
+  error: string | null;
+}
+
 /** Tahap 12 — balasan unggah gambar chat (termasuk galat gateway bila ada). */
 export interface ChatMediaUploadResult {
   id: string;
@@ -167,6 +179,19 @@ export const api = {
     request<{ task: Task; status: string; run_id: string | null }>('/skills/uninstall', {
       method: 'POST',
       body: JSON.stringify({ name }),
+    }),
+  /**
+   * Tahap 11 (bagian 2) — cakupan skill satu agen (layer SOUL).
+   * `skills` = daftar skill AKTIF untuk agen itu (katalog gateway dikurangi
+   * yang dimatikan). `mode: 'default'` = tanpa pembatasan = seluruh katalog.
+   */
+  getAgentSkills: (agentId: string) =>
+    request<AgentSkillScope>(`/agents/${encodeURIComponent(agentId)}/skills`),
+  /** Simpan daftar LENGKAP skill aktif untuk satu agen (PATCH). */
+  updateAgentSkills: (agentId: string, skills: string[]) =>
+    request<AgentSkillScope>(`/agents/${encodeURIComponent(agentId)}/skills`, {
+      method: 'PATCH',
+      body: JSON.stringify({ skills }),
     }),
   streamChat: async (
     id: string,

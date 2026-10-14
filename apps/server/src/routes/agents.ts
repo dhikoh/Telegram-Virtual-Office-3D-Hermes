@@ -1,7 +1,20 @@
 import type { FastifyPluginAsync } from 'fastify';
+import { z } from 'zod';
 import { AgentSchema, type Agent } from '@hermes-office/shared';
 import { AgentRepository } from '../db/repositories/agents.js';
+import { AgentSkillRepository } from '../db/repositories/agent-skills.js';
 import { AuditRepository } from '../db/repositories/audit.js';
+import {
+  invalidateGatewayCatalogCache,
+  readGatewayCatalog,
+  readGatewayCatalogCached,
+  type GatewayCatalog,
+} from '../services/skill-catalog.js';
+import {
+  applySkillScope,
+  buildSkillScopeDirective,
+  stripSkillScope,
+} from '../services/hermes/skill-scope.js';
 import { departmentExists } from '../db/repositories/departments.js';
 import { SettingRepository } from '../db/repositories/settings.js';
 import {
@@ -109,12 +122,106 @@ function encodeAvatarStyle(value: unknown): string | null {
   return Object.keys(style).length > 0 ? JSON.stringify(style) : null;
 }
 
+/* ==========================================================================
+ * Tahap 11 (bagian 2) — toggle skill aktif per agen (layer SOUL).
+ * ========================================================================== */
+
+/**
+ * Bentuk tubuh PATCH /api/agents/:id/skills: daftar LENGKAP skill yang aktif
+ * untuk agen itu. Server menyimpan komplemennya (skill yang dimatikan) di
+ * tabel `agent_skills` — lihat komentar migrasi 008_agent_skills.sql.
+ */
+const AgentSkillsPatchSchema = z.object({
+  skills: z.array(z.string().min(1).max(80)).max(500),
+});
+
+/** Isi respons GET/PATCH /api/agents/:id/skills (juga dipakai UI sebagai state). */
+interface AgentSkillScope {
+  agent_id: string;
+  is_system: boolean;
+  /** Katalog gateway apa adanya — bukan daftar karangan aplikasi. */
+  catalog: { name: string; description: string }[];
+  /** Skill yang AKTIF untuk agen ini (katalog dikurangi baris yang dimatikan). */
+  skills: string[];
+  /** Skill yang dimatikan pemilik (baris tabel agent_skills). */
+  disabled: string[];
+  /** default = tanpa baris = seluruh katalog aktif; restricted = ada pembatasan. */
+  mode: 'default' | 'restricted';
+  available: boolean;
+  error: string | null;
+}
+
+/**
+ * Susun cakupan satu agen: katalog gateway (apa adanya dari /v1/skills)
+ * dikurangi baris `agent_skills`. TANPA BARIS = semua skill katalog aktif,
+ * jadi agen baru / skill baru selalu ikut aktif tanpa seeding.
+ */
+function buildSkillScope(
+  agent: Agent,
+  disabled: string[],
+  catalog: GatewayCatalog
+): AgentSkillScope {
+  const off = new Set(disabled.map((n) => n.toLowerCase()));
+  const presentDisabled = disabled.filter((n) =>
+    catalog.names.some((c) => c.toLowerCase() === n.toLowerCase())
+  );
+  return {
+    agent_id: agent.id,
+    is_system: Boolean(agent.is_system),
+    catalog: catalog.skills.map((s) => ({ name: s.name, description: s.description })),
+    skills: catalog.names.filter((n) => !off.has(n.toLowerCase())),
+    disabled: presentDisabled,
+    mode: presentDisabled.length > 0 ? 'restricted' : 'default',
+    available: catalog.ok,
+    error: catalog.error,
+  };
+}
+
+/**
+ * Instruksi cakupan untuk giliran chat. Hanya agen yang punya pembatasan yang
+ * membaca katalog (dari cache 60 detik) — jalur bawaan tidak menambah panggilan
+ * gateway apa pun.
+ */
+async function readSkillScopeDirective(
+  repo: AgentSkillRepository,
+  agent: Agent
+): Promise<string | null> {
+  const disabled = repo.listDisabled(agent.id);
+  if (disabled.length === 0) return null;
+  const catalog = await readGatewayCatalogCached();
+  const off = new Set(disabled.map((n) => n.toLowerCase()));
+  const enabled = catalog.names.filter((n) => !off.has(n.toLowerCase()));
+  return buildSkillScopeDirective(catalog.ok ? enabled : null, disabled);
+}
+
+/**
+ * Sematkan instruksi cakupan pada isi pesan keluar. Jalur sesi gateway hanya
+ * menerima field pesan (tidak ada role system), jadi instruksi ikut di pesan
+ * teks; bila riwayat dibaca kembali, stripSkillScope mengembalikan pesan
+ * milik pemilik persis seperti semula.
+ */
+function applyScopeToContent<T>(content: T, directive: string | null): T {
+  if (!directive) return content;
+  if (typeof content === 'string') return applySkillScope(content, directive) as T;
+  if (Array.isArray(content)) {
+    const parts = (content as { type?: string; text?: string; image_url?: unknown }[]).map(
+      (part) => ({ ...part })
+    );
+    const firstText = parts.find((p) => p?.type === 'text' && typeof p.text === 'string');
+    if (firstText?.text) firstText.text = applySkillScope(firstText.text, directive);
+    return parts as T;
+  }
+  return content;
+}
+
 export const agentRoutes: FastifyPluginAsync = async (fastify) => {
   // F-09: Typed decorations — no cast needed with types/fastify.d.ts augmentation
   const { db, dispatcher } = fastify;
   const agentRepo = new AgentRepository(db);
   const auditRepo = new AuditRepository(db);
   const settingRepo = new SettingRepository(db);
+  // Tahap 11 (bagian 2) — cakupan skill per agen (layer SOUL).
+  const agentSkillRepo = new AgentSkillRepository(db);
 
   fastify.get('/api/agents', async () => {
     const agents = agentRepo.getAll();
@@ -230,6 +337,105 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
       ? toPublic(updated, dispatcher.getAgentStatus(id), keyExists(settingRepo, id))
       : null;
   });
+
+  /**
+   * Tahap 11 (bagian 2) — cakupan skill satu agen (layer SOUL).
+   *
+   * `skills` = daftar skill yang AKTIF untuk agen ini, dihitung dari katalog
+   * gateway dikurangi baris `agent_skills`. Agen tanpa baris = seluruh katalog
+   * aktif (bawaan, tidak ada data yang di-seed).
+   * Katalog tidak bisa dibaca tetap membalas 200 dengan `available:false` +
+   * galat gateway apa adanya — sama jujurnya dengan GET /api/skills.
+   */
+  fastify.get<{ Params: { id: string } }>('/api/agents/:id/skills', async (request, reply) => {
+    const agent = agentRepo.getById(request.params.id);
+    if (!agent) {
+      return reply.code(404).send({ error: 'not_found', message: 'Agent not found' });
+    }
+    const catalog = await readGatewayCatalog();
+    return buildSkillScope(agent, agentSkillRepo.listDisabled(agent.id), catalog);
+  });
+
+  /**
+   * Tahap 11 (bagian 2) — simpan cakupan skill satu agen.
+   *
+   * Guardrail (guardrail yang sama dengan POST /api/skills/install):
+   *  - tubuh wajib `{ skills: string[] }` (zod)                    → 400 invalid_input
+   *  - nama wajib ADA di katalog gateway saat ini                   → 400 unknown_skill
+   *    (pelanggarnya disebut satu per satu, bukan cuma "ada yang salah")
+   *  - katalog tidak bisa dibaca                                    → 503 catalog_unavailable
+   *    (tanpa katalog mustahil memvalidasi nama — menulis buta = berpura-pura)
+   *  - agen sistem tidak bisa diubah                                → 403 system_agent
+   *    (sama dengan guardrail hapus/nonaktifkan agen sistem)
+   * Aksi sukses dicatat ke audit sebagai `agent.skills_updated`.
+   */
+  fastify.patch<{ Params: { id: string } }>(
+    '/api/agents/:id/skills',
+    async (request, reply) => {
+      const { id } = request.params;
+      const agent = agentRepo.getById(id);
+      if (!agent) {
+        return reply.code(404).send({ error: 'not_found', message: 'Agent not found' });
+      }
+      if (agent.is_system) {
+        return reply.code(403).send({
+          error: 'system_agent',
+          message: 'Agen sistem orkestrator tidak dapat diubah cakupan skill-nya.',
+        });
+      }
+
+      const parsed = AgentSkillsPatchSchema.safeParse(request.body ?? {});
+      if (!parsed.success) {
+        return reply.code(400).send({ error: 'invalid_input', details: parsed.error.format() });
+      }
+
+      const catalog = await readGatewayCatalog();
+      if (!catalog.ok) {
+        return reply.code(503).send({
+          error: 'catalog_unavailable',
+          message: `Katalog skill gateway tidak bisa dibaca: ${catalog.error || 'tanpa keterangan'}`,
+        });
+      }
+
+      const byLower = new Map(catalog.names.map((n) => [n.toLowerCase(), n]));
+      const unknown: string[] = [];
+      const enabled = new Set<string>();
+      for (const raw of parsed.data.skills) {
+        const canonical = byLower.get(raw.trim().toLowerCase());
+        if (!canonical) unknown.push(raw);
+        else enabled.add(canonical);
+      }
+      if (unknown.length > 0) {
+        return reply.code(400).send({
+          error: 'unknown_skill',
+          message: `Nama skill di luar katalog gateway: ${unknown.join(', ')}.`,
+          unknown,
+          catalog_size: catalog.names.length,
+        });
+      }
+
+      // Disimpan sebagai COMPLEMENT: baris = skill yang dimatikan pemilik,
+      // bukan daftar skill aktif (lihat 008_agent_skills.sql — tanpa baris =
+      // semua skill katalog aktif, jadi tidak ada data yang perlu di-seed).
+      const disabled = catalog.names.filter((n) => !enabled.has(n));
+      invalidateGatewayCatalogCache();
+      agentSkillRepo.replaceDisabled(id, disabled);
+
+      auditRepo.logAction(
+        request.user!.id,
+        'agent.skills_updated',
+        id,
+        JSON.stringify({
+          mode: disabled.length > 0 ? 'restricted' : 'default',
+          enabled: [...enabled].sort(),
+          disabled: [...disabled].sort(),
+          catalog_total: catalog.names.length,
+        })
+      );
+
+      return buildSkillScope(agent, agentSkillRepo.listDisabled(id), await readGatewayCatalog());
+    }
+  );
 
   /**
    * Tahap 7 — auto-detect: the owner pastes a base URL + API key, we probe the
@@ -357,6 +563,8 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
 
       const client = getHermesClientForAgent(agent, db);
       const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+      // Tahap 11 — layer SOUL: daftar skill aktif agen ikut dalam giliran ini.
+      const scopeDirective = await readSkillScopeDirective(agentSkillRepo, agent);
       try {
         // Tahap 8: prefer the gateway session — history and memory persist there.
         const sessionId = agent.session_id || (await client.createSession(`${agent.name}`));
@@ -370,7 +578,7 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
           }
           await client.sessionChatStream(
             sessionId,
-            lastUser?.content || JSON.stringify(messages),
+            applyScopeToContent(lastUser?.content || JSON.stringify(messages), scopeDirective),
             (chunk) => {
               reply.raw.write(`data: ${JSON.stringify({ choices: [{ delta: { content: chunk } }] })}\n\n`);
             },
@@ -379,7 +587,11 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
           reply.raw.write('data: [DONE]\n\n');
         } else {
           await client.chatStream(
-            messages,
+            // Jalur tanpa sesi memakai role 'system' yang asli — riwayat tidak
+            // tersentuh, instruksi cakupan skill tetap dilihat model.
+            scopeDirective
+              ? [{ role: 'system', content: scopeDirective }, ...messages]
+              : messages,
             (chunk) => {
               reply.raw.write(chunk);
             },
@@ -439,7 +651,10 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
           is_archived: Boolean(requested && requested !== agent.session_id),
           messages: messages.map((m) => ({
             role: m.role,
-            content: m.content,
+            // Tahap 11 — garis cakupan skill yang ditambahkan aplikasi ikut
+            // terkirim ke gateway; saat riwayat dibaca, pesan milik pemilik
+            // dikembalikan persis seperti yang ia ketik.
+            content: stripSkillScope(m.content),
             timestamp: m.timestamp,
           })),
         };
@@ -539,13 +754,21 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
       .prepare('DELETE FROM tasks WHERE agent_id = ?')
       .run(id).changes;
     settingRepo.delete(`agent_key:${id}`);
+    // Tahap 11 — cakupan skill ikut dibersihkan (jaring pengaman bila
+    // PRAGMA foreign_keys mati; ON DELETE CASCADE tetap didefinisikan di 008).
+    const skillRowsRemoved = agentSkillRepo.deleteForAgent(id);
     const removed = agentRepo.delete(id);
 
     auditRepo.logAction(
       request.user!.id,
       'agent.delete',
       id,
-      JSON.stringify({ name: agent.name, tasks_removed: tasksRemoved, had_session: Boolean(agent.session_id) })
+      JSON.stringify({
+        name: agent.name,
+        tasks_removed: tasksRemoved,
+        skill_rows_removed: skillRowsRemoved,
+        had_session: Boolean(agent.session_id),
+      })
     );
 
     return { success: removed > 0, id, tasks_removed: tasksRemoved };

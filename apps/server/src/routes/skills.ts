@@ -2,6 +2,9 @@ import type { FastifyInstance, FastifyPluginAsync, FastifyReply } from 'fastify'
 import { TaskSchema } from '@hermes-office/shared';
 import type { Task } from '@hermes-office/shared';
 import { getServerHermesClient } from '../services/hermes/index.js';
+// Tahap 11 — katalog gateway dipakai bersama oleh toggle skill per agen
+// (routes/agents.ts) supaya guardrail "nama harus dari katalog" satu sumber.
+import { normalizeSkill, readGatewayCatalog } from '../services/skill-catalog.js';
 import { TaskRepository } from '../db/repositories/tasks.js';
 import { AuditRepository } from '../db/repositories/audit.js';
 import { config } from '../config.js';
@@ -131,14 +134,10 @@ function rejectSlug(reply: FastifyReply) {
   });
 }
 
-/** Nama skill yang benar-benar terpasang di gateway. */
+/** Nama skill yang benar-benar terpasang di gateway (katalog bersama). */
 async function readInstalledSkills(): Promise<InstalledSkills> {
-  try {
-    const skills = await getServerHermesClient().listSkills();
-    return { names: skills.map((s) => normalizeSkill(s).name), ok: true };
-  } catch {
-    return { names: [], ok: false };
-  }
+  const catalog = await readGatewayCatalog();
+  return { names: catalog.names, ok: catalog.ok };
 }
 
 /**
@@ -235,29 +234,7 @@ function skillInstruction(action: SkillAction, name: string): string {
   ].join('\n');
 }
 
-interface NormalizedSkill {
-  name: string;
-  description: string;
-  enabled?: boolean;
-  source: string;
-}
-
-/** Beberapa versi gateway membalas {data:[...]} atau {skills:[...]} — dinormalkan. */
-function normalizeSkill(raw: unknown): NormalizedSkill {
-  const s = (raw ?? {}) as Record<string, unknown>;
-  const name =
-    (typeof s.name === 'string' && s.name) ||
-    (typeof s.slug === 'string' && s.slug) ||
-    (typeof s.id === 'string' && s.id) ||
-    'skill';
-  const description =
-    (typeof s.description === 'string' && s.description) ||
-    (typeof s.summary === 'string' && s.summary) ||
-    '';
-  return {
-    name,
-    description,
-    enabled: typeof s.enabled === 'boolean' ? s.enabled : undefined,
-    source: 'gateway',
-  };
-}
+/*
+ * normalizeSkill/NORMALIZED SKILL dipindah ke services/skill-catalog.ts
+ * (Tahap 11) supaya routes/agents.ts memakai normalisasi & guardrail yang sama.
+ */
