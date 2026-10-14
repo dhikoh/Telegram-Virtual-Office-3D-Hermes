@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { ROOM_LAYOUTS, LOUNGE_AREA, APPROVAL_GATE } from '@hermes-office/shared';
+import { GLTFurniture } from './GLTFurniture';
 
 interface FurnitureProps {
   onSelectRoom?: (nameKey: string) => void;
@@ -106,6 +107,11 @@ export const Furniture: React.FC<FurnitureProps> = ({ onSelectRoom }) => {
           <meshStandardMaterial color="#CBD5E1" roughness={0.45} metalness={0.15} />
         </mesh>
       </group>
+
+      {/* Tahap 13 — CC0 GLB props (Kenney Furniture Kit). Purely additive:
+          nothing above depends on them, and a failed load renders nothing at
+          all, so the procedural desks, sofas and gate above remain the scene. */}
+      <GLTFurniture />
     </group>
   );
 };

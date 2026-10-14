@@ -1,0 +1,22 @@
+Furniture Kit — Kenney (kenney.nl)
+=================================
+
+Source pack : https://kenney.nl/assets/furniture-kit
+Download    : https://kenney.nl/media/pages/assets/furniture-kit/440e0608a4-1677580847/kenney_furniture-kit.zip
+Downloaded  : 2026-10-14
+SHA-256     : e67652d0932cee41683f74711c03d3e192a2af9979ef8e6b237711f5482d46b0
+Pack version: 1.0 (released 2018)
+
+License: Creative Commons CC0 1.0 Universal (Public Domain Dedication).
+Quoted from the asset page (https://kenney.nl/assets/furniture-kit):
+
+    License | Creative Commons CC0
+
+Full legal code: https://creativecommons.org/publicdomain/zero/1.0/
+Kenney (kenney.nl) places these assets in the public domain: free for
+personal, educational and commercial use, with no attribution required.
+
+Files in this directory are a 6-model subset of that pack, re-processed with
+gltf-transform 4.5.1 (weld/simplify/prune/quantize, KHR_materials_unlit
+removed so they take part in the office lighting). Model names are kept
+identical to the pack's. See docs/ASSETS.md for the catalogue.
