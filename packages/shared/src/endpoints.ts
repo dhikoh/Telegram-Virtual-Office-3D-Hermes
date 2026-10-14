@@ -278,4 +278,32 @@ export const ENDPOINTS: readonly EndpointDefinition[] = [
     requiresAuth: true,
     description: 'Stream a stored artifact for download with its original content type',
   },
+  {
+    method: 'POST',
+    path: '/api/projects',
+    phase: 14,
+    requiresAuth: true,
+    description: 'Create a project and ask the orchestrator to decompose it into dependent subtasks (honest decompose_error when the JSON cannot be read)',
+  },
+  {
+    method: 'GET',
+    path: '/api/projects',
+    phase: 14,
+    requiresAuth: true,
+    description: 'List projects with their subtask counts and live statuses',
+  },
+  {
+    method: 'GET',
+    path: '/api/projects/:id',
+    phase: 14,
+    requiresAuth: true,
+    description: 'Fetch one project together with its subtasks (id, status, agent, depends_on) for the DAG map',
+  },
+  {
+    method: 'POST',
+    path: '/api/projects/:id/run',
+    phase: 14,
+    requiresAuth: true,
+    description: 'Start the project chain: auto-run every subtask whose dependencies are already done (409 when none is ready)',
+  },
 ] as const;

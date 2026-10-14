@@ -35,6 +35,20 @@ export const TASK_STATUSES = [
 ] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 
+/**
+ * Tahap 14 — status proyek (tabel `projects`, migrasi 007).
+ * `blocked` dipakai saat rantai berhenti menunggu approval gate.
+ */
+export const PROJECT_STATUSES = ['draft', 'running', 'blocked', 'done', 'failed'] as const;
+export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
+
+/**
+ * Tahap 14 — batas dekomposisi orkestrator: 3–6 subtask per proyek.
+ * Angka ini dipakai baik di prompt maupun di validasi server.
+ */
+export const PROJECT_MIN_SUBTASKS = 1;
+export const PROJECT_MAX_SUBTASKS = 6;
+
 export const APPROVAL_STATUSES = ['pending', 'approved', 'denied', 'expired'] as const;
 export type ApprovalStatus = (typeof APPROVAL_STATUSES)[number];
 

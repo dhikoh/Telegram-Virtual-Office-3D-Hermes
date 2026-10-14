@@ -9,6 +9,7 @@ import fastifyStatic from '@fastify/static';
 import type Database from 'better-sqlite3';
 import { authHook } from './plugins/auth.js';
 import { OfficeDispatcher } from './services/dispatcher.js';
+import { ProjectService } from './services/projects.js';
 import { healthRoutes } from './routes/health.js';
 import { meRoutes } from './routes/me.js';
 import { agentRoutes } from './routes/agents.js';
@@ -22,6 +23,7 @@ import { auditRoutes } from './routes/audit.js';
 import { skillRoutes } from './routes/skills.js';
 import { departmentRoutes } from './routes/departments.js';
 import { mediaRoutes } from './routes/media.js';
+import { projectRoutes } from './routes/projects.js';
 import { config } from './config.js';
 import { startMediaSweepTimer, stopMediaSweepTimer, sweepRetention } from './services/media.js';
 
@@ -36,8 +38,16 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
 
   const dispatcher = new OfficeDispatcher(options.db);
 
+  // Tahap 14 — rantai proyek disambung ke satu-satunya funnel status task
+  // (dispatcher.updateTask): tanpa polling, tanpa listener SSE kedua.
+  const projectService = new ProjectService(options.db, () => dispatcher);
+  dispatcher.onTaskSettled = (taskId) => {
+    void projectService.handleSettled(taskId).catch(() => undefined);
+  };
+
   app.decorate('db', options.db);
   app.decorate('dispatcher', dispatcher);
+  app.decorate('projectService', projectService);
 
   // Rule S8: Helmet with CSP allowing telegram.org scripts
   app.register(helmet, {
@@ -89,6 +99,7 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
   app.register(skillRoutes);
   app.register(departmentRoutes, { db: options.db });
   app.register(mediaRoutes);
+  app.register(projectRoutes);
 
   // Tahap 12 — retensi media: sekali saat startup + interval berkala.
   // NODE_ENV=test sengaja dilewati supaya unit test tidak mewarisi timer aktif

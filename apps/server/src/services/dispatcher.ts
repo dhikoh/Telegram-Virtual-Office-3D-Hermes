@@ -58,7 +58,21 @@ export class OfficeDispatcher {
       },
       timestamp: Date.now(),
     });
+
+    // Tahap 14 — rantai proyek: satu-satunya funnel status task, jadi hook
+    // ketergantungan subtask disambung ke sini (tanpa polling, tanpa listener
+    // SSE tambahan). Kegagalan hook tidak boleh merusak update task biasa.
+    if (this.onTaskSettled && (task.status === 'done' || task.status === 'failed')) {
+      try {
+        void this.onTaskSettled(taskId);
+      } catch {
+        /* hook rantai gagal — biarkan task biasa tetap selesai */
+      }
+    }
   }
+
+  /** Tahap 14 — disetel server.ts ke ProjectService.handleSettled. */
+  public onTaskSettled?: (taskId: string) => void;
 
   public async runTask(taskId: string): Promise<{ run_id: string }> {
     const task = this.taskRepo.getById(taskId);

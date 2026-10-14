@@ -19,6 +19,7 @@ import {
   Sparkles,
   ChevronRight,
   Building2,
+  GitBranch,
 } from 'lucide-react';
 import { usePowerStore } from '../stores/power';
 import { GRAPHICS_PRESETS, type GraphicsPreset } from '@hermes-office/shared';
@@ -30,6 +31,7 @@ import { AgentsRegistryModal } from '../components/more/AgentsRegistryModal';
 import { AuditLogModal } from '../components/more/AuditLogModal';
 import { SkillsModal } from '../components/more/SkillsModal';
 import { RoomsManagerModal } from '../components/more/RoomsManagerModal';
+import { ProjectsModal } from '../components/more/ProjectsModal';
 import { AccountCard } from '../components/more/AccountCard';
 import { TelegramNotificationsCard } from '../components/more/TelegramNotificationsCard';
 import { ViewModeCard } from '../components/more/ViewModeCard';
@@ -48,6 +50,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
   const [isAuditOpen, setIsAuditOpen] = useState(false);
   const [isSkillsOpen, setIsSkillsOpen] = useState(false);
   const [isRoomsOpen, setIsRoomsOpen] = useState(false);
+  const [isProjectsOpen, setIsProjectsOpen] = useState(false);
 
   const handleLanguageChange = (lang: 'id' | 'en') => {
     tma.hapticSelection();
@@ -174,6 +177,29 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
                 <span className="font-semibold text-office-text">Kelola Ruang Kantor</span>
                 <span className="text-[10px] text-office-muted">
                   {departments.length} ruang • Nama, warna, urutan, sembunyikan
+                </span>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-office-muted" />
+          </button>
+
+          {/* Tahap 14 — proyek: tujuan dipecah orkestrator jadi subtask berantai */}
+          <button
+            onClick={() => {
+              tma.hapticImpact('light');
+              setIsProjectsOpen(true);
+            }}
+            type="button"
+            className="glass-panel rounded-xl p-3.5 border border-office-border hover:bg-office-hover flex items-center justify-between text-xs text-office-text transition-all min-h-[48px]"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-office-inset text-office-muted">
+                <GitBranch className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col text-left">
+                <span className="font-semibold text-office-text">Proyek &amp; Alur Kerja</span>
+                <span className="text-[10px] text-office-muted">
+                  Tujuan dipecah orkestrator jadi subtask berantai (DAG)
                 </span>
               </div>
             </div>
@@ -367,6 +393,12 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onOpenRecruitment }) => 
       <RoomsManagerModal
         isOpen={isRoomsOpen}
         onClose={() => setIsRoomsOpen(false)}
+      />
+
+      {/* Tahap 14 — Proyek & peta DAG */}
+      <ProjectsModal
+        isOpen={isProjectsOpen}
+        onClose={() => setIsProjectsOpen(false)}
       />
     </div>
   );

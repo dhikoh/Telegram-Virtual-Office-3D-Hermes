@@ -5,10 +5,12 @@
  */
 import type Database from 'better-sqlite3';
 import type { OfficeDispatcher } from '../services/dispatcher.js';
+import type { ProjectService } from '../services/projects.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
     db: Database.Database;
     dispatcher: OfficeDispatcher;
+    projectService: ProjectService;
   }
 }

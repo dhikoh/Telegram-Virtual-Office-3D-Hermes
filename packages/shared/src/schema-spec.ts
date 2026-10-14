@@ -118,4 +118,20 @@ export const SCHEMA_SPEC: readonly TableSpec[] = [
     columns: ['key', 'value'],
     requiredPhase: 2,
   },
+  // Tahap 14 — proyek & subtask berantai (migrasi 007).
+  {
+    name: 'projects',
+    columns: [
+      'id',
+      'title',
+      'goal',
+      'status',
+      'created_by',
+      'created_at',
+      'completed_at',
+      'summary',
+      'decompose_error',
+    ],
+    requiredPhase: 14,
+  },
 ] as const;

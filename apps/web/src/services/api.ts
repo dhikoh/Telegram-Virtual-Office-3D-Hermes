@@ -13,6 +13,8 @@ import type {
   HiringDraft,
   AuditLog,
   OfficeDepartment,
+  Project,
+  ProjectTask,
 } from '@hermes-office/shared';
 
 const API_BASE = '/api';
@@ -128,6 +130,21 @@ export const api = {
   /** Tahap 10 — hapus ruang custom (403 untuk ruang bawaan, 409 bila masih berpenghuni). */
   deleteDepartment: (id: string) =>
     request<{ ok: boolean; id: string }>(`/departments/${id}`, { method: 'DELETE' }),
+
+  /** Tahap 14 — proyek: buat (dekomposisi berjalan di belakang layar). */
+  createProject: (body: { title: string; goal?: string }) =>
+    request<{ project: Project }>('/projects', { method: 'POST', body: JSON.stringify(body) }),
+  /** Tahap 14 — daftar proyek + hitungan subtask (done/total). */
+  listProjects: () =>
+    request<{ projects: (Project & { subtask_total: number; subtask_done: number })[] }>(
+      '/projects'
+    ),
+  /** Tahap 14 — satu proyek + subtask untuk peta DAG. */
+  getProject: (id: string) =>
+    request<{ project: Project; tasks: ProjectTask[] }>(`/projects/${id}`),
+  /** Tahap 14 — jalankan rantai proyek (409 bila tidak ada subtask siap). */
+  runProject: (id: string) =>
+    request<{ project: Project; started: number }>(`/projects/${id}/run`, { method: 'POST' }),
   /** Tahap 8 — skill yang benar-benar terpasang di gateway. */
   getSkills: () =>
     request<{

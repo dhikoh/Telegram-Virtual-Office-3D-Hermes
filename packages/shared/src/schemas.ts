@@ -3,6 +3,7 @@ import {
   DEPARTMENTS,
   TASK_PRIORITIES,
   TASK_STATUSES,
+  PROJECT_STATUSES,
   APPROVAL_STATUSES,
   AGENT_NORMALIZED_STATUSES,
   KPI_SOURCES,
@@ -32,6 +33,7 @@ export const OfficeDepartmentSchema = z.object({
 export type OfficeDepartment = z.infer<typeof OfficeDepartmentSchema>;
 export const TaskPrioritySchema = z.enum(TASK_PRIORITIES);
 export const TaskStatusSchema = z.enum(TASK_STATUSES);
+export const ProjectStatusSchema = z.enum(PROJECT_STATUSES);
 export const ApprovalStatusSchema = z.enum(APPROVAL_STATUSES);
 export const AgentNormalizedStatusSchema = z.enum(AGENT_NORMALIZED_STATUSES);
 export const KpiSourceSchema = z.enum(KPI_SOURCES);
@@ -130,6 +132,46 @@ export const TaskSchema = z.object({
   created_at: z.number().int(),
   updated_at: z.number().int(),
 });
+
+/**
+ * Tahap 14 — proyek pemilik yang dipecah orkestrator menjadi subtask DAG.
+ * `decompose_error` null = dekomposisi sukses (atau belum dicoba);
+ * berisi teks apa adanya bila balasan orkestrator tidak terbaca / tidak valid.
+ */
+export const ProjectSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1).max(500),
+  goal: z.string().default(''),
+  status: ProjectStatusSchema,
+  created_by: z.number().int(),
+  created_at: z.number().int(),
+  completed_at: z.number().int().nullable().default(null),
+  summary: z.string().nullable().default(null),
+  decompose_error: z.string().nullable().default(null),
+});
+export type Project = z.infer<typeof ProjectSchema>;
+
+/** Satu subtask yang dikirim orkestrator saat memecah proyek (indeks bukan id). */
+export const ProjectSubtaskSchema = z.object({
+  title: z.string().min(1).max(1000),
+  detail: z.string().default(''),
+  agent: z.string().nullable().default(null),
+  depends_on: z.array(z.number().int()).default([]),
+});
+export type ProjectSubtask = z.infer<typeof ProjectSubtaskSchema>;
+
+/** Subtask proyek yang sudah dipetakan ke id tugas nyata (untuk render DAG). */
+export const ProjectTaskSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  status: TaskStatusSchema,
+  agent_id: z.string(),
+  depends_on: z.array(z.string()).default([]),
+  priority: TaskPrioritySchema.optional(),
+  result_md: z.string().nullable().optional(),
+  updated_at: z.number().int().optional(),
+});
+export type ProjectTask = z.infer<typeof ProjectTaskSchema>;
 
 export const RunEventSchema = z.object({
   id: z.number().int().optional(),
