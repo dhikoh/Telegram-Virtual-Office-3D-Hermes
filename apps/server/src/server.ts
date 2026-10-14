@@ -47,8 +47,14 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
         scriptSrc: ["'self'", 'https://telegram.org', 'https://static.cloudflareinsights.com'],
         styleSrc: ["'self'", "'unsafe-inline'"],
         connectSrc: ["'self'", 'https://cloudflareinsights.com'],
+        // Telegram Web membuka Mini App di dalam iframe — izinkan hanya
+        // origin Telegram (bukan 'self' semata), tanpa membuka frame ke pihak lain.
+        frameAncestors: ["'self'", 'https://web.telegram.org'],
       },
     },
+    // X-Frame-Options SAMEORIGIN (default helmet) menolak iframe web.telegram.org;
+    // batasan framing sudah ditangani frameAncestors di atas.
+    xFrameOptions: false,
   });
 
   // Rule S8: CORS - no wildcard with credentials
