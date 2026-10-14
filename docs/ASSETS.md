@@ -60,6 +60,8 @@ Licence text is committed alongside the models: `furniture/LICENSE-Kenney.txt`.
 
 Source: Kenney **Mini Characters 1.0** (released 17-07-2024), CC0 1.0, <https://creativecommons.org/publicdomain/zero/1.0/> — twelve characters in `apps/web/public/assets/3d/character/`, downloaded 2026-10-14 from the author's official distribution link. **Zero remote/CDN requests at runtime** (Rule 9.4).
 
+Each GLB embeds its own `colormap.png` as a `data:image/png` URI (8,706 B; sha256 verified identical to the file in the author's zip), so a model is one self-contained request with no `.bin` or image sidecar. Because three.js loads that URI through `ImageBitmapLoader` → `fetch()`, the server's CSP must allow `data:` in **`connect-src`** as well as `img-src`; without it the loader's `catch()` silently substitutes a default white texture and the characters render as untextured grey blobs while all animation still works (see DEC-047).
+
 | File | Bytes | Default for | Author | Licence |
 |---|---|---|---|---|
 | `character/character-male-a.glb` | 258,072 | Command | Kenney | CC0 |
