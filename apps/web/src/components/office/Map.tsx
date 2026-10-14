@@ -21,6 +21,7 @@ import { useOfficeStore, type OfficeAgent } from '../../stores/office';
 import { usePowerStore } from '../../stores/power';
 import { useRoomFocusStore } from '../../stores/room-focus';
 import { spriteDataUrl } from '../../lib/sprites';
+import { STREET_PROPS, STREET_PROP_SIZE, streetTileUrl } from '../../lib/streetTiles';
 
 /** Tahap 5: the street strip below the rooms, 380 px wide like the canvas. */
 const STRIP_TOP = 354;
@@ -30,6 +31,29 @@ const ROAD_BOTTOM = 414;
 const LANE_Y = [372, 396];
 /** world units (STREET_SPAN either side) mapped onto the canvas width. */
 const STRIP_UNIT_PX = 380 / (2 * STREET_SPAN);
+
+/**
+ * Tahap 16 — Kenney CC0 pixel tiles (see lib/streetTiles.ts for the atlas
+ * index table). One 16 px tile per pattern, snapped to the same grid as the
+ * lane geometry: `patternTransform` is the tile's offset mod 16, so with
+ * `translate(0 14)` every tile starts on y ≡ 14 (mod 16) — 350, 366, 382,
+ * 398 — and the kerb line, the dash row and the far edge line land exactly on
+ * the numbers the flat street already used.
+ */
+const PIXELATED: React.CSSProperties = { imageRendering: 'pixelated' };
+
+/** y offset (mod 16) that puts a tile's top edge at `tileTopY`. */
+const patternOffset = (tileTopY: number) => `translate(0 ${tileTopY % 16})`;
+
+const StreetTilePattern: React.FC<{
+  id: string;
+  tile: Parameters<typeof streetTileUrl>[0];
+  tileTopY: number;
+}> = ({ id, tile, tileTopY }) => (
+  <pattern id={id} width="16" height="16" patternUnits="userSpaceOnUse" patternTransform={patternOffset(tileTopY)}>
+    <image href={streetTileUrl(tile)} width="16" height="16" style={PIXELATED} />
+  </pattern>
+);
 
 const StreetStrip: React.FC = () => {
   const isLowPower = usePowerStore((s) => s.isLowPower);
@@ -62,13 +86,61 @@ const StreetStrip: React.FC = () => {
 
   return (
     <g id="street-strip" role="img" aria-label="Jalan di depan kantor">
+      {/* --- flat fallback, drawn first: a pattern whose <image> 404s
+          renders nothing, so the street below is what shows through. --- */}
       <rect x="0" y={STRIP_TOP} width="380" height={CURB_Y - STRIP_TOP} fill="#D2D8E2" />
       <rect x="0" y={CURB_Y} width="380" height={ROAD_BOTTOM - CURB_Y} fill="#B9C0CD" />
-      <rect x="0" y={CURB_Y} width="380" height="2" fill="#8A97A9" />
       {Array.from({ length: 8 }).map((_, i) => (
         <rect key={i} x={8 + i * 48} y={389} width="24" height="3" fill="#FFFFFF" />
       ))}
       <rect x="0" y={ROAD_BOTTOM} width="380" height="6" fill="#D2D8E2" />
+
+      {/* --- Tahap 16: the same street, tiled with Kenney's 16 px CC0 tiles.
+          All static (no per-frame work), so ECO keeps them on screen. --- */}
+      <defs>
+        {/* pavement rows 4–15 land in the 12 px band: flat, then the 4 px
+            checker, then row 15 (dark #69717B) as the kerb at y = 365. */}
+        <StreetTilePattern id="tile-sidewalk-near" tile="sidewalk" tileTopY={STRIP_TOP - 4} />
+        {/* far pavement: row 15 lands on y = 414, the road's bottom edge. */}
+        <StreetTilePattern id="tile-sidewalk-far" tile="sidewalk" tileTopY={ROAD_BOTTOM - 15} />
+        {/* road base: three tiles at 366 / 382 / 398 cover 366–414. */}
+        <StreetTilePattern id="tile-asphalt" tile="asphalt" tileTopY={CURB_Y} />
+        {/* solid kerb line on row 2 → y = 368, just under the curb face. */}
+        <StreetTilePattern id="tile-edge-top" tile="edgeTop" tileTopY={CURB_Y} />
+        {/* dash on rows 7–8 → y = 389–390, where the flat dashes were. */}
+        <StreetTilePattern id="tile-lane-dash" tile="laneDash" tileTopY={389 - 7} />
+        {/* solid line on row 13 → y = 411, just above ROAD_BOTTOM. */}
+        <StreetTilePattern id="tile-edge-bottom" tile="edgeBottom" tileTopY={ROAD_BOTTOM - 16} />
+      </defs>
+
+      <rect x="0" y={STRIP_TOP} width="380" height={CURB_Y - STRIP_TOP} fill="url(#tile-sidewalk-near)" />
+      <rect x="0" y={ROAD_BOTTOM} width="380" height="6" fill="url(#tile-sidewalk-far)" />
+      <rect x="0" y={CURB_Y} width="380" height={ROAD_BOTTOM - CURB_Y} fill="url(#tile-asphalt)" />
+      <rect x="0" y={CURB_Y} width="380" height={8} fill="url(#tile-edge-top)" />
+      <rect x="0" y={382} width="380" height={16} fill="url(#tile-lane-dash)" />
+      <rect x="0" y={ROAD_BOTTOM - 8} width="380" height={8} fill="url(#tile-edge-bottom)" />
+
+      {/* Kerb face: unchanged flat colour, drawn over the tiled layers so the
+          curb reads exactly as it did; the flat sidewalk/road behind it is
+          what shows if a tile PNG ever fails to load. */}
+      <rect x="0" y={CURB_Y} width="380" height="2" fill="#8A97A9" />
+
+      {/* Dressing props stand on the curb, 12 px tall so they stay inside the
+          strip — the floor plan above y = 354 and the lanes below y = 366 are
+          untouched. Drawn before the fleet: a passing vehicle is never
+          covered by a prop. */}
+      {STREET_PROPS.map((prop) => (
+        <image
+          key={`${prop.id}-${prop.x}`}
+          href={streetTileUrl(prop.id)}
+          x={prop.x}
+          y={CURB_Y - STREET_PROP_SIZE}
+          width={STREET_PROP_SIZE}
+          height={STREET_PROP_SIZE}
+          style={PIXELATED}
+        />
+      ))}
+
       {fleet.map((v) => {
         const url = urls[v.id];
         if (!url) return null;
