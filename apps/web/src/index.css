@@ -45,6 +45,19 @@ body {
   user-select: none;
   -webkit-user-select: none;
   touch-action: manipulation;
+  /* A mid-gesture rubber-band (pull-to-refresh, webview overscroll) fires
+     pointercancel and kills the camera drag half-way. */
+  overscroll-behavior: none;
+}
+
+/* Audit 2026-10-14 — touch gestures on the 3D stage.
+   `touch-action: manipulation` (above) still lets the browser claim a drag for
+   scrolling/pinch-zoom: the pointer is cancelled and the camera stops mid-swipe,
+   which is exactly why a finger never felt like the mouse cursor on desktop.
+   The stage owns every gesture, so it disables the browser's. */
+.office-3d-stage,
+.office-3d-stage canvas {
+  touch-action: none;
 }
 
 /* Soft Floor Grid (Rule REQ-065) — light revision for Tahap 2 */

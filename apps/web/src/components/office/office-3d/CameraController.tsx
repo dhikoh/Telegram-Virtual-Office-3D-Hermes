@@ -16,7 +16,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useThree } from '@react-three/fiber';
 import { Vector3, PerspectiveCamera } from 'three';
-import { cameraDrag, CAMERA_RESET_EVENT } from './cameraState';
+import { cameraDrag, CAMERA_RESET_EVENT, getCameraGestureMode } from './cameraState';
 import { getRoomFocusTarget } from '@hermes-office/shared';
 import { useRoomFocusStore } from '../../../stores/room-focus';
 
@@ -36,6 +36,14 @@ const MAX_FOV = 60;
 const FOCUS_RADIUS = 11;
 /** Pointer travel that turns a tap into a camera drag (and blocks selection). */
 const TAP_SLOP_PX = 6;
+/**
+ * Fingers travel a shorter distance than a mouse to cover the same intent, and
+ * a fingertip reports its position with more lag than a cursor. Without this
+ * the same swipe rotated far less on a phone than on a desktop (audit 2026-10-14).
+ */
+const TOUCH_GAIN = 1.5;
+/** Desktop: wheel = zoom in/out, which until now had no handler at all. */
+const WHEEL_ZOOM_PER_TICK = 0.04;
 
 export const CameraController: React.FC = () => {
   const { camera, gl, invalidate } = useThree();
@@ -45,6 +53,8 @@ export const CameraController: React.FC = () => {
   const gestureStart = useRef({ x: 0, y: 0 });
   const pinch = useRef<{ midX: number; midY: number; dist: number } | null>(null);
   const panMode = useRef(false);
+  /** Gain for the *current* gesture: 1 for a cursor, TOUCH_GAIN for a finger. */
+  const gain = useRef(1);
   const activeRoom = useRoomFocusStore((s) => s.activeRoom);
 
   // Recompute the camera from the spherical state. Reads refs, so every
@@ -109,13 +119,23 @@ export const CameraController: React.FC = () => {
     };
 
     const handlePointerDown = (e: PointerEvent) => {
+      // Keep the gesture even if the webview tries to claim it. Without capture
+      // a touch drag silently dies the moment the browser starts scrolling.
+      try {
+        dom.setPointerCapture(e.pointerId);
+      } catch {
+        /* very old webviews: degrade to the previous behaviour */
+      }
       pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (pointers.current.size === 1) {
         cameraDrag.down = true;
         cameraDrag.moved = false;
+        gain.current = e.pointerType === 'touch' ? TOUCH_GAIN : 1;
         gestureStart.current = { x: e.clientX, y: e.clientY };
-        // Right button or shift = pan; a plain drag = rotate.
-        panMode.current = e.shiftKey || e.button === 2;
+        // Right button or shift = pan on desktop; on touch the one-finger
+        // gesture follows the mode chosen in the stage overlay.
+        panMode.current =
+          e.shiftKey || e.button === 2 || (e.pointerType === 'touch' && getCameraGestureMode() === 'pan');
       }
       if (pointers.current.size === 2) {
         const [a, b] = Array.from(pointers.current.values());
@@ -168,22 +188,36 @@ export const CameraController: React.FC = () => {
       }
 
       if (panMode.current) {
-        panBy(dx, dy);
+        panBy(dx * gain.current, dy * gain.current);
         apply();
         return;
       }
 
       // Rotate: horizontal swings around the room, vertical tilts the diorama.
-      view.current.azimuth -= dx * 0.006;
+      view.current.azimuth -= dx * gain.current * 0.006;
       view.current.elevation = Math.max(
         MIN_ELEVATION,
-        Math.min(MAX_ELEVATION, view.current.elevation + dy * 0.005)
+        Math.min(MAX_ELEVATION, view.current.elevation + dy * gain.current * 0.005)
       );
+      apply();
+    };
+
+    /** Desktop zoom: a wheel tick narrows/widens the field of view. */
+    const handleWheel = (e: WheelEvent) => {
+      if (!(camera instanceof PerspectiveCamera)) return;
+      e.preventDefault();
+      camera.fov = Math.max(MIN_FOV, Math.min(MAX_FOV, camera.fov + e.deltaY * WHEEL_ZOOM_PER_TICK));
+      camera.updateProjectionMatrix();
       apply();
     };
 
     const finishPointer = (e: PointerEvent) => {
       pointers.current.delete(e.pointerId);
+      try {
+        if (dom.hasPointerCapture(e.pointerId)) dom.releasePointerCapture(e.pointerId);
+      } catch {
+        /* pointer already gone */
+      }
       if (pointers.current.size < 2) pinch.current = null;
       if (pointers.current.size === 0) {
         cameraDrag.down = false;
@@ -200,6 +234,9 @@ export const CameraController: React.FC = () => {
     window.addEventListener('pointermove', handlePointerMove);
     window.addEventListener('pointerup', finishPointer);
     window.addEventListener('pointercancel', finishPointer);
+    // The browser can revoke a capture of its own accord — treat it as a lift.
+    dom.addEventListener('lostpointercapture', finishPointer);
+    dom.addEventListener('wheel', handleWheel, { passive: false });
     dom.addEventListener('contextmenu', blockContextMenu);
 
     return () => {
@@ -207,6 +244,8 @@ export const CameraController: React.FC = () => {
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', finishPointer);
       window.removeEventListener('pointercancel', finishPointer);
+      dom.removeEventListener('lostpointercapture', finishPointer);
+      dom.removeEventListener('wheel', handleWheel);
       dom.removeEventListener('contextmenu', blockContextMenu);
     };
   }, [camera, gl, invalidate]);

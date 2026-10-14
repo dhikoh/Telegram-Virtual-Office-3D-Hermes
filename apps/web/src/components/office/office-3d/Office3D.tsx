@@ -11,9 +11,9 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Scene } from './Scene';
-import { RotateCcw } from 'lucide-react';
+import { Hand, RotateCcw } from 'lucide-react';
 import { useViewModeStore } from '../../../stores/view-mode';
-import { requestCameraReset } from './cameraState';
+import { requestCameraReset, getCameraGestureMode, toggleCameraGestureMode } from './cameraState';
 import type { OfficeAgent } from '../../../stores/office';
 
 interface Office3DProps {
@@ -37,6 +37,10 @@ export const Office3D: React.FC<Office3DProps> = ({
   const [recoveryNotice, setRecoveryNotice] = useState(false);
   const lossCount = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  // One-finger gesture: rotate or pan (a mouse gets pan from Shift/right-button,
+  // a finger has no modifier — audit 2026-10-14).
+  const [gestureMode, setGestureMode] = useState(getCameraGestureMode());
+  const nextGestureMode = () => setGestureMode(toggleCameraGestureMode());
 
   // Quality Tier detection (low vs medium) based on hardware capability (Rule REQ-114)
   const qualityTier = useMemo<'low' | 'medium'>(() => {
@@ -91,7 +95,7 @@ export const Office3D: React.FC<Office3DProps> = ({
   return (
     <div
       ref={containerRef}
-      className="relative w-full max-w-[390px] mx-auto aspect-[380/420] rounded-xl overflow-hidden border border-office-border bg-office-surface shadow-nu-raised select-none"
+      className="office-3d-stage relative w-full max-w-[390px] mx-auto aspect-[380/420] rounded-xl overflow-hidden border border-office-border bg-office-surface shadow-nu-raised select-none"
     >
       <Canvas
         key={recoveryKey}
@@ -122,21 +126,37 @@ export const Office3D: React.FC<Office3DProps> = ({
         </div>
       )}
 
-      {/* Control overlay hint for touch gestures */}
+      {/* Control overlay hint for touch gestures — worded to match the active mode */}
       <div className="absolute bottom-2 left-2 pointer-events-none text-[10px] text-office-text/85 bg-office-surface/85 border border-office-border px-2 py-0.5 rounded backdrop-blur-sm">
-        Seret: putar • 2 jari: geser &amp; zoom
+        {gestureMode === 'pan' ? 'Seret: geser • 2 jari: zoom' : 'Seret: putar • 2 jari: geser & zoom'}
       </div>
 
-      {/* Reset the diorama to the framing it was cut for */}
-      <button
-        type="button"
-        onClick={requestCameraReset}
-        aria-label="Atur ulang tampilan 3D"
-        title="Atur ulang tampilan 3D"
-        className="absolute bottom-2 right-2 w-7 h-7 flex items-center justify-center rounded-md bg-office-surface border border-office-border text-office-text/75 hover:bg-office-accent hover:text-office-on-accent active:scale-95 transition-colors"
-      >
-        <RotateCcw size={14} aria-hidden="true" />
-      </button>
+      <div className="absolute bottom-2 right-2 flex gap-1.5">
+        {/* One-finger gesture switch: rotate ⇄ pan (no modifier key on a phone) */}
+        <button
+          type="button"
+          onClick={nextGestureMode}
+          aria-pressed={gestureMode === 'pan'}
+          aria-label={
+            gestureMode === 'pan' ? 'Ganti gestur 1 jari menjadi putar' : 'Ganti gestur 1 jari menjadi geser'
+          }
+          title={gestureMode === 'pan' ? '1 jari: geser (klik untuk putar)' : '1 jari: putar (klik untuk geser)'}
+          className="w-11 h-11 flex items-center justify-center rounded-md bg-office-surface border border-office-border text-office-text/75 hover:bg-office-accent hover:text-office-on-accent active:scale-95 transition-colors"
+        >
+          <Hand size={14} aria-hidden="true" />
+        </button>
+
+        {/* Reset the diorama to the framing it was cut for */}
+        <button
+          type="button"
+          onClick={requestCameraReset}
+          aria-label="Atur ulang tampilan 3D"
+          title="Atur ulang tampilan 3D"
+          className="w-11 h-11 flex items-center justify-center rounded-md bg-office-surface border border-office-border text-office-text/75 hover:bg-office-accent hover:text-office-on-accent active:scale-95 transition-colors"
+        >
+          <RotateCcw size={14} aria-hidden="true" />
+        </button>
+      </div>
     </div>
   );
 };
