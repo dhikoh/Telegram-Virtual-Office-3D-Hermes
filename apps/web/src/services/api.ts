@@ -247,11 +247,23 @@ export const api = {
             }
             try {
               const parsed = JSON.parse(dataStr);
+              // Tahap 19 — server kirim frame `error` saat stream gagal
+              // (timeout TTFB/total, atau gateway menyebut alasannya). Tanpa
+              // cabang ini frame itu jatuh ke `choices[0].delta.content` yang
+              // kosong: bubble chat tetap kosong dan tidak ada tanda apa pun
+              // bahwa giliran gagal.
+              if (typeof parsed.error === 'string') {
+                throw new Error(parsed.message || parsed.error);
+              }
               const deltaContent = parsed.choices?.[0]?.delta?.content || '';
               if (deltaContent) {
                 onChunk(deltaContent);
               }
-            } catch {
+            } catch (parseErr) {
+              if (parseErr instanceof Error && !(parseErr instanceof SyntaxError)) {
+                // Galat nyata dari server — jangan dipotong jadi teks.
+                throw parseErr;
+              }
               // Raw non-json string data
               onChunk(dataStr);
             }

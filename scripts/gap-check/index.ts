@@ -10,11 +10,14 @@ import { run as runC3f } from './c3f-mock-security.js';
 import { run as runC3g } from './c3g-ledger.js';
 import { run as runC3h } from './c3h-screen-states.js';
 
-export function readCurrentPhase(rootDir: string): number {
-  const progressPath = path.join(rootDir, 'docs', 'PROGRESS.md');
-  if (!fs.existsSync(progressPath)) return 0;
-  const content = fs.readFileSync(progressPath, 'utf-8');
-  const match = content.match(/Current Phase:\s*Phase\s*(\d+)/i);
+export function readCurrentPhase(rootDirOrContent: string): number {
+  let content = rootDirOrContent;
+  if (!content.includes('Current Phase:')) {
+    const progressPath = path.join(rootDirOrContent, 'docs', 'PROGRESS.md');
+    if (!fs.existsSync(progressPath)) return 0;
+    content = fs.readFileSync(progressPath, 'utf-8');
+  }
+  const match = content.match(/Current Phase:\s*(?:Tahap|Phase|Stage)\s*(\d+)/i);
   return match ? parseInt(match[1], 10) : 0;
 }
 

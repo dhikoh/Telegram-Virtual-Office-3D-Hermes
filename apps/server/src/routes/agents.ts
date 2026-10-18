@@ -572,6 +572,12 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
       });
 
       const client = getHermesClientForAgent(agent, db);
+      // Tahap 19 — klien sudah tidak diam pada stream kosong, dan socket ini
+      // pun dicek sebelum menulis agar koneksi mati tidak membuat handler meledak.
+      const writeEvent = (payload: string) => {
+        if (reply.raw.writableEnded || reply.raw.destroyed) return;
+        reply.raw.write(payload);
+      };
       const lastUser = [...messages].reverse().find((m) => m.role === 'user');
       // Tahap 11 — layer SOUL: daftar skill aktif agen ikut dalam giliran ini.
       const scopeDirective = await readSkillScopeDirective(agentSkillRepo, agent);
@@ -590,7 +596,9 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
             sessionId,
             applyScopeToContent(lastUser?.content || JSON.stringify(messages), scopeDirective),
             (chunk) => {
-              reply.raw.write(`data: ${JSON.stringify({ choices: [{ delta: { content: chunk } }] })}\n\n`);
+              writeEvent(
+                `data: ${JSON.stringify({ choices: [{ delta: { content: chunk } }] })}\n\n`
+              );
             },
             agent.model || undefined
           );
@@ -603,7 +611,7 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
               ? [{ role: 'system', content: scopeDirective }, ...messages]
               : messages,
             (chunk) => {
-              reply.raw.write(chunk);
+              writeEvent(chunk);
             },
             agent.model || undefined
           );

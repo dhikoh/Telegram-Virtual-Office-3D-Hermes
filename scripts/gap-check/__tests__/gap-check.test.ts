@@ -9,7 +9,7 @@ import { run as runC3e } from '../c3e-hygiene.js';
 import { run as runC3f } from '../c3f-mock-security.js';
 import { run as runC3g } from '../c3g-ledger.js';
 import { run as runC3h } from '../c3h-screen-states.js';
-import { runAllGapChecks } from '../index.js';
+import { runAllGapChecks, readCurrentPhase } from '../index.js';
 import type { GapCheckContext } from '../types.js';
 
 describe('Modular Gap-Check Suite (Rule C3 & FR3 Fixture Verification)', () => {
@@ -202,6 +202,13 @@ describe('Modular Gap-Check Suite (Rule C3 & FR3 Fixture Verification)', () => {
       expect(totalChecksExecuted).toBe(8);
       expect(results.length).toBe(8);
       expect(allPassed).toBe(true);
+    });
+
+    it('correctly parses phase numbers with Tahap, Phase, or Stage', () => {
+      expect(readCurrentPhase('Current Phase: Tahap 18')).toBe(18);
+      expect(readCurrentPhase('Current Phase: Phase 9')).toBe(9);
+      expect(readCurrentPhase('Current Phase: Stage 4')).toBe(4);
+      expect(readCurrentPhase(rootDir)).toBe(19);
     });
   });
 });

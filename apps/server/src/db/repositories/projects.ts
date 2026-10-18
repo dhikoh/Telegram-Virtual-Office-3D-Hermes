@@ -9,6 +9,9 @@ import type { Project, ProjectStatus } from '@hermes-office/shared';
  * bisa dibaca; kolom itu sengaja ada di tabel supaya kejujurannya bertahan
  * lewat restart, bukan hanya hidup di respons POST.
  */
+export const coalesce = <T>(incoming: T | undefined, current: T | null): T | null =>
+  incoming === undefined ? current : incoming;
+
 export class ProjectRepository {
   constructor(private db: Database.Database) {}
 
@@ -45,7 +48,7 @@ export class ProjectRepository {
     const values: unknown[] = [];
 
     for (const [key, val] of Object.entries(updates)) {
-      if (key !== 'id') {
+      if (key !== 'id' && val !== undefined) {
         fields.push(`${key} = ?`);
         values.push(val);
       }

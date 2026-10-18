@@ -78,6 +78,8 @@ interface OfficeState {
 export { DEMO_AGENTS, DEMO_KPIS } from './demo-data.js';
 import { DEMO_AGENTS, DEMO_KPIS } from './demo-data.js';
 
+let activeStreamCleanup: (() => void) | null = null;
+
 export const useOfficeStore = create<OfficeState>((set, get) => ({
   agents: [],
   tasks: [],
@@ -145,6 +147,11 @@ export const useOfficeStore = create<OfficeState>((set, get) => ({
   },
 
   initStream: () => {
+    if (activeStreamCleanup) {
+      activeStreamCleanup();
+      activeStreamCleanup = null;
+    }
+
     const initData = tma.getInitData();
     const streamUrl = `/api/stream?auth=${encodeURIComponent(initData)}`;
     let eventSource: EventSource | null = null;
@@ -222,11 +229,17 @@ export const useOfficeStore = create<OfficeState>((set, get) => ({
       set({ streamStatus: 'disconnected' });
     }
 
-    return () => {
+    const cleanup = () => {
       if (eventSource) {
         eventSource.close();
+        eventSource = null;
+      }
+      if (activeStreamCleanup === cleanup) {
+        activeStreamCleanup = null;
       }
     };
+    activeStreamCleanup = cleanup;
+    return cleanup;
   },
 
   loadDemoOffice: async () => {

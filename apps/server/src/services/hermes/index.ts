@@ -78,16 +78,33 @@ export function resolveAgentApiKey(
   return (agent.api_key_env && process.env[agent.api_key_env]) || config.HERMES_KEY_DEFAULT;
 }
 
+/**
+ * Tahap 19 — memisahkan tiga angka batas waktu. `HERMES_TIMEOUT_MS` tetap untuk
+ * panggilan pendek (probe, health, daftar model); chat memakai dua angkanya
+ * sendiri karena jawaban model yang wajar butuh jauh lebih dari 30 detik.
+ */
+function resolveTimeout(envName: keyof typeof process.env, fallback: number): number {
+  const raw = process.env[envName];
+  const parsed = raw ? parseInt(raw, 10) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function chatTimeouts(): { ttfbMs: number; totalMs: number } {
+  return {
+    ttfbMs: resolveTimeout('HERMES_CHAT_TTFB_MS', config.HERMES_CHAT_TTFB_MS),
+    totalMs: resolveTimeout('HERMES_CHAT_TIMEOUT_MS', config.HERMES_CHAT_TIMEOUT_MS),
+  };
+}
+
 export function getHermesClientForAgent(agent: Agent, db?: Database.Database): HermesClient {
   const baseUrl = resolveAgentBaseUrl(agent);
-  const timeoutMs = process.env.HERMES_TIMEOUT_MS
-    ? parseInt(process.env.HERMES_TIMEOUT_MS, 10)
-    : config.HERMES_TIMEOUT_MS;
+  const timeoutMs = resolveTimeout('HERMES_TIMEOUT_MS', config.HERMES_TIMEOUT_MS);
+  const { ttfbMs, totalMs } = chatTimeouts();
 
   if (config.HERMES_MODE === 'real') {
     // Rule S4: key stays server-side, resolved from settings/env only
-    const apiKey = resolveAgentApiKey(agent, db);
-    return new RealHermesClient(baseUrl, apiKey, timeoutMs);
+    const key = resolveAgentApiKey(agent, db);
+    return new RealHermesClient(baseUrl, key, timeoutMs, ttfbMs, totalMs);
   }
 
   return new MockHermesClient(baseUrl, timeoutMs);
@@ -95,12 +112,17 @@ export function getHermesClientForAgent(agent: Agent, db?: Database.Database): H
 
 /** Tahap 8 — server-wide client (skills, capabilities) not tied to one agent. */
 export function getServerHermesClient(): HermesClient {
-  const timeoutMs = process.env.HERMES_TIMEOUT_MS
-    ? parseInt(process.env.HERMES_TIMEOUT_MS, 10)
-    : config.HERMES_TIMEOUT_MS;
+  const timeoutMs = resolveTimeout('HERMES_TIMEOUT_MS', config.HERMES_TIMEOUT_MS);
+  const { ttfbMs, totalMs } = chatTimeouts();
 
   if (config.HERMES_MODE === 'real') {
-    return new RealHermesClient(config.HERMES_BASE_URL, config.HERMES_KEY_DEFAULT, timeoutMs);
+    return new RealHermesClient(
+      config.HERMES_BASE_URL,
+      config.HERMES_KEY_DEFAULT,
+      timeoutMs,
+      ttfbMs,
+      totalMs
+    );
   }
 
   return new MockHermesClient(config.HERMES_BASE_URL, timeoutMs);

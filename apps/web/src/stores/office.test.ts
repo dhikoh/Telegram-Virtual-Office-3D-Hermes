@@ -150,5 +150,35 @@ describe('Web Shell & Office Store (Phase 3)', () => {
     useOfficeStore.setState({ streamStatus: 'connected' });
     expect(useOfficeStore.getState().streamStatus).toBe('connected');
   });
+
+  it('cleans up previous EventSource when initStream() is called twice (C8)', () => {
+    let closeCount = 0;
+    class MockEventSource {
+      onopen: (() => void) | null = null;
+      onmessage: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      close() {
+        closeCount++;
+      }
+      addEventListener() {}
+    }
+
+    const origEventSource = globalThis.EventSource;
+    (globalThis as unknown as { EventSource: unknown }).EventSource = MockEventSource;
+
+    try {
+      useOfficeStore.getState().initStream();
+      expect(closeCount).toBe(0);
+
+      // Second call should close the first EventSource
+      const cleanup2 = useOfficeStore.getState().initStream();
+      expect(closeCount).toBe(1);
+
+      cleanup2();
+      expect(closeCount).toBe(2);
+    } finally {
+      (globalThis as unknown as { EventSource: unknown }).EventSource = origEventSource;
+    }
+  });
 });
 

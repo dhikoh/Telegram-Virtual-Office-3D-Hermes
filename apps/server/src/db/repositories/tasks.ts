@@ -1,6 +1,9 @@
 import type Database from 'better-sqlite3';
 import type { Task } from '@hermes-office/shared';
 
+export const coalesce = <T>(incoming: T | undefined, current: T | null): T | null =>
+  incoming === undefined ? current : incoming;
+
 export class TaskRepository {
   constructor(private db: Database.Database) {}
 
@@ -40,7 +43,7 @@ export class TaskRepository {
     const values: unknown[] = [];
 
     for (const [key, val] of Object.entries(updates)) {
-      if (key !== 'id') {
+      if (key !== 'id' && val !== undefined) {
         fields.push(`${key} = ?`);
         values.push(val);
       }

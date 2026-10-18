@@ -149,6 +149,21 @@ export class OfficeDispatcher {
     let retries = 0;
     const maxRetries = 5;
 
+    // Runaway protection: 900000ms (15 minutes). Task cannot run forever.
+    const runTimeoutTimer = setTimeout(() => {
+      if (runFinished) return;
+      runFinished = true;
+      const cleanup = this.activeStreams.get(runId);
+      if (cleanup) {
+        cleanup();
+        this.activeStreams.delete(runId);
+      }
+      this.handleRunEvent(taskId, agent, runId, 'run.failed', {
+        error: 'Task timed out after 900000ms',
+      });
+      client.stopRun(runId).catch(() => {});
+    }, 900000);
+
     const onEvent = (event: string, rawData: unknown) => {
       if (event === 'stream.dropped') {
         if (!runFinished) {
@@ -158,6 +173,7 @@ export class OfficeDispatcher {
       }
       if (event === 'run.completed' || event === 'run.failed' || event === 'run.cancelled') {
         runFinished = true;
+        clearTimeout(runTimeoutTimer);
       }
       this.handleRunEvent(taskId, agent, runId, event, rawData);
     };
@@ -167,6 +183,7 @@ export class OfficeDispatcher {
         const unsubscribe = await client.streamEvents(runId, onEvent);
         this.activeStreams.set(runId, () => {
           runFinished = true;
+          clearTimeout(runTimeoutTimer);
           unsubscribe();
         });
       } catch {

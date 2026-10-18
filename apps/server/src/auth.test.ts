@@ -114,6 +114,26 @@ describe('Security & Telegram Auth (Section 5, Rules S1-S3)', () => {
     expect(body.role).toBe('owner');
   });
 
+  it('strictly verifies owner authorization against config.ownerIdsList (C3)', async () => {
+    const ownerSession = createTelegramInitData({ id: 123456789, first_name: 'Owner', username: 'owner' }, botToken);
+    const successRes = await app.inject({
+      method: 'GET',
+      url: '/api/agents',
+      headers: { authorization: `tma ${ownerSession}` },
+    });
+    expect(successRes.statusCode).toBe(200);
+
+    const unauthorizedSession = createTelegramInitData({ id: 555555, first_name: 'FakeOwner', username: 'fake' }, botToken);
+    const forbiddenRes = await app.inject({
+      method: 'GET',
+      url: '/api/agents',
+      headers: { authorization: `tma ${unauthorizedSession}` },
+    });
+    expect(forbiddenRes.statusCode).toBe(403);
+    const body = JSON.parse(forbiddenRes.body);
+    expect(body.error).toBe('forbidden');
+  });
+
   it('allows authorized owner email via cf-access-authenticated-user-email header', async () => {
     const res = await app.inject({
       method: 'GET',

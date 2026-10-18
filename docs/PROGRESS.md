@@ -1,4 +1,15 @@
-## 1. Current Phase: Tahap 18 (Perbaikan tekstur, label & langkah) — selesai
+## 1. Current Phase: Tahap 19 (Chat Streaming & Timeout) — selesai
+
+- **Status Tahap 19 (2026-10-18)**: stabilitas streaming chat & perlindungan runaway task ditutup dan diuji:
+  1. **Dua batas waktu terpisah klien gateway**: `HERMES_CHAT_TTFB_MS` (default 60s) untuk menunggu event/huruf pertama, dan `HERMES_CHAT_TIMEOUT_MS` (default 300s) untuk batas total satu giliran chat. Stream kosong (0 byte) diperlakukan sebagai galat provider, bukan sukses hampa.
+  2. **Runaway task & stream timeout (C5)**: `streamEvents` dan `dispatcher.runTask` diberi batas 900.000 ms (15 menit) dengan `AbortController` + `Promise.race`, mencegah agen terkunci di status `working`/`thinking` tanpa akhir bila stream macet.
+  3. **Pembersihan EventSource ganda (C8)**: `initStream` di `useOfficeStore` secara otomatis menutup instance `EventSource` lama sebelum membuka koneksi baru saat reconnect.
+  4. **Perlindungan update database (C4)**: Helper `coalesce` dan filter `undefined` di `AgentRepository`, `TaskRepository`, dan `ProjectRepository` mencegah penulisan `NULL` secara tidak sengaja pada operasi PATCH.
+  5. **Perbaikan deteksi gap-check (C2)**: `readCurrentPhase` mendukung pola `Tahap|Phase|Stage` dan banner gap-check mencerminkan fase aktif dinamis.
+  6. **Rate limit per-route (C7)**: `server.ts` menerapkan batas bertingkat (auth 5/min, health & stream 60/min, private routes 30/min).
+  **Verifikasi mandiri**: `vitest run` **733 test / 68 file hijau**, `tsc --build` exit 0, `gap-check` 8/8, 0 error.
+
+## 1b. Tahap 18 (Perbaikan tekstur, label & langkah) — selesai
 
 - **Status Tahap 18 (2026-10-15)**: tiga bug yang lolos dari suite Tahap 17 ditutup, akarnya dibuktikan di browser nyata, bukan dari assertion sumber.
   1. **Warna karakter hilang = CSP, bukan aset** (`apps/server/src/server.ts`): GLB Kenney menyimpan teksturnya sebagai `images[0].uri` = `data:image/png;base64,…` (8.706 B, sha256 identik dengan `colormap.png` di zip — diperiksa), dan three.js r160 memuatnya lewat `ImageBitmapLoader`, yang memakai **`fetch(url)`**, bukan `<img>`. Permintaan itu milik `connect-src`, dan policy produksi saat itu hanya `'self' https://cloudflareinsights.com` → `fetch(data:)` diblokir, `GLTFLoader` menelan error di `.catch()`, material jatuh ke tekstur default → semua agen abu-abu sementara geometri, skinning, dan 32 klip tetap jalan (itulah kenapa test hijau). Perbaikan: `'data:'` ditambahkan **hanya** ke `connectSrc`; `defaultSrc`/`scriptSrc`/`styleSrc`/`frameAncestors` tidak berubah. `data:` tidak memberi akses jaringan, jadi Rule 9.4 tetap: `https://example.com` masih BLOCKED (dibuktikan). Bukti: harness CSP kembar (`serve.js` dua mode) — policy produksi melaporkan `NO TEXTURE (default)`, policy + `data:` melaporkan `TEXTURE PRESENT 512x512` dengan 115.384 px berwarna; `Object3D.copy()` juga dikonfirmasi **menyalin `animations`** (`Object3D.js:983`), mengoreksi catatan Tahap 15 yang menyatakan sebaliknya.

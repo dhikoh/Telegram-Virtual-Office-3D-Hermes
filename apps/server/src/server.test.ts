@@ -178,6 +178,34 @@ describe('Server Core, Routes & Lifecycle (Phase 2 & 5)', () => {
       expect(patched).not.toHaveProperty('hermes_base_url');
       expect(patched).not.toHaveProperty('api_key_env');
       expect(typeof patched.endpoint_configured).toBe('boolean');
+      expect(patched.name).toBe(list[0].name);
+    });
+
+    it('PATCH /api/tasks/:id updates only specified fields and keeps existing agent_id (C4)', async () => {
+      const taskRes = await app.inject({
+        method: 'POST',
+        url: '/api/tasks',
+        headers: jsonHeaders,
+        body: JSON.stringify({
+          title: 'Task for patch test',
+          description: 'Desc',
+          agent_id: 'agent_finance_01',
+          priority: 'normal',
+        }),
+      });
+      const task = JSON.parse(taskRes.body);
+
+      const patchRes = await app.inject({
+        method: 'PATCH',
+        url: `/api/tasks/${task.id}`,
+        headers: jsonHeaders,
+        body: JSON.stringify({ status: 'done' }),
+      });
+      expect(patchRes.statusCode).toBe(200);
+      const patched = JSON.parse(patchRes.body);
+      expect(patched.status).toBe('done');
+      expect(patched.agent_id).toBe('agent_finance_01');
+      expect(patched.title).toBe('Task for patch test');
     });
 
     it('creates a task, runs it with mock, handles approval, and completes', async () => {

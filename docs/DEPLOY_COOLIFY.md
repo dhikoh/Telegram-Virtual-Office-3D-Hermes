@@ -135,7 +135,9 @@ Buka tab **Environment Variables** di Coolify dan masukkan variabel berikut:
 | `HERMES_MODE` | `real` | Mode produksi riil terhubung ke Hermes |
 | `HERMES_BASE_URL` | `http://172.16.1.1:8642` | IP gateway jaringan `coolify` + port API server Hermes (lihat bagian 2C) |
 | `HERMES_KEY_DEFAULT` | *(sama persis dengan `API_SERVER_KEY`)* | Bearer key API server Hermes. Server menolak start bila masih placeholder |
-| `HERMES_TIMEOUT_MS` | `30000` | Batas waktu timeout permintaan Hermes dalam milidetik (default 30000) |
+| `HERMES_TIMEOUT_MS` | `30000` | Batas waktu permintaan **pendek** ke Hermes: probe, health, daftar model, status run (default 30000) |
+| `HERMES_CHAT_TTFB_MS` | `60000` | Batas tunggu event/huruf **pertama** dari stream chat. Terlalu pendek memutus model yang lambat tapi masih jalan (default 60000) |
+| `HERMES_CHAT_TIMEOUT_MS` | `300000` | Batas **total** satu giliran chat — sengaja jauh lebih besar dari `HERMES_TIMEOUT_MS`, karena jawaban yang memanggil tool bisa berjalan beberapa menit (default 300000) |
 | `MEDIA_DIR` | `/data/media` | Folder media chat & artefak di volume persisten. **Kosongkan** = otomatis `<folder DB_PATH>/media` (mis. `/data/media`) |
 | `MEDIA_IMAGE_RETENTION_DAYS` | `7` | Retensi gambar chat (hari). `0` = tidak pernah dihapus berdasar umur |
 | `MEDIA_ARTIFACT_RETENTION_DAYS` | `30` | Retensi artefak agent, mis. video/gambar hasil run (hari). `0` = nonaktif |

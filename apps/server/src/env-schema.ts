@@ -20,7 +20,25 @@ export const EnvSchema = z.object({
   HERMES_MODE: z.enum(['mock', 'real']).default('mock'),
   HERMES_BASE_URL: z.string().url().default('http://127.0.0.1:8642'),
   HERMES_KEY_DEFAULT: z.string().min(1),
+  /**
+   * Batas untuk panggilan gateway yang pendek (probe, health, daftar model,
+   * status run). Sengaja BUKAN dipakai untuk chat: jawaban model yang wajar
+   * butuh TTFB >20 detik (terukur 20,24 detik di produksi), jadi memakai
+   * angka ini untuk stream chat memutus percakapan di tengah jalan.
+   */
   HERMES_TIMEOUT_MS: z.coerce.number().default(30000),
+  /**
+   * Batas waktu tunggu huruf PERTAMA dari stream chat (TTFB). Lebih pendek
+   * dari total supaya provider yang menggantung (stream 0 byte) cepat ketahuan,
+   * tanpa mematikan model yang lambat tapi tetap berjalan.
+   */
+  HERMES_CHAT_TTFB_MS: z.coerce.number().default(60000),
+  /**
+   * Batas total satu giliran chat. Ini pembunuh percakapan sebelumnya:
+   * satu angka 30 detik dipakai untuk seluruh jawaban, padahal model yang
+   * memanggil tool bisa berjalan beberapa menit.
+   */
+  HERMES_CHAT_TIMEOUT_MS: z.coerce.number().default(300000),
   DEV_AUTH_BYPASS: booleanPreprocess.default(false),
   DB_PATH: z.string().default('./data/office.sqlite'),
   /**

@@ -87,9 +87,17 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
     credentials: true,
   });
 
-  // Rule S8: Rate limit 60 req/min per user
+  // Rule S8: Rate limit per-route (auth 5/min, health 60/min, stream 60/min, private 30/min)
   app.register(rateLimit, {
-    max: 60,
+    global: true,
+    keyGenerator: (req) => `${req.ip}:${req.headers.authorization || 'anon'}:${req.url.split('?')[0]}`,
+    max: (req) => {
+      const url = req.url;
+      if (url.startsWith('/api/auth')) return 5;
+      if (url.startsWith('/api/health')) return 60;
+      if (url.startsWith('/api/stream')) return 60;
+      return 30;
+    },
     timeWindow: '1 minute',
   });
 
@@ -122,8 +130,12 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
       app.log?.error?.({ err }, 'startup media sweep failed');
     }
     startMediaSweepTimer(options.db);
-    app.addHook('onClose', async () => stopMediaSweepTimer());
   }
+
+  app.addHook('onClose', async () => {
+    dispatcher.destroy();
+    stopMediaSweepTimer();
+  });
 
   // Serve compiled web build when available (Section 2: ONE container office)
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
