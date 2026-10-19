@@ -29,6 +29,12 @@ import { startMediaSweepTimer, stopMediaSweepTimer, sweepRetention } from './ser
 
 export interface BuildServerOptions {
   db: Database.Database;
+  /**
+   * Fase 2a — interval heartbeat stream chat. Opsional; produksi memakai
+   * `CHAT_HEARTBEAT_MS` (10 detik). Test memasang angka kecil supaya tidak
+   * perlu menunggu 10 detik sungguhan untuk membuktikan detaknya ada.
+   */
+  chatHeartbeatMs?: number;
 }
 
 export function buildServer(options: BuildServerOptions): FastifyInstance {
@@ -48,6 +54,8 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
   app.decorate('db', options.db);
   app.decorate('dispatcher', dispatcher);
   app.decorate('projectService', projectService);
+  // Fase 2a — detak stream chat. Test memasang angka kecil lewat opsi ini.
+  app.decorate('chatHeartbeatMs', options.chatHeartbeatMs ?? config.CHAT_HEARTBEAT_MS);
 
   // Rule S8: Helmet with CSP allowing telegram.org scripts
   app.register(helmet, {

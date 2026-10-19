@@ -12,5 +12,7 @@ declare module 'fastify' {
     db: Database.Database;
     dispatcher: OfficeDispatcher;
     projectService: ProjectService;
+    /** Fase 2a — interval heartbeat stream chat (ms). */
+    chatHeartbeatMs: number;
   }
 }

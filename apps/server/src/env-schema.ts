@@ -39,6 +39,12 @@ export const EnvSchema = z.object({
    * memanggil tool bisa berjalan beberapa menit.
    */
   HERMES_CHAT_TIMEOUT_MS: z.coerce.number().default(300000),
+  /**
+   * Fase 2a — jantung detak untuk stream chat. Cloudflare memutus koneksi idle
+   * di ~100 detik; menunggu tool bisa jauh lebih lama dari itu. Frame komentar
+   * `: hb` tiap interval ini membuat koneksi tetap terbaca aktif.
+   */
+  CHAT_HEARTBEAT_MS: z.coerce.number().default(10000),
   DEV_AUTH_BYPASS: booleanPreprocess.default(false),
   DB_PATH: z.string().default('./data/office.sqlite'),
   /**

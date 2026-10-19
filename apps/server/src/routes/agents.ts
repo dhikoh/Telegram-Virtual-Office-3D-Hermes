@@ -16,6 +16,7 @@ import {
   stripSkillScope,
 } from '../services/hermes/skill-scope.js';
 import { buildAgentIdentity } from '../services/hermes/identity.js';
+import { startHeartbeat } from '../services/agent-chat/heartbeat.js';
 import { departmentExists } from '../db/repositories/departments.js';
 import { SettingRepository } from '../db/repositories/settings.js';
 import {
@@ -579,6 +580,10 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
         if (reply.raw.writableEnded || reply.raw.destroyed) return;
         reply.raw.write(payload);
       };
+      // Fase 2a — detak: Cloudflare memutus koneksi idle di ~100 detik, dan
+      // menunggu tool bisa jauh lebih lama. Frame komentar `: hb` membuat
+      // koneksi tetap terlihat aktif tanpa mengganggu klien yang membaca stream.
+      const stopHeartbeat = startHeartbeat(fastify.chatHeartbeatMs, writeEvent);
       const lastUser = [...messages].reverse().find((m) => m.role === 'user');
       // Tahap 11 — layer SOUL: daftar skill aktif agen ikut dalam giliran ini.
       const scopeDirective = await readSkillScopeDirective(agentSkillRepo, agent);
@@ -641,6 +646,10 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
             message: String((err as Error)?.message || err),
           })}\n\n`
         );
+      } finally {
+        // Fase 2a — detak WAJIB berhenti di sini: tanpa blok ini interval
+        // tertinggal hidup dan menulis ke socket yang sudah ditutup.
+        stopHeartbeat();
       }
 
       reply.raw.end();
