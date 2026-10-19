@@ -1,0 +1,76 @@
+# Progress: Hermes Virtual Office
+
+## 1. Status Ringkasan
+- **Fase Aktif Saat Ini:** Phase 19 (Tahap 19) — Selesai & Terverifikasi
+- **Status Gap-Check:** ✅ 8/8 Kriteria Lolos (C3a sampai C3h)
+- **Status Typecheck:** ✅ Lolos (TypeScript 5.7)
+
+---
+
+## 2. Fitur yang Sudah Berfungsi (What Works)
+
+### Fondasi & Monorepo (Fase 0 - 2)
+- [x] Struktur monorepo npm workspaces (`apps/server`, `apps/web`, `packages/shared`, `tools/mock-hermes`).
+- [x] Server Fastify 4 lengkap dengan database SQLite (`better-sqlite3`), WAL mode, dan migrasi SQL berurutan.
+- [x] Mock Hermes Gateway untuk simulasi obrolan, eksekusi task, dan pengujian deterministik.
+- [x] Mesin automated gap-check (`npm run gap-check`) yang memvalidasi integritas arsitektur.
+
+### Kantor 3D & Telegram Mini App (Fase 3 - 4)
+- [x] Canvas kantor 3D isometrik Three.js / React Three Fiber / Drei dengan kamera responsif dan kontrol interaktif.
+- [x] Pemetaan meja agen, status visual (idle, thinking, executing, completed, failed), dan pemilihan agen secara visual.
+- [x] Lembar rincian agen (Agent Sheet slide-over) untuk melihat atribut, histori kerja, dan keahlian agen.
+- [x] Obrolan real-time berfitur streaming respon dari gateway.
+- [x] Task Manager dan Inbox untuk melihat daftar tugas yang sedang berjalan atau menunggu tindakan.
+
+### Rekrutmen, KPI & Laporan (Fase 5 - 7)
+- [x] Anti-Hallucination Reports: Laporan analitik dan KPI yang diekstrak langsung dari log audit SQLite.
+- [x] Recruitment Room: Alur pembuatan kandidat agen baru, wawancara kerja, dan pendaftaran ke departemen.
+- [x] Skill Catalog: Manajemen penambahan keahlian khusus ke masing-masing agen.
+- [x] Sistem notifikasi berbasis Zustand dan TanStack React Query.
+- [x] Layar Pengaturan (Settings) dan dukungan multi-bahasa lengkap (Bahasa Indonesia & Bahasa Inggris).
+- [x] Matrix 6 Status UI (`loading`, `empty`, `error`, `success`, `offline`, `unauthorized`) terverifikasi pada semua layar.
+
+### Deployment & Optimasi Produksi (Fase 8)
+- [x] Multi-stage Dockerfile teroptimasi untuk deployment di Coolify atau VPS mandiri.
+- [x] Penyekatan lingkungan dev/mock dari lingkungan produksi (keamanan ketat).
+- [x] Pengurangan ukuran bundle aset 3D (chunk 3D gzip <= 700 KB).
+
+### Pemantapan & Stabilitas Streaming (Fase 9 - 19)
+- [x] Peningkatan tekstur meja dan model 3D (Phase 9 - 18).
+- [x] Integrasi departemen dan ruang kerja agen terorganisir (Phase 17 - 18).
+- [x] Penambahan perlindungan streaming dual-timeout (`HERMES_CHAT_TTFB_MS` = 60s, `HERMES_CHAT_TIMEOUT_MS` = 300s) (Phase 19).
+- [x] Deteksi aliran 0 byte sebagai error provider dan cleanup runaway task otomatis (Phase 19).
+- [x] Pengaktifan protokol Phase-Gated & Memory Bank Development secara global dan lokal.
+
+---
+
+## 3. Komponen yang Terdaftar & Terverifikasi
+- **10 Modul Endpoint Fastify:**
+  1. `/api/agents` (`agents.ts`)
+  2. `/api/tasks` (`tasks.ts`)
+  3. `/api/departments` (`departments.ts`)
+  4. `/api/projects` (`projects.ts`)
+  5. `/api/skills` (`skills.ts`)
+  6. `/api/hiring` (`hiring.ts`)
+  7. `/api/approvals` (`approvals.ts`)
+  8. `/api/audit` (`audit.ts`)
+  9. `/api/kpis` (`kpis.ts`)
+  10. `/api/reports` (`reports.ts`)
+- **9 Tabel Database SQLite:**
+  1. `agents`
+  2. `tasks`
+  3. `departments`
+  4. `projects`
+  5. `agent_skills`
+  6. `hiring_candidates`
+  7. `approvals`
+  8. `audit_log`
+  9. `settings`
+- **9 Komponen Layar / Modul UI:**
+  * `Office`, `Tasks`, `Reports`, `Inbox`, `More`, `AgentSheet`, `Recruitment`, `TaskDetail`, `Settings`.
+
+---
+
+## 4. Pekerjaan Tersisa (What's Left to Build)
+- Menunggu arahan fase atau fitur baru selanjutnya dari pengguna.
+- Eksekusi fitur baru wajib diawali dengan PRD / Task List sesuai protokol `.agent/rules.md`.

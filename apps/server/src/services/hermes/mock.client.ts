@@ -53,6 +53,42 @@ export class MockHermesClient implements HermesClient {
     return (await res.json()) as StartRunResponse;
   }
 
+  /**
+   * Fase 2b — padanan mock: buka run dulu, baca peristiwanya, teruskan delta.
+   * Meniru urutan `RealHermesClient.runChatStream` supaya rute yang diuji
+   * dengan mock memakai bentuk panggilan yang sama.
+   */
+  public async runChatStream(
+    params: StartRunParams,
+    handlers: {
+      onRunId?: (runId: string) => void;
+      onDelta: (delta: string) => void;
+      onDone: () => void;
+      onError?: (message: string) => void;
+    }
+  ): Promise<void> {
+    const started = await this.startRun(params);
+    const runId = started.run_id;
+    if (!runId) throw new Error('MockHermes startRun: tidak ada run_id.');
+    handlers.onRunId?.(runId);
+
+    const stop = await this.streamEvents(runId, (event, data) => {
+      const payload = (data || {}) as Record<string, unknown>;
+      if (event === 'message.delta') {
+        const delta = typeof payload.delta === 'string' ? payload.delta : '';
+        if (delta) handlers.onDelta(delta);
+        return;
+      }
+      if (event === 'run.completed') handlers.onDone();
+      else if (event === 'run.failed' || event === 'run.cancelled' || event === 'run.interrupted') {
+        const why = typeof payload.error === 'string' && payload.error ? payload.error : `Pekerjaan ${event}.`;
+        handlers.onError?.(why);
+        throw new Error(`MockHermes run ${runId}: ${why}`);
+      }
+    });
+    stop();
+  }
+
   public async getRunStatus(runId: string): Promise<HermesRunStatus> {
     const res = await this.fetchWithTimeout(`${this.baseUrl}/v1/runs/${runId}`);
     if (!res.ok) throw new Error(`MockHermes getRunStatus error: ${res.statusText}`);

@@ -88,11 +88,29 @@ export class RealHermesClient implements HermesClient {
     return caps.model ? [caps.model] : [];
   }
 
+  /**
+   * Fase 2b — susun badan POST /v1/runs memakai nama lapangan yang benar-benar
+   * dibaca gateway.
+   *
+   * Interface kita camelCase (`sessionId`, `conversationHistory`), tetapi
+   * api_server_runs.py membaca `session_id` (baris 668) dan
+   * `conversation_history` (baris 429). Mengirim nama camelCase berarti sesi
+   * TIDAK PERNAH sampai — bug laten pada `startRun` lama; tidak pernah
+   * menampakkan diri karena semua pemanggil lama mengirim sessionId kosong.
+   */
+  private runBody(params: StartRunParams): string {
+    const body: Record<string, unknown> = { input: params.input };
+    if (params.sessionId) body.session_id = params.sessionId;
+    if (params.instructions) body.instructions = params.instructions;
+    if (params.conversationHistory) body.conversation_history = params.conversationHistory;
+    return JSON.stringify(body);
+  }
+
   public async startRun(params: StartRunParams): Promise<StartRunResponse> {
     const res = await this.fetchWithTimeout(`${this.baseUrl}/v1/runs`, {
       method: 'POST',
       headers: this.headers(),
-      body: JSON.stringify(params),
+      body: this.runBody(params),
     });
     if (!res.ok) throw new Error(`Hermes startRun error: ${res.status} ${res.statusText}`);
     return (await res.json()) as StartRunResponse;
@@ -300,9 +318,139 @@ export class RealHermesClient implements HermesClient {
   }
 
   /**
-   * Tahap 8 — sessions: history and memory live on the gateway, so an agent's
-   * chat survives reloads, restarts and redeploys without a local copy.
+   * Fase 2b — chat lewat Runs API.
+   *
+   * Berbeda sifat dari `chatStream`: pekerjaan DITAMPAKKAN dulu (POST /v1/runs
+   * → 202 + run_id), lalu peristiwa dibaca lewat GET /v1/runs/{id}/events.
+   * Klien boleh menutup halaman; run tetap berjalan di gateway, dan
+   * `?seq=` memungkinkan penyambungan ulang (Fase 2b rute reattach).
+   *
+   * `instructions` memakai jalur yang sama dengan identitas Fase 1: di gateway
+   * ia DITAMBAHKAN ke system efektif, jadi SOUL.md tidak tertimpa.
    */
+  public async runChatStream(
+    params: StartRunParams,
+    handlers: {
+      onRunId?: (runId: string) => void;
+      onDelta: (delta: string) => void;
+      onDone: () => void;
+      onError?: (message: string) => void;
+    }
+  ): Promise<void> {
+    const startRes = await this.fetchWithTimeout(`${this.baseUrl}/v1/runs`, {
+      method: 'POST',
+      headers: this.headers(),
+      body: this.runBody(params),
+    });
+    if (!startRes.ok) {
+      const text = await startRes.text().catch(() => '');
+      throw new Error(`Hermes startRun error: ${startRes.status} ${startRes.statusText} ${text}`.trim());
+    }
+    const started = (await startRes.json()) as { run_id?: string };
+    const runId = started.run_id;
+    if (!runId) throw new Error('Hermes startRun: gateway tidak mengembalikan run_id.');
+
+    handlers.onRunId?.(runId);
+
+    // Kumpulan delta disimpan untuk laporan kegagalan parsial (Fase 2e) —
+    // potongan yang sudah sampai tidak boleh hilang begitu run gagal.
+    //
+    // Wadah objek, bukan variabel polos: penugasan terjadi DI DALAM closure
+    // pembaca bingkai, dan TypeScript menganalisis alur keluar seolah variabel
+    // polos tidak pernah diubah (lalu menyimpulkan `never`).
+    const collected: string[] = [];
+    const verdict: { value: { kind: 'done' } | { kind: 'error'; message: string } | null } = {
+      value: null,
+    };
+
+    const res = await this.fetchWithTimeout(
+      `${this.baseUrl}/v1/runs/${encodeURIComponent(runId)}/events`,
+      { headers: this.headers(), signal: undefined }
+    ).catch((err: Error) => {
+      throw new Error(`Hermes run ${runId} events error: ${err.message}`);
+    });
+    if (!res.ok || !res.body) {
+      throw new Error(`Hermes run ${runId} events error: ${res.status} ${res.statusText}`);
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    // Gateway menutup stream dengan frame komentar `: stream closed` SETELAH
+    // mengirim terminal, dan memancarkan keepalive `: keepalive` selama menunggu.
+    // Keduanya dilewati tanpa dianggap terminal.
+    const handleFrame = (raw: string) => {
+      // Gateway memancarkan `id:`/`event:` dulu, baru `data:` (lihat
+      // `_sse_frame`). Jadi cari baris datanya di dalam bingkai, jangan
+      // mengasumsikan bingkai diawali `data:`.
+      const dataLine = raw.split('\n').find((l) => l.trimStart().startsWith('data: '));
+      if (!dataLine) return; // komentar `: keepalive` / `: stream closed`
+      const line = dataLine.trim();
+      let parsed: { event?: string; delta?: unknown; error?: unknown };
+      try {
+        parsed = JSON.parse(line.slice(6));
+      } catch {
+        return; // bingkai rusak: lewati, jangan jatuhkan seluruh stream
+      }
+      const event = parsed.event || 'message';
+      if (event === 'message.delta') {
+        const delta = typeof parsed.delta === 'string' ? parsed.delta : '';
+        if (delta && !verdict.value) {
+          collected.push(delta);
+          handlers.onDelta(delta);
+        }
+        return;
+      }
+      if (event === 'run.completed') {
+        if (!verdict.value) verdict.value = { kind: 'done' };
+        return;
+      }
+      if (event === 'run.failed' || event === 'run.cancelled' || event === 'run.interrupted') {
+        if (verdict.value) return;
+        const why =
+          typeof parsed.error === 'string' && parsed.error
+            ? parsed.error
+            : event === 'run.cancelled'
+              ? 'Pekerjaan dibatalkan.'
+              : 'Pekerjaan berhenti tanpa jawaban lengkap.';
+        verdict.value = { kind: 'error', message: why };
+      }
+    };
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop() || '';
+        for (const part of parts) handleFrame(part);
+      }
+      if (buffer.trim()) handleFrame(buffer);
+    } finally {
+      // Sambung-ulang tidak dilakukan di sini: drop di tengah run adalah hak
+      // rute reattach (Fase 2b), bukan diam-diam menutup dari sisi klien.
+      reader.cancel().catch(() => {});
+    }
+
+    const end = verdict.value;
+    if (end && end.kind === 'error') {
+      handlers.onError?.(end.message);
+      throw new Error(
+        `Hermes run ${runId} gagal: ${end.message} (${collected.join('').length} karakter sampai)`
+      );
+    }
+    if (!end) {
+      // Stream tamat tanpa peristiwa terminal — persis "balasan terpotong
+      // diam-diam" yang jadi tujuan D. Ditolak, bukan disenyapkan.
+      throw new Error(
+        `Hermes run ${runId}: stream peristiwa berakhir tanpa run.completed/run.failed.`
+      );
+    }
+    handlers.onDone();
+  }
+
   public async createSession(label?: string): Promise<string | null> {
     try {
       const res = await this.fetchWithTimeout(`${this.baseUrl}/api/sessions`, {

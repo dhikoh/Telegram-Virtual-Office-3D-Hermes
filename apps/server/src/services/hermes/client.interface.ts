@@ -49,6 +49,20 @@ export interface HermesRunStatus {
 export interface HermesClient {
   capabilities(): Promise<HermesCapabilities>;
   startRun(params: StartRunParams): Promise<StartRunResponse>;
+  /**
+   * Fase 2b — chat lewat Runs API: buka run dulu, baru baca peristiwanya.
+   * `onRunId` dipanggil SEBELUM delta apa pun, supaya rute bisa menyerahkan
+   * run_id ke klien untuk sambung-ulang.
+   */
+  runChatStream(
+    params: StartRunParams,
+    handlers: {
+      onRunId?: (runId: string) => void;
+      onDelta: (delta: string) => void;
+      onDone: () => void;
+      onError?: (message: string) => void;
+    }
+  ): Promise<void>;
   getRunStatus(runId: string): Promise<HermesRunStatus>;
   resolveApproval(runId: string, decision: 'once' | 'deny'): Promise<{ status: string; decision: string }>;
   stopRun(runId: string): Promise<{ status: string }>;
