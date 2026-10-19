@@ -133,14 +133,17 @@ export class MockHermesClient implements HermesClient {
   public async chatStream(
     messages: ChatRequestMessage[],
     onChunk: (chunk: string) => void,
-    model?: string
+    model?: string,
+    systemPrompt?: string
   ): Promise<void> {
     const res = await fetch(`${this.baseUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: model || 'hermes-agent',
-        messages,
+        messages: systemPrompt
+          ? [{ role: 'system', content: systemPrompt }, ...messages]
+          : messages,
         stream: true,
       }),
     });

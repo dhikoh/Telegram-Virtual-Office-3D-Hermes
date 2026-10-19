@@ -31,6 +31,8 @@ const gateway = vi.hoisted(() => ({
   history: [] as string[],
   /** Giliran yang terkirim ke jalur stateless (/v1/chat/completions). */
   chatCalls: [] as { role: string; content: string }[][],
+  /** Fase 1 — `system_message` yang diteruskan ke jalur sesi per giliran. */
+  sessionSystem: [] as (string | undefined)[],
   makeSession: true,
 }));
 
@@ -66,7 +68,14 @@ vi.mock('./services/hermes/index.js', async (importOriginal) => {
         content,
         timestamp: Date.now(),
       })),
-    sessionChatStream: async (_sid: string, message: unknown) => {
+    sessionChatStream: async (
+      _sid: string,
+      message: unknown,
+      _onDelta?: unknown,
+      _model?: unknown,
+      systemPrompt?: string
+    ) => {
+      gateway.sessionSystem.push(systemPrompt);
       gateway.history.push(typeof message === 'string' ? message : JSON.stringify(message));
     },
     listSkills: async () => {
@@ -134,6 +143,7 @@ describe('Tahap 11 (bagian 2) — cakupan skill per agen', () => {
     gateway.failCatalog = false;
     gateway.history = [];
     gateway.chatCalls = [];
+    gateway.sessionSystem = [];
     gateway.makeSession = true;
     invalidateGatewayCatalogCache();
     // Baris audit & anak-anak agen dibersihkan agar setiap test berdiri sendiri.
@@ -347,12 +357,15 @@ describe('Tahap 11 (bagian 2) — cakupan skill per agen', () => {
     });
     expect(restricted.statusCode).toBe(200);
     expect(gateway.chatCalls).toHaveLength(1);
-    const first = gateway.chatCalls[0][0];
-    expect(first.role).toBe('system');
-    expect(first.content).toContain('pdf-tools');
-    expect(gateway.chatCalls[0][1]).toEqual({ role: 'user', content: 'Buat ringkasan' });
+    const [identity, scope, ...rest] = gateway.chatCalls[0];
+    // Fase 1 — identitas kini system PERTAMA, instruksi cakupan menyusul.
+    expect(identity.role).toBe('system');
+    expect(identity.content).toContain('Agen agent_aria_skill');
+    expect(scope.role).toBe('system');
+    expect(scope.content).toContain('pdf-tools');
+    expect(rest).toEqual([{ role: 'user', content: 'Buat ringkasan' }]);
 
-    // Bawaan (tanpa baris): pesan diteruskan persis seperti biasa, tanpa tambahan.
+    // Bawaan (tanpa baris): cakupan skill tidak dikirim, hanya identitas Fase 1.
     await patch(`/api/agents/${AGENT_ID}/skills`, { skills: CATALOG });
     const plain = await app.inject({
       method: 'POST',
@@ -361,7 +374,11 @@ describe('Tahap 11 (bagian 2) — cakupan skill per agen', () => {
       body: JSON.stringify({ messages: [{ role: 'user', content: 'Halo lagi' }] }),
     });
     expect(plain.statusCode).toBe(200);
-    expect(gateway.chatCalls[1]).toEqual([{ role: 'user', content: 'Halo lagi' }]);
+    expect(gateway.chatCalls[1]).toEqual([
+      { role: 'system', content: expect.stringContaining('Agen agent_aria_skill') },
+      { role: 'user', content: 'Halo lagi' },
+    ]);
+    expect(gateway.chatCalls[1][0].content).not.toContain('[CAKUPAN SKILL AGEN:');
   });
 
   it('hapus agen ikut membersihkan baris cakupan skill-nya', async () => {

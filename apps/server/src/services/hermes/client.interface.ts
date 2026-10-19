@@ -56,7 +56,9 @@ export interface HermesClient {
   chatStream(
     messages: ChatRequestMessage[],
     onChunk: (chunk: string) => void,
-    model?: string
+    model?: string,
+    /** Fase 1 — identitas agen, dikirim sebagai pesan system pertama. */
+    systemPrompt?: string
   ): Promise<void>;
   /** Tahap 7 — auto-detect: models advertised by the gateway. */
   listModels(): Promise<string[]>;
@@ -68,7 +70,9 @@ export interface HermesClient {
     sessionId: string,
     message: ChatMessageContent,
     onDelta: (delta: string) => void,
-    model?: string
+    model?: string,
+    /** Fase 1 — identitas agen, diteruskan sebagai `system_message`. */
+    systemPrompt?: string
   ): Promise<void>;
   /** Tahap 8 — skills installed on the gateway (throws when it cannot enumerate). */
   listSkills(): Promise<unknown[]>;

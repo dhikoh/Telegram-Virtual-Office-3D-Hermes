@@ -228,7 +228,10 @@ export class RealHermesClient implements HermesClient {
   public async chatStream(
     messages: ChatRequestMessage[],
     onChunk: (chunk: string) => void,
-    model?: string
+    model?: string,
+    /** Fase 1 — identitas agen. Dipasang sebagai pesan system PERTAMA tanpa
+     *  menyentuh riwayat; tanpa identitas `messages` dikirim persis seperti aslinya. */
+    systemPrompt?: string
   ): Promise<void> {
     const controller = new AbortController();
     const ttfbTimer = setTimeout(() => controller.abort('ttfb'), this.chatTtfbMs);
@@ -251,7 +254,9 @@ export class RealHermesClient implements HermesClient {
           headers: this.headers(),
           body: JSON.stringify({
             model: model || 'hermes-agent',
-            messages,
+            messages: systemPrompt
+              ? [{ role: 'system', content: systemPrompt }, ...messages]
+              : messages,
             stream: true,
           }),
           signal: controller.signal,
@@ -346,7 +351,10 @@ export class RealHermesClient implements HermesClient {
     sessionId: string,
     message: ChatMessageContent,
     onDelta: (delta: string) => void,
-    _model?: string
+    _model?: string,
+    /** Fase 1 — identitas agen, diteruskan sebagai `system_message`. Gateway
+     *  membacanya di `_prepare_session_chat`; riwayat sesi tidak tersentuh. */
+    systemPrompt?: string
   ): Promise<void> {
     const controller = new AbortController();
     const ttfbTimer = setTimeout(() => controller.abort('ttfb'), this.chatTtfbMs);
@@ -384,7 +392,9 @@ export class RealHermesClient implements HermesClient {
           {
             method: 'POST',
             headers: this.headers(),
-            body: JSON.stringify({ message }),
+            body: JSON.stringify(
+              systemPrompt ? { message, system_message: systemPrompt } : { message }
+            ),
             signal: controller.signal,
           }
         );

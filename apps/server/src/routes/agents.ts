@@ -15,6 +15,7 @@ import {
   buildSkillScopeDirective,
   stripSkillScope,
 } from '../services/hermes/skill-scope.js';
+import { buildAgentIdentity } from '../services/hermes/identity.js';
 import { departmentExists } from '../db/repositories/departments.js';
 import { SettingRepository } from '../db/repositories/settings.js';
 import {
@@ -581,6 +582,12 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
       const lastUser = [...messages].reverse().find((m) => m.role === 'user');
       // Tahap 11 — layer SOUL: daftar skill aktif agen ikut dalam giliran ini.
       const scopeDirective = await readSkillScopeDirective(agentSkillRepo, agent);
+      // Fase 1 — jembatan identitas: nama, peran, dan ruang kerja agen ikut
+      // dalam giliran ini, supaya gateway tidak pernah menebak siapa yang
+      // sedang menjawab. Hanya identitas yang lewat `system_message`: instruksi
+      // cakupan skill tetap menempel di pesan sesi seperti Tahap 11, karena
+      // stripSkillScope membersihkannya dari riwayat yang dibaca kembali.
+      const identityPrompt = buildAgentIdentity(agent) || undefined;
       try {
         // Tahap 8: prefer the gateway session — history and memory persist there.
         const sessionId = agent.session_id || (await client.createSession(`${agent.name}`));
@@ -600,15 +607,25 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
                 `data: ${JSON.stringify({ choices: [{ delta: { content: chunk } }] })}\n\n`
               );
             },
-            agent.model || undefined
+            agent.model || undefined,
+            identityPrompt
           );
           reply.raw.write('data: [DONE]\n\n');
         } else {
+          // Jalur tanpa sesi memakai role 'system' yang asli — riwayat tidak
+          // tersentuh. Fase 1: identitas jadi pesan system pertama, instruksi
+          // cakupan skill menyusul sebagai system terpisah supaya keduanya
+          // tetap terbaca berurutan oleh model.
+          const statelessSystem = [
+            identityPrompt,
+            scopeDirective,
+          ].filter((part): part is string => Boolean(part && part.trim()));
           await client.chatStream(
-            // Jalur tanpa sesi memakai role 'system' yang asli — riwayat tidak
-            // tersentuh, instruksi cakupan skill tetap dilihat model.
-            scopeDirective
-              ? [{ role: 'system', content: scopeDirective }, ...messages]
+            statelessSystem.length
+              ? [
+                  ...statelessSystem.map((content) => ({ role: 'system' as const, content })),
+                  ...messages,
+                ]
               : messages,
             (chunk) => {
               writeEvent(chunk);
