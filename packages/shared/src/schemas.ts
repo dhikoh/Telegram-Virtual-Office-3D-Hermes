@@ -9,6 +9,7 @@ import {
   KPI_SOURCES,
   REPORT_TEMPLATES,
   HIRING_STATUSES,
+  AGENT_PROVISION_STATES,
 } from './constants.js';
 import { isCharacterModelId } from './characters.js';
 
@@ -40,6 +41,7 @@ export const AgentNormalizedStatusSchema = z.enum(AGENT_NORMALIZED_STATUSES);
 export const KpiSourceSchema = z.enum(KPI_SOURCES);
 export const ReportTemplateSchema = z.enum(REPORT_TEMPLATES);
 export const HiringStatusSchema = z.enum(HIRING_STATUSES);
+export const AgentProvisionStateSchema = z.enum(AGENT_PROVISION_STATES);
 
 export const AgentSchema = z.object({
   id: z.string().min(1),
@@ -63,6 +65,10 @@ export const AgentSchema = z.object({
   active: z.number().int().min(0).max(1).default(1),
   hired_at: z.number().int(),
   created_at: z.number().int(),
+  // Fase 3 — profil Hermes per agen
+  provision_state: AgentProvisionStateSchema.optional(),
+  provision_error: z.string().nullable().optional(),
+  provisioned_at: z.number().int().nullable().optional(),
 });
 
 /**
@@ -105,6 +111,10 @@ export const AgentPublicSchema = z.object({
   /** Rule S4: only whether a key exists may be revealed, never the value. */
   key_stored: z.boolean().optional(),
   isDemo: z.boolean().optional(),
+  // Fase 3 — status provisioning
+  provision_state: AgentProvisionStateSchema.optional(),
+  provision_error: z.string().nullable().optional(),
+  provisioned_at: z.number().int().nullable().optional(),
 });
 
 /**
@@ -125,6 +135,10 @@ export const AgentInputSchema = z.object({
   active: z.number().int().min(0).max(1).default(1),
   hired_at: z.number().int(),
   created_at: z.number().int(),
+  // Fase 3 — status provisioning
+  provision_state: AgentProvisionStateSchema.optional(),
+  provision_error: z.string().nullable().optional(),
+  provisioned_at: z.number().int().nullable().optional(),
 });
 
 export const TaskSchema = z.object({

@@ -88,6 +88,10 @@ function toPublic(
     key_source: 'server',
     key_stored: keyStored,
     ...(liveStatus !== undefined ? { live_status: liveStatus.status } : {}),
+    // Fase 3 — status provisioning profil Hermes
+    provision_state: agent.provision_state ?? 'unprovisioned',
+    provision_error: agent.provision_error ?? null,
+    provisioned_at: agent.provisioned_at ?? null,
   };
 }
 

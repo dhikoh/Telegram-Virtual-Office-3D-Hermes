@@ -75,3 +75,15 @@ export type ReportTemplate = (typeof REPORT_TEMPLATES)[number];
 
 export const HIRING_STATUSES = ['draft', 'hired', 'discarded'] as const;
 export type HiringStatus = (typeof HIRING_STATUSES)[number];
+
+/**
+ * Fase 3 — status siklus hidup provisioning profil Hermes per agen
+ */
+export const AGENT_PROVISION_STATES = [
+  'unprovisioned',
+  'provisioning',
+  'ready',
+  'failed',
+] as const;
+export type AgentProvisionState = (typeof AGENT_PROVISION_STATES)[number];
+

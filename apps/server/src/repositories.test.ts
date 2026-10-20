@@ -157,4 +157,51 @@ describe('Repository Updates & Coalesce (C4 Audit)', () => {
       expect(updated?.summary).toBe('Original Summary');
     });
   });
+
+  describe('AgentRepository.updateProvisionState', () => {
+    it('initializes agent with default unprovisioned state and updates through provisioning lifecycle', () => {
+      const now = Date.now();
+      agentRepo.create({
+        id: 'agent_provision_test',
+        name: 'Provision Test Agent',
+        role: 'Tester',
+        department: 'analytics',
+        avatar: '📊',
+        soul_summary: 'Test summary',
+        hermes_base_url: 'http://localhost:8642',
+        api_key_env: 'KEY',
+        hermes_profile: 'analytics_tester',
+        active: 1,
+        hired_at: now,
+        created_at: now,
+      });
+
+      const initial = agentRepo.getById('agent_provision_test');
+      expect(initial?.provision_state).toBe('unprovisioned');
+      expect(initial?.provision_error).toBeNull();
+      expect(initial?.provisioned_at).toBeNull();
+
+      // Transition to provisioning
+      agentRepo.updateProvisionState('agent_provision_test', 'provisioning');
+      const provisioning = agentRepo.getById('agent_provision_test');
+      expect(provisioning?.provision_state).toBe('provisioning');
+      expect(provisioning?.provision_error).toBeNull();
+
+      // Transition to ready (auto sets provisioned_at if not provided)
+      agentRepo.updateProvisionState('agent_provision_test', 'ready');
+      const ready = agentRepo.getById('agent_provision_test');
+      expect(ready?.provision_state).toBe('ready');
+      expect(ready?.provision_error).toBeNull();
+      expect(typeof ready?.provisioned_at).toBe('number');
+      expect(ready!.provisioned_at!).toBeGreaterThan(0);
+
+      // Transition to failed with error message
+      agentRepo.updateProvisionState('agent_provision_test', 'failed', 'Network timeout while writing SOUL.md');
+      const failed = agentRepo.getById('agent_provision_test');
+      expect(failed?.provision_state).toBe('failed');
+      expect(failed?.provision_error).toBe('Network timeout while writing SOUL.md');
+      // Previous provisioned_at is preserved
+      expect(failed?.provisioned_at).toBe(ready?.provisioned_at);
+    });
+  });
 });
