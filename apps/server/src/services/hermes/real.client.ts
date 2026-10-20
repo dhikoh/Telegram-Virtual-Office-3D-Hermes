@@ -6,6 +6,7 @@ import type {
   StartRunResponse,
   HermesRunStatus,
   HermesSessionMessage,
+  RunChatStreamHandlers,
 } from './client.interface.js';
 import { HermesTimeoutError } from './client.interface.js';
 import type { HermesCapabilities } from '@hermes-office/shared';
@@ -331,12 +332,7 @@ export class RealHermesClient implements HermesClient {
    */
   public async runChatStream(
     params: StartRunParams,
-    handlers: {
-      onRunId?: (runId: string) => void;
-      onDelta: (delta: string) => void;
-      onDone: () => void;
-      onError?: (message: string) => void;
-    }
+    handlers: RunChatStreamHandlers
   ): Promise<void> {
     const startRes = await this.fetchWithTimeout(`${this.baseUrl}/v1/runs`, {
       method: 'POST',
@@ -400,6 +396,9 @@ export class RealHermesClient implements HermesClient {
         return; // bingkai rusak: lewati, jangan jatuhkan seluruh stream
       }
       const event = parsed.event || 'message';
+      const payloadData = (parsed as Record<string, unknown>).data ?? parsed;
+      handlers.onEvent?.(event, payloadData);
+
       if (event === 'message.delta') {
         const delta = typeof parsed.delta === 'string' ? parsed.delta : '';
         if (delta && !verdict.value) {

@@ -27,6 +27,7 @@ import { resolveFallbackModel } from '../services/agent-chat/fallback-model.js';
 import { agentChatQueue, QueueFullError } from '../services/agent-chat/queue.js';
 import type { RecordedRunEvent } from '../services/agent-chat/types.js';
 import { runEventToChatFrame } from '../services/agent-chat/run-events.js';
+import { ChatTaskMaterializer } from '../services/agent-chat/task-materializer.js';
 import { departmentExists } from '../db/repositories/departments.js';
 import { SettingRepository } from '../db/repositories/settings.js';
 import {
@@ -917,6 +918,8 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
 
               stallDetector.start();
 
+              const taskMaterializer = new ChatTaskMaterializer(db);
+
               const executeRun = async (modelToUse: string | undefined): Promise<void> => {
                 let runsApiStarted = false;
                 try {
@@ -978,6 +981,43 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
                           } catch {}
                         }
                       },
+                      onEvent: (event, data) => {
+                        stallDetector.recordActivity();
+                        if (activeRunId) {
+                          chatRunHub.append(activeRunId, event, data);
+                          try {
+                            db.prepare(
+                              'INSERT INTO run_events (run_id, agent_id, type, payload_json, ts) VALUES (?, ?, ?, ?, ?)'
+                            ).run(activeRunId, agent.id, event, JSON.stringify(data || {}), Date.now());
+                          } catch {}
+
+                          // Fase 4 — materialisasi turn chat menjadi task jika memanggil tool
+                          if (
+                            event === 'tool.started' ||
+                            event === 'tool_started' ||
+                            event === 'tool_call' ||
+                            event === 'call'
+                          ) {
+                            const payload = (data || {}) as Record<string, unknown>;
+                            const toolName =
+                              typeof payload.tool === 'string'
+                                ? payload.tool
+                                : typeof payload.name === 'string'
+                                ? payload.name
+                                : undefined;
+                            const preview = typeof payload.preview === 'string' ? payload.preview : undefined;
+
+                            taskMaterializer.recordToolCall({
+                              runId: activeRunId,
+                              agentId: agent.id,
+                              userInput: input,
+                              toolName,
+                              preview,
+                              createdBy: request.user?.id,
+                            });
+                          }
+                        }
+                      },
                       onDelta: (delta) => {
                         stallDetector.recordActivity();
                         assembledContent += delta;
@@ -1002,6 +1042,7 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
                       onDone: () => {
                         stallDetector.stop();
                         if (activeRunId) {
+                          taskMaterializer.completeTask(activeRunId, assembledContent);
                           chatRunHub.append(activeRunId, 'run.completed', {});
                           chatRunHub.finish(activeRunId);
                           try {
@@ -1021,6 +1062,7 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
                       onError: (why) => {
                         stallDetector.stop();
                         if (activeRunId) {
+                          taskMaterializer.failTask(activeRunId, why);
                           const data = { error: why };
                           chatRunHub.append(activeRunId, 'run.failed', data);
                           chatRunHub.finish(activeRunId);

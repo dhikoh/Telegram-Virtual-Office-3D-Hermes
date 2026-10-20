@@ -48,6 +48,14 @@ export interface HermesRunStatus {
   };
 }
 
+export interface RunChatStreamHandlers {
+  onRunId?: (runId: string) => void;
+  onDelta: (delta: string) => void;
+  onDone: () => void;
+  onError?: (message: string) => void;
+  onEvent?: (event: string, data: unknown) => void;
+}
+
 export interface HermesClient {
   capabilities(): Promise<HermesCapabilities>;
   startRun(params: StartRunParams): Promise<StartRunResponse>;
@@ -56,15 +64,7 @@ export interface HermesClient {
    * `onRunId` dipanggil SEBELUM delta apa pun, supaya rute bisa menyerahkan
    * run_id ke klien untuk sambung-ulang.
    */
-  runChatStream(
-    params: StartRunParams,
-    handlers: {
-      onRunId?: (runId: string) => void;
-      onDelta: (delta: string) => void;
-      onDone: () => void;
-      onError?: (message: string) => void;
-    }
-  ): Promise<void>;
+  runChatStream(params: StartRunParams, handlers: RunChatStreamHandlers): Promise<void>;
   getRunStatus(runId: string): Promise<HermesRunStatus>;
   resolveApproval(runId: string, decision: 'once' | 'deny'): Promise<{ status: string; decision: string }>;
   stopRun(runId: string): Promise<{ status: string }>;
