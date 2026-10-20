@@ -44,6 +44,7 @@
 - [x] Fase 1: Jembatan Identitas (Agen sadar nama, peran, SOUL, dan ruang kerja).
 - [x] Fase 2a: Heartbeat SSE tiap 10 detik (`: hb\n\n`) mencegah timeout Cloudflare.
 - [x] Fase 2b: Chat via Runs API + Reattach tahan restart (`POST /api/agents/:id/chat` mengirim `run_id`, reattach via `GET /api/agents/:id/runs/:runId/stream` dengan replay dari SQLite `run_events`, live hub attachment, dan fallback `sessionChatStream`).
+- [x] Fase 2c: Antrian Chat per Agen (`AgentChatQueue` - 1 run aktif, FIFO, maks 5 antrian, heartbeat selama antri, HTTP 429 `queue_full`).
 
 ---
 
