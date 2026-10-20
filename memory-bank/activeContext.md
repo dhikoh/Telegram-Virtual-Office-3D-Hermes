@@ -2,23 +2,24 @@
 
 ## 1. Status Saat Ini
 - **Branch Aktif:** `fase/4-task-visibility` (Dibuat per 2026-10-20 dari branch `fase/3-integrasi-profil`).
-- **Fase Terakhir Diselesaikan:** **Fase 4a (Migrasi 012_tasks_visibility.sql, Skema Shared, & Repositori Task)**.
+- **Fase Terakhir Diselesaikan:** **Fase 4b (Backend Task Materializer dari Tool Calls Chat Run)**.
 - **Kondisi Kesehatan Sistem:**
   * `npm run typecheck`: **PASS (100%)** — 0 errors di seluruh workspace.
   * `npm run gap-check`: **PASS (8/8 Checks)** — Phase 19 meets all 8 completeness criteria (C3a - C3h).
-  * `npm test`: Suite pengujian aktif dan stabil (**925 tests passed across 89 test files**).
-- **Fitur Baru Fase 4a:**
-  * Migrasi `012_tasks_visibility.sql` menambahkan kolom `source` (`'manual' | 'chat' | 'cron'`), `tool_calls_count` (penghitung pemanggilan tool), dan indeks `idx_tasks_run_id` serta `idx_tasks_source`.
-  * Definisi `TASK_SOURCES` dan `TaskSourceSchema` di shared package, `SCHEMA_SPEC` C3b diperbarui secara type-safe dan backward-compatible.
-  * `TaskRepository` diperbarui dengan dukungan penyimpanan `source` dan `tool_calls_count`, method pencarian `getByRunId()`, `getBySource()`, dan mutasi `incrementToolCalls()`.
-  * Unit test suite baru `apps/server/src/db/repositories/tasks.test.ts` memverifikasi struktur kolom, indeks, default values, dan query per run_id.
+  * `npm test`: Suite pengujian aktif dan stabil (**930 tests passed across 90 test files**).
+- **Fitur Baru Fase 4b:**
+  * Modul `ChatTaskMaterializer` di `apps/server/src/services/agent-chat/task-materializer.ts` yang menangani siklus hidup materialisasi task otomatis: `recordToolCall()`, `completeTask()`, dan `failTask()`.
+  * Penambahan interface `RunChatStreamHandlers` dengan callback `onEvent` pada `HermesClient`, `RealHermesClient`, dan `MockHermesClient`.
+  * Integrasi di endpoint `POST /api/agents/:id/chat`: saat event pemanggilan tool (`tool.started`, `tool_call`) terdeteksi, task baru otomatis tercipta di SQLite (`source: 'chat'`, `status: 'running'`, `run_id`, `tool_calls_count`), dan di-update ke `done` / `failed` saat run selesai dengan broadcast SSE real-time (`task_update`).
+  * Percakapan biasa tanpa pemanggilan tool terbukti TIDAK mengotori tabel tasks (`casual chat leaves tasks table empty`).
+  * Unit test suite baru `apps/server/src/services/agent-chat/task-materializer.test.ts` (5 tests) lulus 100%.
 
 ---
 
 ## 2. Fokus & Prioritas Kerja Aktif
-- Melanjutkan ke **Sub-task 4.2 (Fase 4b: Backend Task Materializer)**:
-  * Menghubungkan streaming run events / dispatcher: saat turn chat menghasilkan $\ge 1$ tool call, secara otomatis membuat entitas `Task` dengan `source: 'chat'`, `status: 'running'`, dan mengupdate status akhir menjadi `done` / `failed` saat run selesai.
-  * Memastikan turn chat santai tanpa tool call TIDAK mengotori daftar tasks.
+- Melanjutkan ke **Sub-task 4.3 (Fase 4c: Endpoint & UI Tasks Enhancement)**:
+  * Pembaruan endpoint `GET /api/tasks` untuk mendukung filter query `?source=all|chat|manual` dan mengembalikan metadata `source` serta `tool_calls_count`.
+  * Pembaruan UI Tasks di frontend (`apps/web`): badge indikator sumber (`Chat Auto-Task` vs `Direct Task`), counter tool call, dan tombol/viewer timeline `run_events` saat task diklik.
 
 ---
 
