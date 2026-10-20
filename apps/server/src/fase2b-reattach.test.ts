@@ -16,11 +16,9 @@ import { runMigrations } from './db/migrator.js';
 import { createTelegramInitData } from './auth.test.js';
 import { chatRunHub } from './services/agent-chat/run-hub.js';
 
-vi.mock('./services/hermes/index.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./services/hermes/index.js')>();
+const { mockClient } = vi.hoisted(() => {
   return {
-    ...actual,
-    getHermesClientForAgent: () => ({
+    mockClient: {
       capabilities: async () => ({
         object: 'hermes.api_server.capabilities',
         platform: 'hermes-agent',
@@ -32,14 +30,41 @@ vi.mock('./services/hermes/index.js', async (importOriginal) => {
       resolveApproval: async () => ({ status: 'resumed', decision: 'once' }),
       stopRun: async () => ({ status: 'stopping' }),
       streamEvents: async () => () => {},
-      runChatStream: async () => {},
+      runChatStream: async (
+        _params: any,
+        handlers: {
+          onRunId?: (runId: string) => void;
+          onDelta: (delta: string) => void;
+          onDone: () => void;
+          onError?: (message: string) => void;
+        }
+      ) => {
+        handlers.onRunId?.('run_chat_test_1');
+        handlers.onDelta('Halo ');
+        handlers.onDelta('dunia');
+        handlers.onDone();
+      },
       chatStream: async () => {},
       listModels: async () => ['hermes-agent'],
       createSession: async () => 'sess_x',
       getSessionMessages: async () => [],
-      sessionChatStream: async () => {},
+      sessionChatStream: async (
+        _sessionId: string,
+        _message: any,
+        onDelta: (delta: string) => void
+      ) => {
+        onDelta('Halo dari fallback session');
+      },
       listSkills: async () => [],
-    }),
+    },
+  };
+});
+
+vi.mock('./services/hermes/index.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./services/hermes/index.js')>();
+  return {
+    ...actual,
+    getHermesClientForAgent: () => mockClient,
   };
 });
 
@@ -157,3 +182,115 @@ describe('Fase 2b — GET /api/agents/:id/runs/:runId/stream', () => {
     expect(res.statusCode).toBe(401);
   });
 });
+
+describe('Fase 2b — POST /api/agents/:id/chat & Restart-Tolerant Reattach (E2E Route Level)', () => {
+  it('POST chat memanggil runChatStream, mengirim run_id di frame pertama, daftar ke hub, dan simpan ke DB', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/agents/${agentId}/chat`,
+      headers: {
+        authorization: auth,
+        'content-type': 'application/json',
+      },
+      payload: {
+        messages: [{ role: 'user', content: 'Halo Bagas' }],
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const lines = res.payload.split('\n\n').filter(Boolean);
+    // Frame pertama HARUS run_id
+    expect(lines[0]).toContain('{"run_id":"run_chat_test_1"}');
+    // Frame berikutnya adalah delta
+    expect(res.payload).toContain('Halo ');
+    expect(res.payload).toContain('dunia');
+    // Diakhiri [DONE]
+    expect(res.payload).toContain('[DONE]');
+
+    // Terdaftar di chatRunHub
+    expect(chatRunHub.has('run_chat_test_1')).toBe(true);
+    expect(chatRunHub.agentOf('run_chat_test_1')).toBe(agentId);
+
+    // Tersimpan di tabel run_events SQLite
+    const saved = db
+      .prepare('SELECT type, payload_json FROM run_events WHERE run_id = ? ORDER BY id ASC')
+      .all('run_chat_test_1') as { type: string; payload_json: string }[];
+    expect(saved.length).toBeGreaterThanOrEqual(3);
+    expect(saved[0].type).toBe('message.delta');
+    expect(saved.some((r) => r.type === 'run.completed')).toBe(true);
+  });
+
+  it('Reattach membaca run_events dari DB setelah restart (papan memori bersih)', async () => {
+    // Simulasikan server restart: buang semua data dari memori chatRunHub
+    chatRunHub.prune(Date.now() + 1000 * 60 * 60 * 24);
+    expect(chatRunHub.has('run_chat_test_1')).toBe(false);
+    expect(chatRunHub.agentOf('run_chat_test_1')).toBeNull();
+
+    // Klien menyambung ulang ke run yang sudah ada di DB
+    const res = await get(`/api/agents/${agentId}/runs/run_chat_test_1/stream`);
+    expect(res.statusCode).toBe(200);
+    expect(res.payload).toContain('Halo ');
+    expect(res.payload).toContain('dunia');
+    expect(res.payload).toContain('[DONE]');
+  });
+
+  it('Reattach dari DB dengan ?seq=1 tidak mengulang frame yang sudah diterima klien', async () => {
+    // Pastikan memori hub tetap bersih (kondisi restart)
+    chatRunHub.prune(Date.now() + 1000 * 60 * 60 * 24);
+
+    const res = await get(`/api/agents/${agentId}/runs/run_chat_test_1/stream?seq=1`);
+    expect(res.statusCode).toBe(200);
+    expect(res.payload).toContain('dunia');
+    expect(res.payload).not.toContain('Halo ');
+  });
+
+  it('POST chat fallback ke sessionChatStream bila runChatStream gagal di awal', async () => {
+    const origRunChatStream = mockClient.runChatStream;
+    mockClient.runChatStream = async () => {
+      throw new Error('Gateway 404 Runs API not supported');
+    };
+
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/agents/${agentId}/chat`,
+        headers: {
+          authorization: auth,
+          'content-type': 'application/json',
+        },
+        payload: {
+          messages: [{ role: 'user', content: 'Halo Bagas via session' }],
+        },
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.payload).toContain('Halo dari fallback session');
+      expect(res.payload).toContain('[DONE]');
+    } finally {
+      mockClient.runChatStream = origRunChatStream;
+    }
+  });
+
+  it('POST chat dengan X-Run-Id menyambung ke run yang masih hidup tanpa membuat giliran baru', async () => {
+    chatRunHub.start('run_live_reconnect', agentId);
+    chatRunHub.append('run_live_reconnect', 'message.delta', { delta: 'sedang jalan' });
+    chatRunHub.finish('run_live_reconnect');
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/agents/${agentId}/chat`,
+      headers: {
+        authorization: auth,
+        'content-type': 'application/json',
+        'x-run-id': 'run_live_reconnect',
+      },
+      payload: {
+        messages: [{ role: 'user', content: 'Pertanyaan sama' }],
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.payload).toContain('sedang jalan');
+  });
+});
+
