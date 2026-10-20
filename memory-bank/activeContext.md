@@ -1,27 +1,22 @@
 # Active Context: Hermes Virtual Office
 
 ## 1. Status Saat Ini
-- **Fase Terakhir Diselesaikan:** **Fase 2e (Persist Parsial Chat & Tombol Lanjutkan)** — Selesai & Terverifikasi penuh per 2026-10-20.
+- **Fase Terakhir Diselesaikan:** **Fase 3a (Migrasi 011 Provisioning, Shared Schemas, & Repositori State)** — Selesai & Terverifikasi penuh per 2026-10-20.
 - **Kondisi Kesehatan Sistem:**
   * `npm run typecheck`: **PASS (100%)** — 0 errors di seluruh workspace.
   * `npm run gap-check`: **PASS (8/8 Checks)** — Phase 19 meets all 8 completeness criteria (C3a - C3h).
-  * `npm test`: Suite pengujian aktif dan stabil (**894 tests passed across 85 test files**).
-- **Fitur Baru Fase 2e:**
-  * Migrasi `010_agent_chat.sql` menambahkan tabel `agent_runs` dan `agent_messages`.
-  * Akumulasi chunk real-time: setiap delta stream disimpan bertahap ke SQLite. Jika terjadi error di tengah streaming, potongan respon asisten tetap utuh di database dengan `status: 'partial'`.
-  * Tombol "Lanjutkan": `GET /api/agents/:id/chat` mendeteksi pesan parsial dan mengembalikan `can_continue: true` serta menyertakan potongan parsial di riwayat. UI AgentSheetChat menampilkan banner dan tombol "Lanjutkan" interaktif.
-  * Resilience offline/502: riwayat chat tetap dapat dibaca dari database lokal meskipun gateway sedang tidak dapat dihubungi.
-- **Sistem Pengaturan Terpasang:**
-  * Protokol **Phase-Gated & Memory Bank Development** aktif secara global dan per-proyek.
-  * File workflow tersedia di `.agent/workflows/` (`create-prd.md`, `generate-tasks.md`, `process-task-list.md`, `memory-bank-rules.md`).
-  * File panduan utama tersimpan di `.agent/rules.md` dan `AGENTS.md`.
+  * `npm test`: Suite pengujian aktif dan stabil (**895 tests passed across 85 test files**).
+- **Fitur Baru Fase 3a:**
+  * Migrasi `011_agent_provisioning.sql` menambahkan kolom `provision_state`, `provision_error`, dan `provisioned_at` pada tabel `agents`.
+  * `SCHEMA_SPEC` dan skema Zod `AgentSchema`, `AgentPublicSchema`, `AgentInputSchema` diperbarui dengan enumerasi `AGENT_PROVISION_STATES` (`'unprovisioned'` | `'provisioning'` | `'ready'` | `'failed'`).
+  * `AgentRepository.create()` menyimpan atribut provisioning secara default `'unprovisioned'`, dan method baru `updateProvisionState()` menangani transisi status siklus hidup profil Hermes secara idempoten dan type-safe.
+  * Serialisasi API `toPublic` menyertakan `provision_state`, `provision_error`, dan `provisioned_at` untuk konsumsi klien web.
 
 ---
 
 ## 2. Fokus & Prioritas Kerja Aktif
 - Menjaga kepatuhan mutlak terhadap 3 Hukum Mutlak (Zero-Gap, Strict Single Sub-Task, Memory Sync).
-- Prioritas berikutnya: **Fase 3 (Integrasi Profil: Dua Dunia Tersambung)** — pembuatan profil Hermes otomatis per agen dengan `SOUL.md`, sesi terisolasi antar agen, migrasi `011_agent_provisioning.sql`, dan route `POST /api/agents/:id/provision`.
-- Menunggu konfirmasi user sebelum memulai Fase 3.
+- Prioritas berikutnya: **Sub-task 3.2 (Service Provisioner: `apps/server/src/services/hermes/provisioner.ts`)** — pembuatan profil Hermes via `execFile` (aman dari shell injection) atau simulasi mock, penyusunan `SOUL.md` terisolasi per agen, dan unit test lengkap.
 
 ---
 
