@@ -294,6 +294,20 @@ export const ENDPOINTS: readonly EndpointDefinition[] = [
     description: 'Ask the orchestrator agent to remove an installed skill (task pipeline; gateway has no uninstall REST)',
   },
   {
+    method: 'GET',
+    path: '/api/skills/sync/status',
+    phase: 11,
+    requiresAuth: true,
+    description: 'Check synchronization status between repo skill catalog and gateway skills',
+  },
+  {
+    method: 'POST',
+    path: '/api/skills/sync',
+    phase: 11,
+    requiresAuth: true,
+    description: 'Auto-install and synchronize missing repo catalog skills into Hermes',
+  },
+  {
     method: 'POST',
     path: '/api/agents/:id/media',
     phase: 12,

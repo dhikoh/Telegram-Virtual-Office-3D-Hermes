@@ -325,3 +325,48 @@ export const CronJobSchema = z.object({
   next_run_at: z.number().nullable().optional(),
 });
 export type CronJob = z.infer<typeof CronJobSchema>;
+
+/**
+ * Metadata Skill Lokal yang tersimpan di repositori (Fase 6).
+ */
+export const LocalSkillSchema = z.object({
+  name: z.string().min(1),
+  title: z.string().min(1),
+  description: z.string(),
+  version: z.string().optional(),
+  triggers: z.array(z.string()).optional(),
+  path: z.string(),
+});
+export type LocalSkill = z.infer<typeof LocalSkillSchema>;
+
+/**
+ * Status Sinkronisasi Katalog Skill Repo vs Gateway (Fase 6).
+ */
+export const SkillSyncStatusSchema = z.object({
+  in_sync: z.boolean(),
+  total_local: z.number(),
+  total_installed: z.number(),
+  missing_names: z.array(z.string()),
+  installed_names: z.array(z.string()),
+  local_skills: z.array(LocalSkillSchema),
+  gateway_error: z.string().nullable().optional(),
+});
+export type SkillSyncStatus = z.infer<typeof SkillSyncStatusSchema>;
+
+/**
+ * Hasil Eksekusi Auto-Install / Sinkronisasi Skill (Fase 6).
+ */
+export const SkillSyncResultSchema = z.object({
+  ok: z.boolean(),
+  synced: z.array(z.string()),
+  already_installed: z.array(z.string()),
+  failed: z.array(
+    z.object({
+      name: z.string(),
+      error: z.string(),
+    })
+  ),
+  timestamp: z.number(),
+});
+export type SkillSyncResult = z.infer<typeof SkillSyncResultSchema>;
+

@@ -4,7 +4,8 @@ import type { Task } from '@hermes-office/shared';
 import { getServerHermesClient } from '../services/hermes/index.js';
 // Tahap 11 — katalog gateway dipakai bersama oleh toggle skill per agen
 // (routes/agents.ts) supaya guardrail "nama harus dari katalog" satu sumber.
-import { normalizeSkill, readGatewayCatalog } from '../services/skill-catalog.js';
+import { normalizeSkill, readGatewayCatalog, invalidateGatewayCatalogCache } from '../services/skill-catalog.js';
+import { checkSkillSyncStatus, syncSkills } from '../services/hermes/skill-sync.js';
 import { TaskRepository } from '../db/repositories/tasks.js';
 import { AuditRepository } from '../db/repositories/audit.js';
 import { config } from '../config.js';
@@ -119,6 +120,27 @@ export const skillRoutes: FastifyPluginAsync = async (fastify) => {
       userId: request.user!.id,
       installed,
     });
+  });
+
+  /**
+   * Fase 6 — periksa status sinkronisasi katalog skill repo vs gateway.
+   */
+  fastify.get('/api/skills/sync/status', async () => {
+    return checkSkillSyncStatus();
+  });
+
+  /**
+   * Fase 6 — sinkronisasikan dan auto-install skill repo yang belum terpasang.
+   */
+  fastify.post('/api/skills/sync', async (request) => {
+    const body = (request.body || {}) as { force?: boolean };
+    const result = await syncSkills({
+      db: fastify.db,
+      userId: request.user!.id,
+      force: !!body.force,
+    });
+    invalidateGatewayCatalogCache();
+    return result;
   });
 };
 

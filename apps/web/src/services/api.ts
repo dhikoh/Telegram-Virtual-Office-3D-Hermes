@@ -17,6 +17,8 @@ import type {
   OfficeDepartment,
   Project,
   ProjectTask,
+  SkillSyncStatus,
+  SkillSyncResult,
 } from '@hermes-office/shared';
 
 const API_BASE = '/api';
@@ -391,4 +393,12 @@ export const api = {
       initData ? `?auth=${encodeURIComponent(initData)}` : ''
     }`;
   },
+  /** Fase 6 — periksa status sinkronisasi katalog skill repo vs gateway */
+  getSkillSyncStatus: () => request<SkillSyncStatus>('/skills/sync/status'),
+  /** Fase 6 — auto-install / sinkronisasi skill repo yang belum terpasang */
+  syncSkills: (force = false) =>
+    request<SkillSyncResult>('/skills/sync', {
+      method: 'POST',
+      body: JSON.stringify({ force }),
+    }),
 };
