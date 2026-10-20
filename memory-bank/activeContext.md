@@ -2,24 +2,25 @@
 
 ## 1. Status Saat Ini
 - **Branch Aktif:** `fase/4-task-visibility` (Dibuat per 2026-10-20 dari branch `fase/3-integrasi-profil`).
-- **Fase Terakhir Diselesaikan:** **Fase 4b (Backend Task Materializer dari Tool Calls Chat Run)**.
+- **Fase Terakhir Diselesaikan:** **FASE 4 LENGKAP — Task & Run Visibility (Fase 4a, 4b, 4c)**.
 - **Kondisi Kesehatan Sistem:**
   * `npm run typecheck`: **PASS (100%)** — 0 errors di seluruh workspace.
   * `npm run gap-check`: **PASS (8/8 Checks)** — Phase 19 meets all 8 completeness criteria (C3a - C3h).
-  * `npm test`: Suite pengujian aktif dan stabil (**930 tests passed across 90 test files**).
-- **Fitur Baru Fase 4b:**
-  * Modul `ChatTaskMaterializer` di `apps/server/src/services/agent-chat/task-materializer.ts` yang menangani siklus hidup materialisasi task otomatis: `recordToolCall()`, `completeTask()`, dan `failTask()`.
-  * Penambahan interface `RunChatStreamHandlers` dengan callback `onEvent` pada `HermesClient`, `RealHermesClient`, dan `MockHermesClient`.
-  * Integrasi di endpoint `POST /api/agents/:id/chat`: saat event pemanggilan tool (`tool.started`, `tool_call`) terdeteksi, task baru otomatis tercipta di SQLite (`source: 'chat'`, `status: 'running'`, `run_id`, `tool_calls_count`), dan di-update ke `done` / `failed` saat run selesai dengan broadcast SSE real-time (`task_update`).
-  * Percakapan biasa tanpa pemanggilan tool terbukti TIDAK mengotori tabel tasks (`casual chat leaves tasks table empty`).
-  * Unit test suite baru `apps/server/src/services/agent-chat/task-materializer.test.ts` (5 tests) lulus 100%.
+  * `npm test`: Suite pengujian aktif dan stabil (**945 tests passed across 91 test files**).
+- **Fitur Selesai di Fase 4c:**
+  * Endpoint `GET /api/tasks` mendukung query filter `?source=all|manual|chat`, `agent_id`, dan `status`.
+  * Endpoint `GET /api/tasks/:id/events` mengembalikan riwayat urut `run_events` (`task_id`, `run_id`, array `events` dengan payload terurai).
+  * Definisi endpoint terdaftar di `packages/shared/src/endpoints.ts` dan tipe `TaskEventsResponse`, `TaskTimelineEvent` di `types.ts`.
+  * Peningkatan UI `Tasks.tsx`: Filter pills interaktif (`Semua`, `Langsung`, `Dari Chat`), badge sumber (`💬 Chat Auto-Task` vs `📋 Direct`), badge tool calls (`🔧 X tool(s)`), serta tombol cepat `Timeline` dan `Hasil`.
+  * Peningkatan modal `TaskResultModal.tsx`: Tab switcher ("Hasil Output" vs "Timeline Run"), visualisasi jejak node timeline event interaktif dengan format waktu dan ringkasan payload, daftar artefak berkas dengan tombol unduh.
+  * Dukungan i18n lengkap untuk namespace `tasks` di Bahasa Indonesia dan English (lolos verifikasi C3c).
+  * Test suite `apps/server/src/routes/tasks.test.ts` (15 tests) mencakup filter task, status 404, empty events tanpa run, dan ordered event payloads.
 
 ---
 
 ## 2. Fokus & Prioritas Kerja Aktif
-- Melanjutkan ke **Sub-task 4.3 (Fase 4c: Endpoint & UI Tasks Enhancement)**:
-  * Pembaruan endpoint `GET /api/tasks` untuk mendukung filter query `?source=all|chat|manual` dan mengembalikan metadata `source` serta `tool_calls_count`.
-  * Pembaruan UI Tasks di frontend (`apps/web`): badge indikator sumber (`Chat Auto-Task` vs `Direct Task`), counter tool call, dan tombol/viewer timeline `run_events` saat task diklik.
+- **Fase 4 telah selesai 100% dan terverifikasi.**
+- Menunggu arahan pengguna untuk merge branch `fase/4-task-visibility` ke branch utama atau melanjutkan ke fase berikutnya sesuai peta rencana pengembangan.
 
 ---
 
