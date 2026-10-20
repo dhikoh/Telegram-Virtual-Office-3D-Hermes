@@ -1,21 +1,22 @@
 # Active Context: Hermes Virtual Office
 
 ## 1. Status Saat Ini
-- **Fase Terakhir Diselesaikan:** **Fase 3c (Endpoint Provisioning & Auto-Provisioning Hiring)** — Selesai & Terverifikasi penuh per 2026-10-20.
+- **Fase Terakhir Diselesaikan:** **Fase 3 (Integrasi Profil Hermes — Dua Dunia Tersambung: Sub-task 3.1 s/d 3.4)** — Selesai & Terverifikasi penuh per 2026-10-20.
 - **Kondisi Kesehatan Sistem:**
   * `npm run typecheck`: **PASS (100%)** — 0 errors di seluruh workspace.
   * `npm run gap-check`: **PASS (8/8 Checks)** — Phase 19 meets all 8 completeness criteria (C3a - C3h).
-  * `npm test`: Suite pengujian aktif dan stabil (**920 tests passed across 87 test files**).
-- **Fitur Baru Fase 3c:**
-  * Endpoint `POST /api/agents/:id/provision` terdaftar di Fastify dan didefinisikan secara resmi di `packages/shared/src/endpoints.ts`, memfasilitasi provision manual maupun re-provisioning idempoten.
-  * Integrasi auto-provisioning di `POST /api/hiring/:id/mark-hired`: saat kandidat diterima, profil Hermes dibuat otomatis dengan `SOUL.md` (menggunakan draft `soul_md` atau generate profil 9 seksi), status langsung beralih ke `ready`, dan tercatat di audit log.
-  * Integration test suite baru (`apps/server/src/fase3-provisioning.test.ts` - 15 tests) menguji rute provisioning, validasi input, 404 handling, idempotensi, dan auto-provisioning alur hiring.
+  * `npm test`: Suite pengujian aktif dan stabil (**922 tests passed across 88 test files**).
+- **Fitur Baru Fase 3 (Lengkap):**
+  * **Fase 3a:** Migrasi database `011_agent_provisioning.sql` dengan kolom `provision_state`, `provision_error`, dan `provisioned_at` pada tabel `agents`, skema Zod `AgentProvisionStateSchema`, dan method `AgentRepository.updateProvisionState()`.
+  * **Fase 3b:** Service `provisionAgentProfile` di `apps/server/src/services/hermes/provisioner.ts` dengan eksekusi `execFile` aman (tanpa shell injection), penanganan profil Hermes mandiri dengan generator `SOUL.md` 9 seksi (identitas, batasan, gaya bahasa, tools), sanitasi profile slug, dan idempotensi.
+  * **Fase 3c:** Endpoint `POST /api/agents/:id/provision` dan integrasi auto-provisioning di `POST /api/hiring/:id/mark-hired` saat kandidat diterima kerja.
+  * **Fase 3d:** Service `runProvisionBackfill` (`apps/server/src/services/hermes/backfill.ts`), script CLI `scripts/provision-backfill.ts` (`npm run provision:backfill -- --dry-run`), unit test suite, dan perbaikan candidate discovery di `apps/server/src/db/migrator.ts`.
 
 ---
 
 ## 2. Fokus & Prioritas Kerja Aktif
-- Menjaga kepatuhan mutlak terhadap 3 Hukum Mutlak (Zero-Gap, Strict Single Sub-Task, Memory Sync).
-- Prioritas berikutnya: **Sub-task 3.4 (Script Backfill `scripts/provision-backfill.ts` & Pengkaitan Profil Chat)** — pembuatan script migrasi/backfill dengan opsi `--dry-run` untuk mem-provision seluruh agen yang ada saat ini (Bagas, Orion, Aura, dll.) ke profil masing-masing, serta verifikasi pemisahan sesi chat antar-agen.
+- Seluruh 4 sub-task pada Fase 3 telah selesai dan teruji secara menyeluruh.
+- Menunggu persetujuan atau instruksi langkah berikutnya dari user.
 
 ---
 
