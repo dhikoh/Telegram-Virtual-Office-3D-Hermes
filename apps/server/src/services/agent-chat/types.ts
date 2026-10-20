@@ -21,6 +21,16 @@ export type ChatFrame =
  * `seq` diambil dari bingkai SSE gateway dan menjadi kunci sambung-ulang:
  * `GET /v1/runs/{id}/events?seq=N` melanjutkan dari peristiwa berikutnya.
  */
+/**
+ * Run chat yang sedang atau pernah berjalan, dibawa ke klien lewat
+ * `x-run-id`. Klien menyimpannya dan memakai `?seq=` saat menyambung ulang.
+ */
+export interface RunHandle {
+  runId: string;
+  /** Papan tempat riwayat run ini bisa diputar ulang; bisa kosong. */
+  hub?: 'chat';
+}
+
 export interface RecordedRunEvent {
   seq: number;
   event: string;

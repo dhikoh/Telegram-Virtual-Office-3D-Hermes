@@ -17,6 +17,9 @@ import {
 } from '../services/hermes/skill-scope.js';
 import { buildAgentIdentity } from '../services/hermes/identity.js';
 import { startHeartbeat } from '../services/agent-chat/heartbeat.js';
+import { chatRunHub } from '../services/agent-chat/run-hub.js';
+import type { RecordedRunEvent } from '../services/agent-chat/types.js';
+import { runEventToChatFrame } from '../services/agent-chat/run-events.js';
 import { departmentExists } from '../db/repositories/departments.js';
 import { SettingRepository } from '../db/repositories/settings.js';
 import {
@@ -224,6 +227,73 @@ function applyScopeToContent<T>(content: T, directive: string | null): T {
     return parts as T;
   }
   return content;
+}
+
+/**
+ * Fase 2b — sambungkan klien ke run yang sedang hidup.
+ *
+ * Urutannya penting dan tidak boleh tertukar: riwayat yang sudah ada dibaca
+ * dulu, BARU pelanggan dipasang. Kalau sebaliknya, peristiwa yang tiba di
+ * antara keduanya bisa terkirim dua kali (sekali dari langganan, sekali dari
+ * riwayat).
+ */
+async function attachToLiveRun(
+  runId: string,
+  reply: { raw: { write: (s: string) => void; writableEnded: boolean; destroyed?: boolean } },
+  writeEvent: (s: string) => void,
+  afterSeq = 0
+): Promise<void> {
+  // Riwayat = pemutaran ulang. Yang melewati `afterSeq` dikirim, sisanya tidak
+  // diulang; kalau pemanggil memanggil ini tanpa riwayat (jalur x-run-id di
+  // atas), pemutaran ini yang menyalinnya.
+  const history = chatRunHub.history(runId);
+  for (const event of history) {
+    if (event.seq > afterSeq) writeSseEvent(writeEvent, event);
+  }
+  const lastSeq = Math.max(afterSeq, history[history.length - 1]?.seq ?? 0);
+  if (history.some((e) => isTerminalEvent(e.event))) return;
+
+  const unsubscribe = chatRunHub.subscribe(
+    runId,
+    lastSeq,
+    (event) => writeSseEvent(writeEvent, event)
+  );
+  const socket = reply.raw as unknown as {
+    on?: (ev: string, fn: () => void) => void;
+    writableEnded: boolean;
+    destroyed: boolean;
+  };
+  const closed = () => socket.writableEnded || socket.destroyed;
+  if (closed()) return unsubscribe();
+
+  await new Promise<void>((resolve) => {
+    socket.on?.('close', () => {
+      unsubscribe();
+      resolve();
+    });
+    // Kalau socket sudah mati sebelum listener terpasang, jangan menunggu
+    // selamanya — lepaskan dan selesai.
+    if (closed()) {
+      unsubscribe();
+      resolve();
+    }
+  });
+}
+
+function isTerminalEvent(event: string): boolean {
+  return event === 'run.completed' || event === 'run.failed' || event === 'run.cancelled' || event === 'run.interrupted';
+}
+
+function writeSseEvent(writeEvent: (s: string) => void, event: RecordedRunEvent): void {
+  const frame = runEventToChatFrame(event.event, event.data);
+  if (!frame) return;
+  if (frame.kind === 'content') {
+    writeEvent(`data: ${JSON.stringify({ choices: [{ delta: { content: frame.text } }] })}\n\n`);
+  } else if (frame.kind === 'done') {
+    writeEvent('data: [DONE]\n\n');
+  } else {
+    writeEvent(`data: ${JSON.stringify({ error: 'run_failed', message: frame.message })}\n\n`);
+  }
 }
 
 export const agentRoutes: FastifyPluginAsync = async (fastify) => {
@@ -596,7 +666,13 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
       try {
         // Tahap 8: prefer the gateway session — history and memory persist there.
         const sessionId = agent.session_id || (await client.createSession(`${agent.name}`));
-        if (sessionId) {
+        // Fase 2b — bila klien menyerahkan run lama yang masih berjalan (retry,
+        // panel yang tertutup lalu dibuka lagi), sambungkan ke papan itu dulu
+        // alih-alih membuka giliran baru yang menggandakan pekerjaan.
+        const requestedRun = request.headers['x-run-id'];
+        if (typeof requestedRun === 'string' && chatRunHub.isLive(requestedRun)) {
+          await attachToLiveRun(requestedRun, reply, writeEvent);
+        } else if (sessionId) {
           if (!agent.session_id) {
             agentRepo.update(id, { session_id: sessionId });
             // Tahap 9 — record the live session so "Sesi baru" can archive it later.
@@ -652,6 +728,67 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
         stopHeartbeat();
       }
 
+      reply.raw.end();
+    }
+  );
+
+  /**
+   * Fase 2b — sambungkan ulang ke run yang masih berjalan.
+   *
+   * Tujuannya satu: menutup panel di tengah jalan tidak membuang balasan.
+   * Riwayat peristiwa diputar ulang dari awal, lalu aliran dilanjutkan. `seq`
+   * dari klien menentukan titik lanjut: peristiwa sesudahnya dikirim dari
+   * papan, dan peristiwa sebelumnya tidak dikirim ulang.
+   *
+   * Run milik agen yang BUKAN pemiliknya tidak pernah terlihat — pemilik run
+   * dicek dulu sebelum apa pun ditulis.
+   */
+  fastify.get<{ Params: { id: string; runId: string }; Querystring: { seq?: string } }>(
+    '/api/agents/:id/runs/:runId/stream',
+    async (request, reply) => {
+      const { id, runId } = request.params;
+      const agent = agentRepo.getById(id);
+      if (!agent) {
+        return reply.code(404).send({ error: 'not_found', message: 'Agent not found' });
+      }
+      if (chatRunHub.agentOf(runId) !== agent.id) {
+        return reply.code(404).send({ error: 'not_found', message: 'Run not found' });
+      }
+
+      reply.raw.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+      });
+      const writeEvent = (payload: string) => {
+        if (reply.raw.writableEnded || reply.raw.destroyed) return;
+        reply.raw.write(payload);
+      };
+      const stopHeartbeat = startHeartbeat(fastify.chatHeartbeatMs, writeEvent);
+
+      const requestedSeq = Number.parseInt(request.query.seq || '0', 10);
+      const afterSeq = Number.isFinite(requestedSeq) && requestedSeq > 0 ? requestedSeq : 0;
+      try {
+        const history = chatRunHub.history(runId);
+        // Yang sudah dikirim klien tidak diulang; yang belum diputar dari papan.
+        for (const event of history) {
+          if (event.seq > afterSeq) writeSseEvent(writeEvent, event);
+        }
+        if (history.some((e) => isTerminalEvent(e.event))) {
+          reply.raw.write('data: [DONE]\n\n');
+        } else {
+          await attachToLiveRun(runId, reply, writeEvent, afterSeq);
+        }
+      } catch (err) {
+        writeEvent(
+          `data: ${JSON.stringify({
+            error: 'gateway_error',
+            message: String((err as Error)?.message || err),
+          })}\n\n`
+        );
+      } finally {
+        stopHeartbeat();
+      }
       reply.raw.end();
     }
   );

@@ -76,6 +76,14 @@ export const ENDPOINTS: readonly EndpointDefinition[] = [
     description: "Load the agent's persisted chat history from its gateway session",
   },
   {
+    method: 'GET',
+    path: '/api/agents/:id/runs/:runId/stream',
+    phase: 2,
+    requiresAuth: true,
+    description:
+      'Reconnect to a running chat turn: replay recorded run events then continue live (Fase 2b reattach)',
+  },
+  {
     method: 'DELETE',
     path: '/api/agents/:id',
     phase: 8,

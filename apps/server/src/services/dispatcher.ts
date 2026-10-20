@@ -7,6 +7,7 @@ import { getHermesClientForAgent } from './hermes/index.js';
 import { streamManager } from './stream.js';
 import { telegramNotifications } from './notifications.js';
 import { listTaskArtifacts, registerRunArtifacts } from './artifacts.js';
+import { chatRunHub } from './agent-chat/run-hub.js';
 
 /**
  * Status tempat artefak run relevan untuk konsumen SSE — hanya saat itu
@@ -131,6 +132,10 @@ export class OfficeDispatcher {
       run_id,
     });
 
+    // Fase 2b — daftarkan run ke papan lari sebelum langganan, supaya tidak ada
+    // peristiwa yang tiba lebih dulu dari papan dan hilang dari pemutaran ulang.
+    chatRunHub.start(run_id, agent.id);
+
     this.setAgentStatus(agent.id, 'thinking');
 
     // Subscribe to run events with drop recovery
@@ -167,6 +172,8 @@ export class OfficeDispatcher {
     const onEvent = (event: string, rawData: unknown) => {
       if (event === 'stream.dropped') {
         if (!runFinished) {
+          // Fase 2b — koneksi pengamat putus, bukan run gagal. Selama run
+          // masih di papan, jangan membatalkan apa pun: klien boleh kembali.
           handleDrop();
         }
         return;
@@ -230,10 +237,14 @@ export class OfficeDispatcher {
         // Status polling also failed
       }
 
-      // If status could not be recovered, fail cleanly so agent never stays stuck
+      // Fase 2b — pengamat putus BUKAN berarti pekerjaan gagal. Menandai
+      // `run.failed` di sini membuang balasan yang sebenarnya masih berjalan di
+      // gateway, persis penyakit yang diperbaiki tahap ini. Putuskan status
+      // sebagai "tidak teramati", biarkan tugasnya sendiri yang menentukan
+      // kelanjutannya, dan jangan menyentuh run milik gateway.
       runFinished = true;
-      this.handleRunEvent(taskId, agent, runId, 'run.failed', {
-        error: 'SSE connection dropped mid-run and status could not be recovered',
+      this.handleRunEvent(taskId, agent, runId, 'run.disconnected', {
+        error: 'Pengamat terputus; status run tidak terpantau. Run tetap berjalan di gateway.',
       });
     };
 
@@ -284,6 +295,18 @@ export class OfficeDispatcher {
   private handleRunEvent(taskId: string, agent: Agent, runId: string, event: string, rawData: unknown): void {
     // Record into run_events table
     const data = (rawData || {}) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+    // Fase 2b — papan lari hidup: peristiwa yang sama juga masuk ke hub, supaya
+    // klien yang menutup panel bisa memutar ulang dan menyambung lagi. Papan
+    // hanya menyimpan; kegagalannya tidak boleh merusak run.
+    try {
+      chatRunHub.append(runId, event, data);
+      if (event === 'run.completed' || event === 'run.failed' || event === 'run.cancelled' || event === 'run.interrupted') {
+        chatRunHub.finish(runId);
+      }
+    } catch {
+      // abaikan: hub adalah jalur tampilan, bukan jalur kebenaran
+    }
 
     try {
       this.db

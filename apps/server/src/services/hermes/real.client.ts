@@ -352,6 +352,10 @@ export class RealHermesClient implements HermesClient {
 
     handlers.onRunId?.(runId);
 
+    // Fase 2b — beri tahu klien begitu run terbuka, sebelum ada delta sama
+    // sekali. Tanpa ini klien tidak punya apa yang disimpan untuk sambung-ulang.
+    // Penulisan ke socket dilakukan pemanggil lewat handler ini.
+
     // Kumpulan delta disimpan untuk laporan kegagalan parsial (Fase 2e) —
     // potongan yang sudah sampai tidak boleh hilang begitu run gagal.
     //

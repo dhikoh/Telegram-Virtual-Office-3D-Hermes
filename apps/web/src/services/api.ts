@@ -198,7 +198,11 @@ export const api = {
     messages: { role: string; content: string }[],
     onChunk: (delta: string) => void,
     onDone: () => void,
-    onError: (err: Error) => void
+    onError: (err: Error) => void,
+    onRunId?: (runId: string) => void,
+    /** Fase 2b — run yang sudah berjalan; dikirim sebagai x-run-id agar klien
+     * yang kembali menyambung ke pekerjaan yang sama, bukan mengulang. */
+    currentRunId?: string | null
   ): Promise<void> => {
     try {
       const initData = tma.getInitData();
@@ -207,6 +211,11 @@ export const api = {
       };
       if (initData) {
         headers['Authorization'] = `tma ${initData}`;
+      }
+      if (currentRunId) {
+        // Fase 2b — server memakai ini untuk menyambung ke run yang masih hidup
+        // alih-alih membuka giliran baru.
+        headers['X-Run-Id'] = currentRunId;
       }
 
       const response = await fetch(`${API_BASE}/agents/${id}/chat`, {
@@ -254,6 +263,11 @@ export const api = {
               // bahwa giliran gagal.
               if (typeof parsed.error === 'string') {
                 throw new Error(parsed.message || parsed.error);
+              }
+              if (parsed.run_id && typeof parsed.run_id === 'string') {
+                // Fase 2b — run_id diberitahu di bingkai pertama; klien
+                // menyimpannya untuk sambung-ulang.
+                onRunId?.(parsed.run_id);
               }
               const deltaContent = parsed.choices?.[0]?.delta?.content || '';
               if (deltaContent) {
