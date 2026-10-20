@@ -15,7 +15,8 @@
     "test": "vitest run",
     "gap-check": "node --experimental-strip-types scripts/gap-check.ts",
     "mock:hermes": "node --experimental-strip-types tools/mock-hermes/src/index.ts",
-    "provision:backfill": "node --experimental-strip-types scripts/provision-backfill.ts"
+    "provision:backfill": "node --experimental-strip-types scripts/provision-backfill.ts",
+    "skills:sync": "node --experimental-strip-types scripts/skills-sync.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.1",
