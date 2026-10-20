@@ -56,6 +56,8 @@
 - [x] Fase 4c: Endpoint Tasks Events & Visualisasi UI Timeline Run (`GET /api/tasks?source=...`, `GET /api/tasks/:id/events`, visualisasi pill filter, badges `Chat Auto-Task` & `🔧 X tools`, modal timeline switcher `TaskResultModal`, lokalisasi i18n dwibahasa, dan 15 unit tests).
 - [x] FASE 4 — Task & Run Visibility: SELESAI & TERVERIFIKASI PENUH.
 - [x] Fase 5a: Endpoint Cron & Pemetaan Job Jadwal Hermes (`GET /api/cron`, interface `HermesJob` & `listJobs()`, pemetaan job ke agen berdasarkan skill & role, filter `agent_skills`, komponen `CronScheduleView.tsx`, switcher mode di TasksScreen, dan 15 unit tests).
+- [x] Fase 5b: Floating Action Button (FAB) & Agent Messenger Modal Quick-Switcher (`MessengerFAB.tsx`, `AgentMessengerModal.tsx`, quick-switch button di `AgentSheet.tsx`, integrasi ke `Office.tsx`, kamus i18n dwibahasa `messenger`, dan 5 unit tests).
+- [x] FASE 5 — UI: List Cron + FAV Messenger: SELESAI & TERVERIFIKASI PENUH.
 
 ---
 
