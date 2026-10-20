@@ -4,6 +4,7 @@ import { HiringRepository } from '../db/repositories/hiring.js';
 import { AgentRepository } from '../db/repositories/agents.js';
 import { AuditRepository } from '../db/repositories/audit.js';
 import { departmentExists } from '../db/repositories/departments.js';
+import { provisionAgentProfile } from '../services/hermes/provisioner.js';
 import { config } from '../config.js';
 
 export const hiringRoutes: FastifyPluginAsync = async (fastify) => {
@@ -68,11 +69,20 @@ export const hiringRoutes: FastifyPluginAsync = async (fastify) => {
           soul_summary: String(agentData.soul_summary || ''),
           hermes_base_url: config.HERMES_BASE_URL,
           api_key_env: String(agentData.api_key_env || 'HERMES_KEY_DEFAULT'),
-          hermes_profile: String(agentData.hermes_profile || agentData.id),
+          hermes_profile: String(agentData.hermes_profile || 'default'),
           active: 1,
           hired_at: Date.now(),
           created_at: Date.now(),
         });
+
+        // Fase 3 — auto-provisioning profil Hermes untuk agen baru yang direkrut
+        const createdAgent = agentRepo.getById(String(agentData.id));
+        if (createdAgent) {
+          await provisionAgentProfile(createdAgent, db, {
+            userId: request.user?.id,
+            soulMd: draft.soul_md,
+          });
+        }
       }
 
       auditRepo.logAction(request.user!.id, 'hiring.mark_hired', id);
@@ -81,3 +91,4 @@ export const hiringRoutes: FastifyPluginAsync = async (fastify) => {
     }
   );
 };
+

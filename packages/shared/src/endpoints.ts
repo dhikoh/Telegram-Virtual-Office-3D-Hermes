@@ -92,6 +92,13 @@ export const ENDPOINTS: readonly EndpointDefinition[] = [
   },
   {
     method: 'POST',
+    path: '/api/agents/:id/provision',
+    phase: 2,
+    requiresAuth: true,
+    description: 'Provision or re-provision agent profile and SOUL.md on Hermes (Fase 3)',
+  },
+  {
+    method: 'POST',
     path: '/api/agents/:id/session',
     phase: 9,
     requiresAuth: true,

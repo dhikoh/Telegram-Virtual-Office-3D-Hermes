@@ -18,6 +18,7 @@ import {
   stripSkillScope,
 } from '../services/hermes/skill-scope.js';
 import { buildAgentIdentity } from '../services/hermes/identity.js';
+import { provisionAgentProfile } from '../services/hermes/provisioner.js';
 import { startHeartbeat } from '../services/agent-chat/heartbeat.js';
 import { chatRunHub } from '../services/agent-chat/run-hub.js';
 import { chatIdempotencyHub } from '../services/agent-chat/idempotency.js';
@@ -1408,6 +1409,50 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
         is_current: row.session_id === agent.session_id,
       })),
     };
+  });
+
+  /**
+   * Fase 3 — route internal provision / re-provision profil Hermes untuk satu agen.
+   * Menjalankan generator SOUL.md dan pemanggilan idempoten Hermes CLI (execFile).
+   */
+  fastify.post<{
+    Params: { id: string };
+    Body?: { custom_soul_md?: string; skills?: string[] };
+  }>('/api/agents/:id/provision', async (request, reply) => {
+    const { id } = request.params;
+    const agent = agentRepo.getById(id);
+    if (!agent) {
+      return reply.code(404).send({ error: 'not_found', message: 'Agent not found' });
+    }
+
+    const body = request.body || {};
+    const result = await provisionAgentProfile(agent, db, {
+      userId: request.user?.id,
+      soulMd: body.custom_soul_md,
+      skills: body.skills,
+    });
+
+    if (!result.ok) {
+      return reply.code(500).send({
+        error: 'provision_failed',
+        message: result.error || 'Gagal melakukan provisioning profil agen.',
+        details: result,
+      });
+    }
+
+    const updated = agentRepo.getById(id);
+    return reply.code(200).send({
+      status: 'ready',
+      agent: updated
+        ? toPublic(updated, dispatcher.getAgentStatus(id), keyExists(settingRepo, id))
+        : null,
+      result: {
+        profile_name: result.profile_name,
+        soul_path: result.soul_path,
+        provision_state: result.provision_state,
+        provisioned_at: result.provisioned_at,
+      },
+    });
   });
 
   /**
