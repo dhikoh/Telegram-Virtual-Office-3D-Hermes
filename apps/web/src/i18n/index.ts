@@ -115,6 +115,15 @@ export const resources = {
         schedule: 'Jadwal Rutin',
         skills: 'Keahlian Terkait',
       },
+      messenger: {
+        title: 'Obrolan Agen',
+        searchPlaceholder: 'Cari agen atau divisi...',
+        activeAgent: 'Sedang Dibuka',
+        noSpeech: 'Belum ada obrolan terkini',
+        allAgents: 'Semua Agen',
+        switchAgent: 'Ganti Agen',
+        emptySearch: 'Tidak ada agen yang cocok dengan pencarian.',
+      },
       lang: {
         switch: 'Ganti Bahasa',
         id: 'Bahasa Indonesia',
@@ -229,6 +238,15 @@ export const resources = {
         assignedTo: 'Assigned Agent',
         schedule: 'Schedule',
         skills: 'Required Skills',
+      },
+      messenger: {
+        title: 'Agent Messenger',
+        searchPlaceholder: 'Search agent or department...',
+        activeAgent: 'Active',
+        noSpeech: 'No recent message',
+        allAgents: 'All Agents',
+        switchAgent: 'Switch Agent',
+        emptySearch: 'No agents match your search.',
       },
       lang: {
         switch: 'Switch Language',

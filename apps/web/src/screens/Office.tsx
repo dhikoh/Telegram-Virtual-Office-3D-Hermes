@@ -15,6 +15,8 @@ const Map = React.lazy(() =>
 import { RoomChips } from '../components/office/RoomChips';
 import { EmptyOffice } from '../components/office/Empty';
 import { AskOffice } from '../components/office/AskOffice';
+import { MessengerFAB } from '../components/office/MessengerFAB';
+import { AgentMessengerModal } from '../components/office/AgentMessengerModal';
 import { AgentSheet } from '../components/agent-sheet/AgentSheet';
 import { useOfficeStore, type OfficeAgent } from '../stores/office';
 import { useViewModeStore } from '../stores/view-mode';
@@ -44,6 +46,7 @@ export const OfficeScreen: React.FC<OfficeScreenProps> = ({ onOpenRecruitment, o
 
 
   const [showSimPanel, setShowSimPanel] = useState(false);
+  const [isMessengerOpen, setIsMessengerOpen] = useState(false);
 
   const selectedAgent = agents.find((a) => a.id === selectedAgentId);
 
@@ -221,11 +224,24 @@ export const OfficeScreen: React.FC<OfficeScreenProps> = ({ onOpenRecruitment, o
         {/* Floating Ask Office Button */}
         {agents.length > 0 && <AskOffice onClick={handleOpenAskOffice} />}
 
+        {/* Floating Messenger Quick Switcher Button (Fase 5b) */}
+        {agents.length > 0 && (
+          <MessengerFAB onClick={() => setIsMessengerOpen(true)} />
+        )}
+
+        {/* Agent Messenger Quick-Switch Modal (Fase 5b) */}
+        <AgentMessengerModal
+          isOpen={isMessengerOpen}
+          onClose={() => setIsMessengerOpen(false)}
+          currentAgentId={selectedAgentId}
+        />
+
         {/* Full Agent Sheet Bottom Sheet (Rule REQ-075) */}
         {selectedAgent && (
           <AgentSheet
             agent={selectedAgent}
             onClose={() => setSelectedAgentId(null)}
+            onOpenMessenger={() => setIsMessengerOpen(true)}
           />
         )}
       </main>

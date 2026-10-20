@@ -12,6 +12,7 @@ import {
   User,
   Square,
   Wrench,
+  Users,
 } from 'lucide-react';
 import type { OfficeAgent } from '../../stores/office';
 import { useOfficeStore } from '../../stores/office';
@@ -24,11 +25,17 @@ interface AgentSheetProps {
   agent: OfficeAgent;
   onClose: () => void;
   onOpenTaskCreate?: (agentId: string) => void;
+  onOpenMessenger?: () => void;
 }
 
 type SheetTab = 'chat' | 'activity' | 'tasks' | 'profile';
 
-export const AgentSheet: React.FC<AgentSheetProps> = ({ agent, onClose, onOpenTaskCreate }) => {
+export const AgentSheet: React.FC<AgentSheetProps> = ({
+  agent,
+  onClose,
+  onOpenTaskCreate,
+  onOpenMessenger,
+}) => {
   const { tasks, ticker, setAgentStatus } = useOfficeStore();
   const [activeTab, setActiveTab] = useState<SheetTab>('chat');
 
@@ -81,14 +88,27 @@ export const AgentSheet: React.FC<AgentSheetProps> = ({ agent, onClose, onOpenTa
               </span>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            type="button"
-            aria-label="Tutup Lembar Agen"
-            className="w-11 h-11 rounded-full bg-office-hover hover:bg-office-hover flex items-center justify-center text-office-muted hover:text-office-text transition-colors min-h-[44px] min-w-[44px]"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            {onOpenMessenger && (
+              <button
+                onClick={onOpenMessenger}
+                type="button"
+                aria-label="Ganti Agen"
+                title="Ganti Agen"
+                className="w-11 h-11 rounded-full bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center transition-colors min-h-[44px] min-w-[44px]"
+              >
+                <Users className="w-4 h-4" />
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              type="button"
+              aria-label="Tutup Lembar Agen"
+              className="w-11 h-11 rounded-full bg-office-hover hover:bg-office-hover flex items-center justify-center text-office-muted hover:text-office-text transition-colors min-h-[44px] min-w-[44px]"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* 4 Tabs Navigation */}
