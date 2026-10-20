@@ -14,5 +14,9 @@ declare module 'fastify' {
     projectService: ProjectService;
     /** Fase 2a — interval heartbeat stream chat (ms). */
     chatHeartbeatMs: number;
+    /** Fase 2d — batas deteksi stall stream chat (ms). */
+    chatStallMs: number;
+    /** Fase 2d — model fallback saat stall (opsional). */
+    chatFallbackModel?: string;
   }
 }

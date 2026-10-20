@@ -5,6 +5,8 @@ export interface StartRunParams {
   sessionId?: string;
   instructions?: string;
   conversationHistory?: unknown[];
+  model?: string;
+  signal?: AbortSignal;
 }
 
 /**

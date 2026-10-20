@@ -14,6 +14,7 @@
 export type ChatFrame =
   | { kind: 'content'; text: string }
   | { kind: 'done' }
+  | { kind: 'status'; status: string; message: string }
   | { kind: 'error'; message: string };
 
 /**

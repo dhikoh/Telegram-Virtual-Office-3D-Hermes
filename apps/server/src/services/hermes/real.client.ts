@@ -103,6 +103,7 @@ export class RealHermesClient implements HermesClient {
     if (params.sessionId) body.session_id = params.sessionId;
     if (params.instructions) body.instructions = params.instructions;
     if (params.conversationHistory) body.conversation_history = params.conversationHistory;
+    if (params.model) body.model = params.model;
     return JSON.stringify(body);
   }
 
@@ -341,6 +342,7 @@ export class RealHermesClient implements HermesClient {
       method: 'POST',
       headers: this.headers(),
       body: this.runBody(params),
+      signal: params.signal,
     });
     if (!startRes.ok) {
       const text = await startRes.text().catch(() => '');
@@ -369,7 +371,7 @@ export class RealHermesClient implements HermesClient {
 
     const res = await this.fetchWithTimeout(
       `${this.baseUrl}/v1/runs/${encodeURIComponent(runId)}/events`,
-      { headers: this.headers(), signal: undefined }
+      { headers: this.headers(), signal: params.signal }
     ).catch((err: Error) => {
       throw new Error(`Hermes run ${runId} events error: ${err.message}`);
     });

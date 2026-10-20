@@ -45,6 +45,16 @@ export const EnvSchema = z.object({
    * `: hb` tiap interval ini membuat koneksi tetap terbaca aktif.
    */
   CHAT_HEARTBEAT_MS: z.coerce.number().default(10000),
+  /**
+   * Fase 2d — batas deteksi stall stream chat (ms). Jika tidak ada event
+   * dari gateway selama interval ini, kirim frame status dan lakukan retry
+   * sekali dengan fallback model.
+   */
+  CHAT_STALL_MS: z.coerce.number().default(45000),
+  /**
+   * Fase 2d — model fallback yang digunakan saat deteksi stall terpantik (opsional).
+   */
+  HERMES_FALLBACK_MODEL: z.string().default(''),
   DEV_AUTH_BYPASS: booleanPreprocess.default(false),
   DB_PATH: z.string().default('./data/office.sqlite'),
   /**

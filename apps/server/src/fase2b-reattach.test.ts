@@ -193,6 +193,7 @@ describe('Fase 2b — POST /api/agents/:id/chat & Restart-Tolerant Reattach (E2E
         'content-type': 'application/json',
       },
       payload: {
+        client_message_id: 'msg_f2b_1',
         messages: [{ role: 'user', content: 'Halo Bagas' }],
       },
     });
@@ -216,7 +217,7 @@ describe('Fase 2b — POST /api/agents/:id/chat & Restart-Tolerant Reattach (E2E
       .prepare('SELECT type, payload_json FROM run_events WHERE run_id = ? ORDER BY id ASC')
       .all('run_chat_test_1') as { type: string; payload_json: string }[];
     expect(saved.length).toBeGreaterThanOrEqual(3);
-    expect(saved[0].type).toBe('message.delta');
+    expect(saved.some((r) => r.type === 'message.delta')).toBe(true);
     expect(saved.some((r) => r.type === 'run.completed')).toBe(true);
   });
 
@@ -259,6 +260,7 @@ describe('Fase 2b — POST /api/agents/:id/chat & Restart-Tolerant Reattach (E2E
           'content-type': 'application/json',
         },
         payload: {
+          client_message_id: 'msg_f2b_2',
           messages: [{ role: 'user', content: 'Halo Bagas via session' }],
         },
       });
@@ -314,19 +316,19 @@ describe('Fase 2c — Antrian Chat per Agen (Route Level)', () => {
         method: 'POST',
         url: `/api/agents/${agentId}/chat`,
         headers: { authorization: auth, 'content-type': 'application/json' },
-        payload: { messages: [{ role: 'user', content: 'pesan_1' }] },
+        payload: { client_message_id: 'msg_fifo_1', messages: [{ role: 'user', content: 'pesan_1' }] },
       });
       const p2 = app.inject({
         method: 'POST',
         url: `/api/agents/${agentId}/chat`,
         headers: { authorization: auth, 'content-type': 'application/json' },
-        payload: { messages: [{ role: 'user', content: 'pesan_2' }] },
+        payload: { client_message_id: 'msg_fifo_2', messages: [{ role: 'user', content: 'pesan_2' }] },
       });
       const p3 = app.inject({
         method: 'POST',
         url: `/api/agents/${agentId}/chat`,
         headers: { authorization: auth, 'content-type': 'application/json' },
-        payload: { messages: [{ role: 'user', content: 'pesan_3' }] },
+        payload: { client_message_id: 'msg_fifo_3', messages: [{ role: 'user', content: 'pesan_3' }] },
       });
 
       const [r1, r2, r3] = await Promise.all([p1, p2, p3]);
@@ -373,7 +375,7 @@ describe('Fase 2c — Antrian Chat per Agen (Route Level)', () => {
         method: 'POST',
         url: `/api/agents/${agentId}/chat`,
         headers: { authorization: auth, 'content-type': 'application/json' },
-        payload: { messages: [{ role: 'user', content: 'blocking_run' }] },
+        payload: { client_message_id: 'msg_block_active', messages: [{ role: 'user', content: 'blocking_run' }] },
       });
 
       // Tunggu hingga request pertama aktif
@@ -387,7 +389,7 @@ describe('Fase 2c — Antrian Chat per Agen (Route Level)', () => {
             method: 'POST',
             url: `/api/agents/${agentId}/chat`,
             headers: { authorization: auth, 'content-type': 'application/json' },
-            payload: { messages: [{ role: 'user', content: `queue_${i}` }] },
+            payload: { client_message_id: `msg_queue_${i}`, messages: [{ role: 'user', content: `queue_${i}` }] },
           })
         );
       }
@@ -400,7 +402,7 @@ describe('Fase 2c — Antrian Chat per Agen (Route Level)', () => {
         method: 'POST',
         url: `/api/agents/${agentId}/chat`,
         headers: { authorization: auth, 'content-type': 'application/json' },
-        payload: { messages: [{ role: 'user', content: 'overflow' }] },
+        payload: { client_message_id: 'msg_overflow', messages: [{ role: 'user', content: 'overflow' }] },
       });
 
       expect(overflowRes.statusCode).toBe(429);

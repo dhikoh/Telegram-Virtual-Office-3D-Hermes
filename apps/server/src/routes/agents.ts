@@ -19,6 +19,9 @@ import {
 import { buildAgentIdentity } from '../services/hermes/identity.js';
 import { startHeartbeat } from '../services/agent-chat/heartbeat.js';
 import { chatRunHub } from '../services/agent-chat/run-hub.js';
+import { chatIdempotencyHub } from '../services/agent-chat/idempotency.js';
+import { StallDetector } from '../services/agent-chat/stall-detector.js';
+import { resolveFallbackModel } from '../services/agent-chat/fallback-model.js';
 import { agentChatQueue, QueueFullError } from '../services/agent-chat/queue.js';
 import type { RecordedRunEvent } from '../services/agent-chat/types.js';
 import { runEventToChatFrame } from '../services/agent-chat/run-events.js';
@@ -242,7 +245,7 @@ function getRunEventsFromDb(
   try {
     const rows = db
       .prepare(
-        'SELECT type, payload_json, ts FROM run_events WHERE run_id = ? AND agent_id = ? ORDER BY id ASC'
+        "SELECT type, payload_json, ts FROM run_events WHERE run_id = ? AND agent_id = ? AND type != 'run.started' ORDER BY id ASC"
       )
       .all(runId, agentId) as { type: string; payload_json: string; ts: number }[];
 
@@ -286,6 +289,27 @@ function runBelongsToAgent(
 }
 
 /**
+ * Fase 2d — cari run_id berdasarkan client_message_id dari database.
+ * Memungkinkan idempotensi tetap bekerja meskipun server baru saja di-restart.
+ */
+function findRunByClientMessageIdFromDb(
+  db: BetterSqlite3.Database,
+  agentId: string,
+  clientMessageId: string
+): string | null {
+  try {
+    const row = db
+      .prepare(
+        "SELECT run_id FROM run_events WHERE agent_id = ? AND type = 'run.started' AND json_extract(payload_json, '$.client_message_id') = ? LIMIT 1"
+      )
+      .get(agentId, clientMessageId) as { run_id: string } | undefined;
+    return row?.run_id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Fase 2b — sambungkan klien ke run (live maupun dari database setelah restart).
  *
  * Urutan yang menjaga integritas:
@@ -304,8 +328,9 @@ async function attachToLiveRun(
 ): Promise<void> {
   const dbEvents = getRunEventsFromDb(db, runId, agentId);
   const hubEvents = chatRunHub.history(runId);
-  // Database adalah kebenaran tahan restart; bila kosong (mock uji murni memori), pakai hub
-  const history = dbEvents.length > 0 ? dbEvents : hubEvents;
+  // Bila run masih live di hub memori, gunakan urutan hub agar penomoran seq sinkron dengan subscribe().
+  // Bila hub kosong / tidak live (misal setelah restart), gunakan riwayat database.
+  const history = chatRunHub.isLive(runId) && hubEvents.length > 0 ? hubEvents : (dbEvents.length > 0 ? dbEvents : hubEvents);
 
   for (const event of history) {
     if (event.seq > afterSeq) writeSseEvent(writeEvent, event);
@@ -320,29 +345,41 @@ async function attachToLiveRun(
   }
 
   if (chatRunHub.isLive(runId)) {
-    const unsubscribe = chatRunHub.subscribe(
-      runId,
-      lastSeq,
-      (event) => writeSseEvent(writeEvent, event)
-    );
     const socket = reply.raw as unknown as {
       on?: (ev: string, fn: () => void) => void;
       writableEnded: boolean;
       destroyed: boolean;
     };
     const closed = () => socket.writableEnded || socket.destroyed;
-    if (closed()) return unsubscribe();
 
     await new Promise<void>((resolve) => {
-      socket.on?.('close', () => {
-        unsubscribe();
-        resolve();
-      });
-      // Kalau socket sudah mati sebelum listener terpasang, lepaskan dan selesai
+      let done = false;
+      let unsubscribe = () => {};
+      const finish = () => {
+        if (!done) {
+          done = true;
+          unsubscribe();
+          resolve();
+        }
+      };
+
+      unsubscribe = chatRunHub.subscribe(
+        runId,
+        lastSeq,
+        (event) => {
+          writeSseEvent(writeEvent, event);
+          if (isTerminalEvent(event.event)) {
+            finish();
+          }
+        }
+      );
+
       if (closed()) {
-        unsubscribe();
-        resolve();
+        finish();
+        return;
       }
+
+      socket.on?.('close', finish);
     });
   } else {
     // Tidak live di hub dan tidak ada terminal event (misal server restart di tengah jalan)
@@ -361,6 +398,8 @@ function writeSseEvent(writeEvent: (s: string) => void, event: RecordedRunEvent)
     writeEvent(`data: ${JSON.stringify({ choices: [{ delta: { content: frame.text } }] })}\n\n`);
   } else if (frame.kind === 'done') {
     writeEvent('data: [DONE]\n\n');
+  } else if (frame.kind === 'status') {
+    writeEvent(`data: ${JSON.stringify({ status: frame.status, message: frame.message })}\n\n`);
   } else {
     writeEvent(`data: ${JSON.stringify({ error: 'run_failed', message: frame.message })}\n\n`);
   }
@@ -713,8 +752,56 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
         typeof requestedRun === 'string' &&
         (chatRunHub.has(requestedRun) || runBelongsToAgent(db, requestedRun, agent.id));
 
+      // Fase 2d — client_message_id wajib disertakan untuk giliran baru (idempotensi)
+      const clientMessageId =
+        (request.body as { client_message_id?: string })?.client_message_id ||
+        (request.headers['x-client-message-id'] as string | undefined);
+
+      if (!isReattach && (!clientMessageId || typeof clientMessageId !== 'string' || !clientMessageId.trim())) {
+        return reply.code(400).send({
+          error: 'invalid_input',
+          message: 'client_message_id is required',
+        });
+      }
+
+      // Fase 2d — request duplikat dengan client_message_id yang sama diabaikan (mengembalikan stream yang sama)
+      if (!isReattach && clientMessageId) {
+        const existingTurn = chatIdempotencyHub.get(agent.id, clientMessageId);
+        let existingRunId = existingTurn?.runId ?? null;
+        if (!existingRunId && existingTurn) {
+          // Menunggu run_id jika request pertama masih dalam antrian atau baru mulai
+          existingRunId = await existingTurn.runIdPromise;
+        }
+        if (!existingRunId) {
+          existingRunId = findRunByClientMessageIdFromDb(db, agent.id, clientMessageId);
+        }
+        if (existingRunId) {
+          reply.raw.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            Connection: 'keep-alive',
+          });
+          const writeEvent = (payload: string) => {
+            if (reply.raw.writableEnded || reply.raw.destroyed) return;
+            reply.raw.write(payload);
+          };
+          const stopHeartbeat = startHeartbeat(fastify.chatHeartbeatMs, writeEvent);
+          try {
+            await attachToLiveRun(db, agent.id, existingRunId, reply, writeEvent, 0);
+          } finally {
+            stopHeartbeat();
+            reply.raw.end();
+          }
+          return;
+        }
+
+        // Daftarkan giliran baru ke hub idempotensi
+        chatIdempotencyHub.register(agent.id, clientMessageId);
+      }
+
       // Fase 2c — tolak 429 jika antrian pesan untuk agen ini sudah mencapai batas (5 pesan)
       if (!isReattach && agentChatQueue.getPendingCount(agent.id) >= 5) {
+        if (clientMessageId) chatIdempotencyHub.remove(agent.id, clientMessageId);
         return reply.code(429).send({
           error: 'queue_full',
           message: 'Antrian pesan agen penuh (maksimal 5 pesan). Tunggu hingga giliran sebelumnya selesai.',
@@ -765,85 +852,168 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
               }
 
               const input = applyScopeToContent(lastUser?.content || JSON.stringify(messages), scopeDirective);
-              let runId: string | null = null;
-              let runsApiStarted = false;
+              let activeRunId: string | null = null;
+              let currentModel = agent.model || undefined;
+              let retried = false;
+              let currentAbortController = new AbortController();
+
+              // Fase 2d — deteksi stall: jika 45s tanpa event dari gateway,
+              // kirim status "agen sedang menjalankan tool", lalu retry sekali dengan fallback model.
+              const stallDetector = new StallDetector(fastify.chatStallMs, async () => {
+                writeEvent(
+                  `data: ${JSON.stringify({
+                    status: 'tool_running',
+                    message: 'agen sedang menjalankan tool',
+                  })}\n\n`
+                );
+                if (activeRunId) {
+                  chatRunHub.append(activeRunId, 'run.status', {
+                    status: 'tool_running',
+                    message: 'agen sedang menjalankan tool',
+                  });
+                  try {
+                    db.prepare(
+                      'INSERT INTO run_events (run_id, agent_id, type, payload_json, ts) VALUES (?, ?, ?, ?, ?)'
+                    ).run(
+                      activeRunId,
+                      agent.id,
+                      'run.status',
+                      JSON.stringify({
+                        status: 'tool_running',
+                        message: 'agen sedang menjalankan tool',
+                      }),
+                      Date.now()
+                    );
+                  } catch {}
+                  client.stopRun(activeRunId).catch(() => {});
+                }
+                currentAbortController.abort('stalled');
+              });
+
+              stallDetector.start();
+
+              const executeRun = async (modelToUse: string | undefined): Promise<void> => {
+                let runsApiStarted = false;
+                try {
+                  await client.runChatStream(
+                    {
+                      input,
+                      sessionId,
+                      instructions: identityPrompt,
+                      model: modelToUse,
+                      signal: currentAbortController.signal,
+                    },
+                    {
+                      onRunId: (assignedRunId) => {
+                        activeRunId = assignedRunId;
+                        runsApiStarted = true;
+                        stallDetector.recordActivity();
+                        if (clientMessageId) {
+                          chatIdempotencyHub.setRunId(agent.id, clientMessageId, assignedRunId);
+                        }
+                        // Fase 2b — daftarkan ke hub agar sambung-ulang menemukan run ini
+                        chatRunHub.start(assignedRunId, agent.id);
+                        // Fase 2b — kirim run_id ke klien sebagai frame pertama
+                        writeEvent(`data: ${JSON.stringify({ run_id: assignedRunId })}\n\n`);
+                        if (clientMessageId) {
+                          try {
+                            db.prepare(
+                              'INSERT INTO run_events (run_id, agent_id, type, payload_json, ts) VALUES (?, ?, ?, ?, ?)'
+                            ).run(
+                              assignedRunId,
+                              agent.id,
+                              'run.started',
+                              JSON.stringify({ client_message_id: clientMessageId }),
+                              Date.now()
+                            );
+                          } catch {}
+                        }
+                      },
+                      onDelta: (delta) => {
+                        stallDetector.recordActivity();
+                        if (activeRunId) {
+                          const data = { delta };
+                          chatRunHub.append(activeRunId, 'message.delta', data);
+                          try {
+                            db.prepare(
+                              'INSERT INTO run_events (run_id, agent_id, type, payload_json, ts) VALUES (?, ?, ?, ?, ?)'
+                            ).run(activeRunId, agent.id, 'message.delta', JSON.stringify(data), Date.now());
+                          } catch {}
+                        }
+                        writeEvent(
+                          `data: ${JSON.stringify({ choices: [{ delta: { content: delta } }] })}\n\n`
+                        );
+                      },
+                      onDone: () => {
+                        stallDetector.stop();
+                        if (activeRunId) {
+                          chatRunHub.append(activeRunId, 'run.completed', {});
+                          chatRunHub.finish(activeRunId);
+                          try {
+                            db.prepare(
+                              'INSERT INTO run_events (run_id, agent_id, type, payload_json, ts) VALUES (?, ?, ?, ?, ?)'
+                            ).run(activeRunId, agent.id, 'run.completed', '{}', Date.now());
+                          } catch {}
+                        }
+                        reply.raw.write('data: [DONE]\n\n');
+                      },
+                      onError: (why) => {
+                        stallDetector.stop();
+                        if (activeRunId) {
+                          const data = { error: why };
+                          chatRunHub.append(activeRunId, 'run.failed', data);
+                          chatRunHub.finish(activeRunId);
+                          try {
+                            db.prepare(
+                              'INSERT INTO run_events (run_id, agent_id, type, payload_json, ts) VALUES (?, ?, ?, ?, ?)'
+                            ).run(activeRunId, agent.id, 'run.failed', JSON.stringify(data), Date.now());
+                          } catch {}
+                        }
+                        writeEvent(
+                          `data: ${JSON.stringify({ error: 'run_failed', message: why })}\n\n`
+                        );
+                      },
+                    }
+                  );
+                  if (currentAbortController.signal.aborted && !retried) {
+                    throw new Error('stalled');
+                  }
+                } catch (runErr) {
+                  if (currentAbortController.signal.aborted && !retried) {
+                    retried = true;
+                    const fallback = await resolveFallbackModel(client, modelToUse, fastify.chatFallbackModel);
+                    currentModel = fallback;
+                    currentAbortController = new AbortController();
+                    stallDetector.start();
+                    return executeRun(fallback);
+                  }
+
+                  if (!runsApiStarted) {
+                    // Fase 2b — fallback ke sessionChatStream bila runChatStream gagal di awal
+                    await client.sessionChatStream(
+                      sessionId,
+                      input,
+                      (chunk) => {
+                        writeEvent(
+                          `data: ${JSON.stringify({ choices: [{ delta: { content: chunk } }] })}\n\n`
+                        );
+                      },
+                      modelToUse,
+                      identityPrompt
+                    );
+                    reply.raw.write('data: [DONE]\n\n');
+                  } else {
+                    throw runErr;
+                  }
+                }
+              };
 
               try {
-                await client.runChatStream(
-                  {
-                    input,
-                    sessionId,
-                    instructions: identityPrompt,
-                  },
-                  {
-                    onRunId: (assignedRunId) => {
-                      runId = assignedRunId;
-                      runsApiStarted = true;
-                      // Fase 2b — daftarkan ke hub agar sambung-ulang menemukan run ini
-                      chatRunHub.start(assignedRunId, agent.id);
-                      // Fase 2b — kirim run_id ke klien sebagai frame pertama
-                      writeEvent(`data: ${JSON.stringify({ run_id: assignedRunId })}\n\n`);
-                    },
-                    onDelta: (delta) => {
-                      if (runId) {
-                        const data = { delta };
-                        chatRunHub.append(runId, 'message.delta', data);
-                        try {
-                          db.prepare(
-                            'INSERT INTO run_events (run_id, agent_id, type, payload_json, ts) VALUES (?, ?, ?, ?, ?)'
-                          ).run(runId, agent.id, 'message.delta', JSON.stringify(data), Date.now());
-                        } catch {}
-                      }
-                      writeEvent(
-                        `data: ${JSON.stringify({ choices: [{ delta: { content: delta } }] })}\n\n`
-                      );
-                    },
-                    onDone: () => {
-                      if (runId) {
-                        chatRunHub.append(runId, 'run.completed', {});
-                        chatRunHub.finish(runId);
-                        try {
-                          db.prepare(
-                            'INSERT INTO run_events (run_id, agent_id, type, payload_json, ts) VALUES (?, ?, ?, ?, ?)'
-                          ).run(runId, agent.id, 'run.completed', '{}', Date.now());
-                        } catch {}
-                      }
-                      reply.raw.write('data: [DONE]\n\n');
-                    },
-                    onError: (why) => {
-                      if (runId) {
-                        const data = { error: why };
-                        chatRunHub.append(runId, 'run.failed', data);
-                        chatRunHub.finish(runId);
-                        try {
-                          db.prepare(
-                            'INSERT INTO run_events (run_id, agent_id, type, payload_json, ts) VALUES (?, ?, ?, ?, ?)'
-                          ).run(runId, agent.id, 'run.failed', JSON.stringify(data), Date.now());
-                        } catch {}
-                      }
-                      writeEvent(
-                        `data: ${JSON.stringify({ error: 'run_failed', message: why })}\n\n`
-                      );
-                    },
-                  }
-                );
-              } catch (runErr) {
-                if (!runsApiStarted) {
-                  // Fase 2b — fallback ke sessionChatStream bila runChatStream gagal di awal
-                  await client.sessionChatStream(
-                    sessionId,
-                    input,
-                    (chunk) => {
-                      writeEvent(
-                        `data: ${JSON.stringify({ choices: [{ delta: { content: chunk } }] })}\n\n`
-                      );
-                    },
-                    agent.model || undefined,
-                    identityPrompt
-                  );
-                  reply.raw.write('data: [DONE]\n\n');
-                } else {
-                  throw runErr;
+                await executeRun(currentModel);
+              } finally {
+                stallDetector.stop();
+                if (!activeRunId && clientMessageId) {
+                  chatIdempotencyHub.remove(agent.id, clientMessageId);
                 }
               }
             } else {

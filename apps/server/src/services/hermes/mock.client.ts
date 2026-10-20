@@ -73,6 +73,7 @@ export class MockHermesClient implements HermesClient {
     handlers.onRunId?.(runId);
 
     const stop = await this.streamEvents(runId, (event, data) => {
+      if (params.signal?.aborted) return;
       const payload = (data || {}) as Record<string, unknown>;
       if (event === 'message.delta') {
         const delta = typeof payload.delta === 'string' ? payload.delta : '';
@@ -86,6 +87,9 @@ export class MockHermesClient implements HermesClient {
         throw new Error(`MockHermes run ${runId}: ${why}`);
       }
     });
+    if (params.signal) {
+      params.signal.addEventListener('abort', () => stop(), { once: true });
+    }
     stop();
   }
 

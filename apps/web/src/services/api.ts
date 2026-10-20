@@ -202,7 +202,11 @@ export const api = {
     onRunId?: (runId: string) => void,
     /** Fase 2b — run yang sudah berjalan; dikirim sebagai x-run-id agar klien
      * yang kembali menyambung ke pekerjaan yang sama, bukan mengulang. */
-    currentRunId?: string | null
+    currentRunId?: string | null,
+    /** Fase 2d — id unik pesan klien untuk idempotensi (mencegah double-send) */
+    clientMessageId?: string | null,
+    /** Fase 2d — pembaruan status antara (mis. agen sedang menjalankan tool) */
+    onStatus?: (status: string, message?: string) => void
   ): Promise<void> => {
     try {
       const initData = tma.getInitData();
@@ -217,11 +221,17 @@ export const api = {
         // alih-alih membuka giliran baru.
         headers['X-Run-Id'] = currentRunId;
       }
+      const cmId =
+        clientMessageId ||
+        (typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `cm_${Date.now()}_${Math.random().toString(36).slice(2)}`);
+      headers['X-Client-Message-Id'] = cmId;
 
       const response = await fetch(`${API_BASE}/agents/${id}/chat`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ messages }),
+        body: JSON.stringify({ messages, client_message_id: cmId }),
       });
 
       if (!response.ok) {
@@ -263,6 +273,9 @@ export const api = {
               // bahwa giliran gagal.
               if (typeof parsed.error === 'string') {
                 throw new Error(parsed.message || parsed.error);
+              }
+              if (parsed.status && typeof parsed.status === 'string') {
+                onStatus?.(parsed.status, parsed.message);
               }
               if (parsed.run_id && typeof parsed.run_id === 'string') {
                 // Fase 2b — run_id diberitahu di bingkai pertama; klien

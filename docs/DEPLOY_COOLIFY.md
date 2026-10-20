@@ -138,6 +138,8 @@ Buka tab **Environment Variables** di Coolify dan masukkan variabel berikut:
 | `HERMES_TIMEOUT_MS` | `30000` | Batas waktu permintaan **pendek** ke Hermes: probe, health, daftar model, status run (default 30000) |
 | `HERMES_CHAT_TTFB_MS` | `60000` | Batas tunggu event/huruf **pertama** dari stream chat. Terlalu pendek memutus model yang lambat tapi masih jalan (default 60000) |
 | `CHAT_HEARTBEAT_MS` | `10000` | Fase 2a — detak stream chat. Frame komentar `: hb` dikirim tiap interval ini supaya Cloudflare tidak memutus koneksi idle di ~100 detik saat tool sedang berjalan. |
+| `CHAT_STALL_MS` | `45000` | Fase 2d — batas deteksi stall stream chat (ms). Jika tidak ada event selama 45 detik, kirim frame status dan retry sekali dengan fallback model. |
+| `HERMES_FALLBACK_MODEL` | `""` | Fase 2d — model fallback opsional yang digunakan saat retry deteksi stall terpantik. |
 | `HERMES_CHAT_TIMEOUT_MS` | `300000` | Batas **total** satu giliran chat — sengaja jauh lebih besar dari `HERMES_TIMEOUT_MS`, karena jawaban yang memanggil tool bisa berjalan beberapa menit (default 300000) |
 | `MEDIA_DIR` | `/data/media` | Folder media chat & artefak di volume persisten. **Kosongkan** = otomatis `<folder DB_PATH>/media` (mis. `/data/media`) |
 | `MEDIA_IMAGE_RETENTION_DAYS` | `7` | Retensi gambar chat (hari). `0` = tidak pernah dihapus berdasar umur |

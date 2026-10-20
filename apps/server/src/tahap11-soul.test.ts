@@ -326,7 +326,7 @@ describe('Tahap 11 (bagian 2) — cakupan skill per agen', () => {
       method: 'POST',
       url: `/api/agents/${AGENT_ID}/chat`,
       headers: authHeader,
-      body: JSON.stringify({ messages: [{ role: 'user', content: 'Halo, laporan invoice' }] }),
+      body: JSON.stringify({ client_message_id: 'msg_tahap11_1', messages: [{ role: 'user', content: 'Halo, laporan invoice' }] }),
     });
     expect(chat.statusCode).toBe(200);
     expect(gateway.history).toHaveLength(1);
@@ -353,7 +353,7 @@ describe('Tahap 11 (bagian 2) — cakupan skill per agen', () => {
       method: 'POST',
       url: `/api/agents/${AGENT_ID}/chat`,
       headers: authHeader,
-      body: JSON.stringify({ messages: [{ role: 'user', content: 'Buat ringkasan' }] }),
+      body: JSON.stringify({ client_message_id: 'msg_tahap11_2', messages: [{ role: 'user', content: 'Buat ringkasan' }] }),
     });
     expect(restricted.statusCode).toBe(200);
     expect(gateway.chatCalls).toHaveLength(1);
@@ -371,7 +371,7 @@ describe('Tahap 11 (bagian 2) — cakupan skill per agen', () => {
       method: 'POST',
       url: `/api/agents/${AGENT_ID}/chat`,
       headers: authHeader,
-      body: JSON.stringify({ messages: [{ role: 'user', content: 'Halo lagi' }] }),
+      body: JSON.stringify({ client_message_id: 'msg_tahap11_3', messages: [{ role: 'user', content: 'Halo lagi' }] }),
     });
     expect(plain.statusCode).toBe(200);
     expect(gateway.chatCalls[1]).toEqual([

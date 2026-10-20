@@ -104,12 +104,16 @@ describe('Fase 2a — detak stream chat', () => {
     ).run(AGENT_ID);
   });
 
+  let hbSeq = 0;
   const chat = () =>
     app.inject({
       method: 'POST',
       url: `/api/agents/${AGENT_ID}/chat`,
       headers: authHeader,
-      body: JSON.stringify({ messages: [{ role: 'user', content: 'siapa kamu?' }] }),
+      body: JSON.stringify({
+        client_message_id: `msg_hb_${++hbSeq}`,
+        messages: [{ role: 'user', content: 'siapa kamu?' }],
+      }),
     });
 
   it('menunggu tool yang lama tetap mengirim detak, lalu menutup dengan bersih', async () => {

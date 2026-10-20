@@ -101,12 +101,16 @@ describe('Fase 1 — jembatan identitas', () => {
     ).run(AGENT_ID);
   };
 
+  let msgSeq = 0;
   const chat = (content: string) =>
     app.inject({
       method: 'POST',
       url: `/api/agents/${AGENT_ID}/chat`,
       headers: authHeader,
-      body: JSON.stringify({ messages: [{ role: 'user', content }] }),
+      body: JSON.stringify({
+        client_message_id: `msg_fase1_${++msgSeq}`,
+        messages: [{ role: 'user', content }],
+      }),
     });
 
   beforeAll(async () => {

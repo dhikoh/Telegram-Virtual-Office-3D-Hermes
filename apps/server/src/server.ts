@@ -35,6 +35,15 @@ export interface BuildServerOptions {
    * perlu menunggu 10 detik sungguhan untuk membuktikan detaknya ada.
    */
   chatHeartbeatMs?: number;
+  /**
+   * Fase 2d — batas deteksi stall stream chat (ms). Default 45000 ms.
+   * Test memasang angka kecil untuk menguji timeout stall & fallback.
+   */
+  chatStallMs?: number;
+  /**
+   * Fase 2d — nama model fallback khusus saat stall (opsional).
+   */
+  chatFallbackModel?: string;
 }
 
 export function buildServer(options: BuildServerOptions): FastifyInstance {
@@ -56,6 +65,9 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
   app.decorate('projectService', projectService);
   // Fase 2a — detak stream chat. Test memasang angka kecil lewat opsi ini.
   app.decorate('chatHeartbeatMs', options.chatHeartbeatMs ?? config.CHAT_HEARTBEAT_MS);
+  // Fase 2d — batas deteksi stall stream chat dan model fallback.
+  app.decorate('chatStallMs', options.chatStallMs ?? config.CHAT_STALL_MS);
+  app.decorate('chatFallbackModel', options.chatFallbackModel ?? (config.HERMES_FALLBACK_MODEL || undefined));
 
   // Rule S8: Helmet with CSP allowing telegram.org scripts
   app.register(helmet, {

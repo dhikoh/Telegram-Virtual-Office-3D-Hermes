@@ -52,6 +52,12 @@ export function runEventToChatFrame(event: string, data: unknown): ChatFrame | n
     return { kind: 'done' };
   }
 
+  if (event === 'run.status') {
+    const status = typeof payload.status === 'string' ? payload.status : 'tool_running';
+    const message = typeof payload.message === 'string' ? payload.message : 'agen sedang menjalankan tool';
+    return { kind: 'status', status, message };
+  }
+
   if (isTerminalRunEvent(event)) {
     const error =
       typeof payload.error === 'string' && payload.error
