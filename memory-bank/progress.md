@@ -51,6 +51,7 @@
 - [x] Fase 3b: Service Hermes Provisioner & SOUL.md (`apps/server/src/services/hermes/provisioner.ts` dengan eksekusi `execFile` aman, sanitasi slug profil, generator `SOUL.md` 9 seksi, dan penanganan idempotensi).
 - [x] Fase 3c: Endpoint Provisioning & Auto-Provisioning Hiring (`POST /api/agents/:id/provision`, definisi di `endpoints.ts`, integrasi auto-provision di `POST /api/hiring/:id/mark-hired`, dan 15 integration tests).
 - [x] Fase 3d: Backfill Script & CLI Runner (`scripts/provision-backfill.ts` & `apps/server/src/services/hermes/backfill.ts` dengan mode `--dry-run`, `--force`, status per agen, dan unit tests).
+- [x] Fase 4a: Migrasi Task Visibility & Skema Shared (`012_tasks_visibility.sql` kolom `source` & `tool_calls_count`, indeks `run_id`, konstanta `TASK_SOURCES`, skema Zod `TaskSchema`, method `getByRunId` & `getBySource` di `TaskRepository`, dan unit tests).
 
 ---
 

@@ -1,22 +1,24 @@
 # Active Context: Hermes Virtual Office
 
 ## 1. Status Saat Ini
-- **Fase Terakhir Diselesaikan:** **Fase 3 (Integrasi Profil Hermes — Dua Dunia Tersambung: Sub-task 3.1 s/d 3.4)** — Selesai & Terverifikasi penuh per 2026-10-20.
+- **Branch Aktif:** `fase/4-task-visibility` (Dibuat per 2026-10-20 dari branch `fase/3-integrasi-profil`).
+- **Fase Terakhir Diselesaikan:** **Fase 4a (Migrasi 012_tasks_visibility.sql, Skema Shared, & Repositori Task)**.
 - **Kondisi Kesehatan Sistem:**
   * `npm run typecheck`: **PASS (100%)** — 0 errors di seluruh workspace.
   * `npm run gap-check`: **PASS (8/8 Checks)** — Phase 19 meets all 8 completeness criteria (C3a - C3h).
-  * `npm test`: Suite pengujian aktif dan stabil (**922 tests passed across 88 test files**).
-- **Fitur Baru Fase 3 (Lengkap):**
-  * **Fase 3a:** Migrasi database `011_agent_provisioning.sql` dengan kolom `provision_state`, `provision_error`, dan `provisioned_at` pada tabel `agents`, skema Zod `AgentProvisionStateSchema`, dan method `AgentRepository.updateProvisionState()`.
-  * **Fase 3b:** Service `provisionAgentProfile` di `apps/server/src/services/hermes/provisioner.ts` dengan eksekusi `execFile` aman (tanpa shell injection), penanganan profil Hermes mandiri dengan generator `SOUL.md` 9 seksi (identitas, batasan, gaya bahasa, tools), sanitasi profile slug, dan idempotensi.
-  * **Fase 3c:** Endpoint `POST /api/agents/:id/provision` dan integrasi auto-provisioning di `POST /api/hiring/:id/mark-hired` saat kandidat diterima kerja.
-  * **Fase 3d:** Service `runProvisionBackfill` (`apps/server/src/services/hermes/backfill.ts`), script CLI `scripts/provision-backfill.ts` (`npm run provision:backfill -- --dry-run`), unit test suite, dan perbaikan candidate discovery di `apps/server/src/db/migrator.ts`.
+  * `npm test`: Suite pengujian aktif dan stabil (**925 tests passed across 89 test files**).
+- **Fitur Baru Fase 4a:**
+  * Migrasi `012_tasks_visibility.sql` menambahkan kolom `source` (`'manual' | 'chat' | 'cron'`), `tool_calls_count` (penghitung pemanggilan tool), dan indeks `idx_tasks_run_id` serta `idx_tasks_source`.
+  * Definisi `TASK_SOURCES` dan `TaskSourceSchema` di shared package, `SCHEMA_SPEC` C3b diperbarui secara type-safe dan backward-compatible.
+  * `TaskRepository` diperbarui dengan dukungan penyimpanan `source` dan `tool_calls_count`, method pencarian `getByRunId()`, `getBySource()`, dan mutasi `incrementToolCalls()`.
+  * Unit test suite baru `apps/server/src/db/repositories/tasks.test.ts` memverifikasi struktur kolom, indeks, default values, dan query per run_id.
 
 ---
 
 ## 2. Fokus & Prioritas Kerja Aktif
-- Seluruh 4 sub-task pada Fase 3 telah selesai dan teruji secara menyeluruh.
-- Menunggu persetujuan atau instruksi langkah berikutnya dari user.
+- Melanjutkan ke **Sub-task 4.2 (Fase 4b: Backend Task Materializer)**:
+  * Menghubungkan streaming run events / dispatcher: saat turn chat menghasilkan $\ge 1$ tool call, secara otomatis membuat entitas `Task` dengan `source: 'chat'`, `status: 'running'`, dan mengupdate status akhir menjadi `done` / `failed` saat run selesai.
+  * Memastikan turn chat santai tanpa tool call TIDAK mengotori daftar tasks.
 
 ---
 
