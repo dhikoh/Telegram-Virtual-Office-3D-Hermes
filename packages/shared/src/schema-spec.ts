@@ -46,6 +46,8 @@ export const SCHEMA_SPEC: readonly TableSpec[] = [
       'created_by',
       'created_at',
       'updated_at',
+      'source',
+      'tool_calls_count',
     ],
     requiredPhase: 2,
   },

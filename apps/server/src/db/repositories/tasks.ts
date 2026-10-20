@@ -19,8 +19,8 @@ export class TaskRepository {
   public create(task: Task): void {
     this.db
       .prepare(
-        `INSERT INTO tasks (id, title, description, agent_id, priority, status, run_id, result_md, due_at, created_by, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO tasks (id, title, description, agent_id, priority, status, run_id, result_md, due_at, created_by, created_at, updated_at, source, tool_calls_count)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         task.id,
@@ -34,8 +34,27 @@ export class TaskRepository {
         task.due_at,
         task.created_by,
         task.created_at,
-        task.updated_at
+        task.updated_at,
+        task.source || 'manual',
+        task.tool_calls_count || 0
       );
+  }
+
+  public getByRunId(runId: string): Task | null {
+    const row = this.db.prepare('SELECT * FROM tasks WHERE run_id = ?').get(runId);
+    return (row as Task) || null;
+  }
+
+  public getBySource(source: string): Task[] {
+    return this.db
+      .prepare('SELECT * FROM tasks WHERE source = ? ORDER BY created_at DESC')
+      .all(source) as Task[];
+  }
+
+  public incrementToolCalls(id: string, count = 1): void {
+    this.db
+      .prepare('UPDATE tasks SET tool_calls_count = tool_calls_count + ?, updated_at = ? WHERE id = ?')
+      .run(count, Date.now(), id);
   }
 
   public update(id: string, updates: Partial<Task>): void {

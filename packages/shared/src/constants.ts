@@ -87,3 +87,10 @@ export const AGENT_PROVISION_STATES = [
 ] as const;
 export type AgentProvisionState = (typeof AGENT_PROVISION_STATES)[number];
 
+/**
+ * Fase 4 — sumber pemicu task (Section 6 & Fase 4 Task Visibility)
+ */
+export const TASK_SOURCES = ['manual', 'chat', 'cron'] as const;
+export type TaskSource = (typeof TASK_SOURCES)[number];
+
+

@@ -10,6 +10,7 @@ import {
   REPORT_TEMPLATES,
   HIRING_STATUSES,
   AGENT_PROVISION_STATES,
+  TASK_SOURCES,
 } from './constants.js';
 import { isCharacterModelId } from './characters.js';
 
@@ -35,6 +36,7 @@ export const OfficeDepartmentSchema = z.object({
 export type OfficeDepartment = z.infer<typeof OfficeDepartmentSchema>;
 export const TaskPrioritySchema = z.enum(TASK_PRIORITIES);
 export const TaskStatusSchema = z.enum(TASK_STATUSES);
+export const TaskSourceSchema = z.enum(TASK_SOURCES);
 export const ProjectStatusSchema = z.enum(PROJECT_STATUSES);
 export const ApprovalStatusSchema = z.enum(APPROVAL_STATUSES);
 export const AgentNormalizedStatusSchema = z.enum(AGENT_NORMALIZED_STATUSES);
@@ -154,6 +156,9 @@ export const TaskSchema = z.object({
   created_by: z.number().int(),
   created_at: z.number().int(),
   updated_at: z.number().int(),
+  // Fase 4 — visibilitas task & run
+  source: TaskSourceSchema.optional(),
+  tool_calls_count: z.number().int().min(0).optional(),
 });
 
 /**
