@@ -55,21 +55,23 @@
 - [x] Fase 4b: Backend Task Materializer (`apps/server/src/services/agent-chat/task-materializer.ts`, integrasi `onEvent` di `HermesClient`, pembuatan task otomatis saat turn chat memanggil tool, transisi status `running` -> `done`/`failed`, dan 5 unit tests).
 - [x] Fase 4c: Endpoint Tasks Events & Visualisasi UI Timeline Run (`GET /api/tasks?source=...`, `GET /api/tasks/:id/events`, visualisasi pill filter, badges `Chat Auto-Task` & `🔧 X tools`, modal timeline switcher `TaskResultModal`, lokalisasi i18n dwibahasa, dan 15 unit tests).
 - [x] FASE 4 — Task & Run Visibility: SELESAI & TERVERIFIKASI PENUH.
+- [x] Fase 5a: Endpoint Cron & Pemetaan Job Jadwal Hermes (`GET /api/cron`, interface `HermesJob` & `listJobs()`, pemetaan job ke agen berdasarkan skill & role, filter `agent_skills`, komponen `CronScheduleView.tsx`, switcher mode di TasksScreen, dan 15 unit tests).
 
 ---
 
 ## 3. Komponen yang Terdaftar & Terverifikasi
-- **10 Modul Endpoint Fastify:**
+- **11 Modul Endpoint Fastify:**
   1. `/api/agents` (`agents.ts`)
   2. `/api/tasks` (`tasks.ts`)
-  3. `/api/departments` (`departments.ts`)
-  4. `/api/projects` (`projects.ts`)
-  5. `/api/skills` (`skills.ts`)
-  6. `/api/hiring` (`hiring.ts`)
-  7. `/api/approvals` (`approvals.ts`)
-  8. `/api/audit` (`audit.ts`)
-  9. `/api/kpis` (`kpis.ts`)
-  10. `/api/reports` (`reports.ts`)
+  3. `/api/cron` (`cron.ts`)
+  4. `/api/departments` (`departments.ts`)
+  5. `/api/projects` (`projects.ts`)
+  6. `/api/skills` (`skills.ts`)
+  7. `/api/hiring` (`hiring.ts`)
+  8. `/api/approvals` (`approvals.ts`)
+  9. `/api/audit` (`audit.ts`)
+  10. `/api/kpis` (`kpis.ts`)
+  11. `/api/reports` (`reports.ts`)
 - **9 Tabel Database SQLite:**
   1. `agents`
   2. `tasks`
