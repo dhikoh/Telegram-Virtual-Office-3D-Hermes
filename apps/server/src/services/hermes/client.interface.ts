@@ -92,6 +92,23 @@ export interface HermesClient {
   ): Promise<void>;
   /** Tahap 8 — skills installed on the gateway (throws when it cannot enumerate). */
   listSkills(): Promise<unknown[]>;
+  /** Fase 5 — list cron / scheduled jobs on the gateway. */
+  listJobs(): Promise<HermesJob[]>;
+}
+
+/** Fase 5 — raw scheduled cron job returned by Hermes gateway. */
+export interface HermesJob {
+  id: string;
+  name: string;
+  schedule?: string;
+  cron?: string;
+  skills?: string[];
+  agent_id?: string;
+  state?: string;
+  last_status?: string | null;
+  last_run_at?: number | null;
+  next_run_at?: number | null;
+  created_at?: number | null;
 }
 
 /** Tahap 8 — one persisted message from a gateway session. */

@@ -183,6 +183,13 @@ export const ENDPOINTS: readonly EndpointDefinition[] = [
   },
   {
     method: 'GET',
+    path: '/api/cron',
+    phase: 2,
+    requiresAuth: true,
+    description: 'Retrieve scheduled cron jobs from gateway mapped to office agents (Fase 5)',
+  },
+  {
+    method: 'GET',
     path: '/api/approvals',
     phase: 2,
     requiresAuth: true,

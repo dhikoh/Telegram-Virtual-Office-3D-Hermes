@@ -88,6 +88,34 @@ export class MockHermesServer {
       return;
     }
 
+    if (method === 'GET' && pathname === '/api/jobs') {
+      this.sendJson(res, 200, {
+        jobs: [
+          {
+            id: 'job_daily_prospecting',
+            name: 'Prospecting Harian & Kualifikasi Lead',
+            cron: '0 8 * * 1-5',
+            skills: ['prospecting'],
+            state: 'active',
+            last_status: 'success',
+            last_run_at: Date.now() - 3600000 * 4,
+            next_run_at: Date.now() + 3600000 * 20,
+          },
+          {
+            id: 'job_financial_reconciliation',
+            name: 'Rekonsiliasi Kas & Laporan Finansial',
+            cron: '0 17 * * *',
+            skills: ['accounting'],
+            state: 'active',
+            last_status: 'success',
+            last_run_at: Date.now() - 3600000 * 12,
+            next_run_at: Date.now() + 3600000 * 12,
+          },
+        ],
+      });
+      return;
+    }
+
     if (method === 'POST' && pathname === '/v1/runs') {
       const body = await this.readBodyJson(req);
       const runId = `run_mock_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;

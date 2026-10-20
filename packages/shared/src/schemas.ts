@@ -306,3 +306,22 @@ export const AntiHallucinationReportSchema = z.object({
 export const ResolveApprovalRequestSchema = z.object({
   decision: z.enum(['approve', 'deny']),
 });
+
+/**
+ * Cron Job / Scheduled Run dari Gateway Hermes (Fase 5a).
+ */
+export const CronJobSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  cron: z.string().min(1),
+  cron_wib: z.string().optional(),
+  agent_id: z.string().nullable().optional(),
+  agent_name: z.string().nullable().optional(),
+  agent_avatar: z.string().nullable().optional(),
+  skills: z.array(z.string()).default([]),
+  state: z.string().default('active'),
+  last_status: z.string().nullable().optional(),
+  last_run_at: z.number().nullable().optional(),
+  next_run_at: z.number().nullable().optional(),
+});
+export type CronJob = z.infer<typeof CronJobSchema>;

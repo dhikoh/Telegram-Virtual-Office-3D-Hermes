@@ -7,6 +7,7 @@ import type {
   HermesRunStatus,
   HermesSessionMessage,
   RunChatStreamHandlers,
+  HermesJob,
 } from './client.interface.js';
 import { HermesTimeoutError } from './client.interface.js';
 import type { HermesCapabilities } from '@hermes-office/shared';
@@ -218,5 +219,44 @@ export class MockHermesClient implements HermesClient {
   /** Tahap 8 — the mock gateway genuinely has no skills installed. */
   public async listSkills(): Promise<unknown[]> {
     return [];
+  }
+
+  /** Fase 5 — list cron / scheduled jobs on the mock gateway. */
+  public async listJobs(): Promise<HermesJob[]> {
+    try {
+      const res = await this.fetchWithTimeout(`${this.baseUrl}/api/jobs`);
+      if (res.ok) {
+        const body: unknown = await res.json();
+        if (Array.isArray(body)) return body as HermesJob[];
+        const asRecord = body as { jobs?: HermesJob[]; data?: HermesJob[] };
+        if (asRecord?.jobs) return asRecord.jobs;
+        if (asRecord?.data) return asRecord.data;
+      }
+    } catch {
+      // Fallback to default mock jobs
+    }
+
+    return [
+      {
+        id: 'job_daily_prospecting',
+        name: 'Prospecting Harian & Kualifikasi Lead',
+        cron: '0 8 * * 1-5',
+        skills: ['prospecting'],
+        state: 'active',
+        last_status: 'success',
+        last_run_at: Date.now() - 3600000 * 4,
+        next_run_at: Date.now() + 3600000 * 20,
+      },
+      {
+        id: 'job_financial_reconciliation',
+        name: 'Rekonsiliasi Kas & Laporan Finansial',
+        cron: '0 17 * * *',
+        skills: ['accounting'],
+        state: 'active',
+        last_status: 'success',
+        last_run_at: Date.now() - 3600000 * 12,
+        next_run_at: Date.now() + 3600000 * 12,
+      },
+    ];
   }
 }

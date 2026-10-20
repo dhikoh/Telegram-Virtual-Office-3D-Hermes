@@ -24,6 +24,7 @@ import { skillRoutes } from './routes/skills.js';
 import { departmentRoutes } from './routes/departments.js';
 import { mediaRoutes } from './routes/media.js';
 import { projectRoutes } from './routes/projects.js';
+import { cronRoutes } from './routes/cron.js';
 import { config } from './config.js';
 import { startMediaSweepTimer, stopMediaSweepTimer, sweepRetention } from './services/media.js';
 
@@ -139,6 +140,7 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
   app.register(departmentRoutes, { db: options.db });
   app.register(mediaRoutes);
   app.register(projectRoutes);
+  app.register(cronRoutes);
 
   // Tahap 12 — retensi media: sekali saat startup + interval berkala.
   // NODE_ENV=test sengaja dilewati supaya unit test tidak mewarisi timer aktif

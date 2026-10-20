@@ -8,6 +8,7 @@ import type {
   AgentPublic,
   Task,
   TaskEventsResponse,
+  CronJob,
   Approval,
   Kpi,
   Report,
@@ -91,6 +92,7 @@ export const api = {
     return request<Task[]>(`/tasks${query ? `?${query}` : ''}`);
   },
   getTaskEvents: (id: string) => request<TaskEventsResponse>(`/tasks/${id}/events`),
+  getCronJobs: () => request<CronJob[]>('/cron'),
   createTask: (body: unknown) => request<Task>('/tasks', { method: 'POST', body: JSON.stringify(body) }),
   runTask: (id: string) => request<{ status: string; run_id: string }>(`/tasks/${id}/run`, { method: 'POST' }),
   stopTask: (id: string) => request<{ status: string }>(`/tasks/${id}/stop`, { method: 'POST' }),

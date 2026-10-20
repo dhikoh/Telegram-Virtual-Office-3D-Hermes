@@ -7,6 +7,7 @@ import type {
   HermesRunStatus,
   HermesSessionMessage,
   RunChatStreamHandlers,
+  HermesJob,
 } from './client.interface.js';
 import { HermesTimeoutError } from './client.interface.js';
 import type { HermesCapabilities } from '@hermes-office/shared';
@@ -734,5 +735,23 @@ export class RealHermesClient implements HermesClient {
     if (Array.isArray(body)) return body;
     const asRecord = body as { data?: unknown[]; skills?: unknown[] };
     return asRecord?.data || asRecord?.skills || [];
+  }
+
+  /** Fase 5 — list cron / scheduled jobs on the gateway. */
+  public async listJobs(): Promise<HermesJob[]> {
+    try {
+      const res = await this.fetchWithTimeout(`${this.baseUrl}/api/jobs`, {
+        headers: this.headers(),
+      });
+      if (!res.ok) {
+        return [];
+      }
+      const body: unknown = await res.json();
+      if (Array.isArray(body)) return body as HermesJob[];
+      const asRecord = body as { data?: HermesJob[]; jobs?: HermesJob[] };
+      return asRecord?.jobs || asRecord?.data || [];
+    } catch {
+      return [];
+    }
   }
 }
