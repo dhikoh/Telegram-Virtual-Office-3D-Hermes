@@ -9,7 +9,7 @@ import type {
   RunChatStreamHandlers,
   HermesJob,
 } from './client.interface.js';
-import { HermesTimeoutError } from './client.interface.js';
+import { HermesTimeoutError, HermesJobGatewaySchema } from './client.interface.js';
 import type { HermesCapabilities } from '@hermes-office/shared';
 import { config } from '../../config.js';
 
@@ -739,19 +739,49 @@ export class RealHermesClient implements HermesClient {
 
   /** Fase 5 — list cron / scheduled jobs on the gateway. */
   public async listJobs(): Promise<HermesJob[]> {
+    const url = `${this.baseUrl}/api/jobs`;
+    let res: Response;
     try {
-      const res = await this.fetchWithTimeout(`${this.baseUrl}/api/jobs`, {
+      res = await this.fetchWithTimeout(url, {
         headers: this.headers(),
       });
-      if (!res.ok) {
-        return [];
-      }
-      const body: unknown = await res.json();
-      if (Array.isArray(body)) return body as HermesJob[];
-      const asRecord = body as { data?: HermesJob[]; jobs?: HermesJob[] };
-      return asRecord?.jobs || asRecord?.data || [];
-    } catch {
-      return [];
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`Gagal menghubungi gateway Hermes: ${msg}`);
     }
+
+    if (!res.ok) {
+      let bodyText = '';
+      try {
+        bodyText = await res.text();
+      } catch {
+        // Abaikan kegagalan membaca body
+      }
+      throw new Error(
+        `Gateway Hermes membalas HTTP ${res.status} ${res.statusText}${bodyText ? `: ${bodyText.slice(0, 200)}` : ''}`.trim()
+      );
+    }
+
+    const body: unknown = await res.json();
+    let rawList: unknown[] = [];
+    if (Array.isArray(body)) {
+      rawList = body;
+    } else if (body && typeof body === 'object') {
+      const asRecord = body as { data?: unknown[]; jobs?: unknown[] };
+      if (Array.isArray(asRecord.jobs)) {
+        rawList = asRecord.jobs;
+      } else if (Array.isArray(asRecord.data)) {
+        rawList = asRecord.data;
+      }
+    }
+
+    const jobs: HermesJob[] = [];
+    for (const item of rawList) {
+      const parsed = HermesJobGatewaySchema.safeParse(item);
+      if (parsed.success) {
+        jobs.push(parsed.data);
+      }
+    }
+    return jobs;
   }
 }

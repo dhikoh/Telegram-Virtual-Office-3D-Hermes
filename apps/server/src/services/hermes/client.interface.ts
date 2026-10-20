@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { HermesCapabilities } from '@hermes-office/shared';
 
 export interface StartRunParams {
@@ -96,20 +97,35 @@ export interface HermesClient {
   listJobs(): Promise<HermesJob[]>;
 }
 
-/** Fase 5 — raw scheduled cron job returned by Hermes gateway. */
-export interface HermesJob {
-  id: string;
-  name: string;
-  schedule?: string;
-  cron?: string;
-  skills?: string[];
-  agent_id?: string;
-  state?: string;
-  last_status?: string | null;
-  last_run_at?: number | null;
-  next_run_at?: number | null;
-  created_at?: number | null;
-}
+/** Fase 5 — skema validasi runtime zod untuk job dari gateway Hermes (.passthrough). */
+export const HermesJobGatewaySchema = z
+  .object({
+    id: z.union([z.string(), z.number()]).transform(String),
+    name: z.string().optional().default(''),
+    schedule: z
+      .union([
+        z.string(),
+        z.object({
+          kind: z.string().optional(),
+          expr: z.string().optional(),
+          display: z.string().optional(),
+        }),
+      ])
+      .nullish(),
+    schedule_display: z.string().nullish(),
+    cron: z.string().nullish(),
+    enabled: z.boolean().nullish(),
+    skills: z.array(z.string()).nullish().transform((s) => s ?? []),
+    agent_id: z.string().nullish(),
+    state: z.string().optional().default('scheduled'),
+    last_status: z.string().nullish(),
+    last_run_at: z.union([z.string(), z.number()]).nullish(),
+    next_run_at: z.union([z.string(), z.number()]).nullish(),
+    created_at: z.union([z.string(), z.number()]).nullish(),
+  })
+  .passthrough();
+
+export type HermesJob = z.infer<typeof HermesJobGatewaySchema>;
 
 /** Tahap 8 — one persisted message from a gateway session. */
 export interface HermesSessionMessage {

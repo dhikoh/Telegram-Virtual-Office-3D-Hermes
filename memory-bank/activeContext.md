@@ -6,8 +6,13 @@
 - **Kondisi Kesehatan Sistem:**
   * `npm run typecheck`: **PASS (100%)** — 0 errors di seluruh workspace monorepo.
   * `npm run gap-check`: **PASS (8/8 Checks)** — Phase 19 meets all 8 completeness criteria (C3a - C3h).
-  * `npm test`: Suite pengujian aktif dan stabil (**989 tests passed across 95 test files**).
-  * `npm run build`: Production bundle berhasil dibangun (`dist/` clean).
+  * `npm test`: Suite pengujian aktif dan stabil (**1005 tests passed across 95 test files**).
+  * `npm run build`: Production bundle berhasil dibangun (`dist/` clean, index gzip 120.85 KB, 0 jsxDEV).
+- **Perbaikan Terbaru — Hotfix GET /api/cron (2026-10-20)**:
+  * Memperbaiki bug 500 `cronExpr.trim is not a function` akibat payload gateway Hermes mengirimkan field `schedule` berupa objek (`{ kind: 'cron', expr: '0 1 * * *', display: '0 1 * * *' }`).
+  * Normalisasi aman melalui `readCronExpr` dan pengetatan `formatCronWIB` (return `null` alih-alih melempar error).
+  * Validasi runtime boundary dengan `HermesJobGatewaySchema` (Zod `.passthrough()`) di `real.client.ts`.
+  * Rute `/api/cron` tetap 200 untuk job dengan jadwal invalid dan mengembalikan 502 jika gateway gagal total.
 - **Fitur Selesai di Fase 6 (Skill Auto-Install & Catalog Synchronization):**
   * **Katalog Skill Resmi di Repositori (`skills/`)**:
     - `skills/prospecting/SKILL.md`: Prospecting, lead qualification BANT, cold outreach draft.

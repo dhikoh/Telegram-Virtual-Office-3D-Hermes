@@ -74,7 +74,7 @@ export const CronScheduleView: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {jobs.map((job) => {
-            const isActive = job.state === 'active';
+            const isActive = job.enabled !== false && job.state !== 'paused';
 
             return (
               <div
@@ -104,7 +104,7 @@ export const CronScheduleView: React.FC = () => {
                 {/* Schedule Display */}
                 <div className="flex items-center gap-1.5 text-xs text-cyan-300 font-mono bg-cyan-950/20 p-2 rounded-xl border border-cyan-800/30">
                   <Calendar className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{job.cron_wib || job.cron}</span>
+                  <span className="truncate">{job.cron_wib || job.cron || '—'}</span>
                 </div>
 
                 {/* Assigned Agent */}
