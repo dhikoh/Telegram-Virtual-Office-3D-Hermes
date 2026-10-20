@@ -45,6 +45,7 @@
 - [x] Fase 2a: Heartbeat SSE tiap 10 detik (`: hb\n\n`) mencegah timeout Cloudflare.
 - [x] Fase 2b: Chat via Runs API + Reattach tahan restart (`POST /api/agents/:id/chat` mengirim `run_id`, reattach via `GET /api/agents/:id/runs/:runId/stream` dengan replay dari SQLite `run_events`, live hub attachment, dan fallback `sessionChatStream`).
 - [x] Fase 2c: Antrian Chat per Agen (`AgentChatQueue` - 1 run aktif, FIFO, maks 5 antrian, heartbeat selama antri, HTTP 429 `queue_full`).
+- [x] Fase 2d: Idempotensi + Deteksi Stall (`client_message_id` wajib & deduplikasi request ganda, deteksi jeda 45s dengan frame status `tool_running` dan retry otomatis ke fallback model).
 
 ---
 
