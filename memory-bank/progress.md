@@ -35,12 +35,15 @@
 - [x] Penyekatan lingkungan dev/mock dari lingkungan produksi (keamanan ketat).
 - [x] Pengurangan ukuran bundle aset 3D (chunk 3D gzip <= 700 KB).
 
-### Pemantapan & Stabilitas Streaming (Fase 9 - 19)
+### Pemantapan & Stabilitas Streaming (Fase 9 - 19, Fase 1 - 2)
 - [x] Peningkatan tekstur meja dan model 3D (Phase 9 - 18).
 - [x] Integrasi departemen dan ruang kerja agen terorganisir (Phase 17 - 18).
 - [x] Penambahan perlindungan streaming dual-timeout (`HERMES_CHAT_TTFB_MS` = 60s, `HERMES_CHAT_TIMEOUT_MS` = 300s) (Phase 19).
 - [x] Deteksi aliran 0 byte sebagai error provider dan cleanup runaway task otomatis (Phase 19).
 - [x] Pengaktifan protokol Phase-Gated & Memory Bank Development secara global dan lokal.
+- [x] Fase 1: Jembatan Identitas (Agen sadar nama, peran, SOUL, dan ruang kerja).
+- [x] Fase 2a: Heartbeat SSE tiap 10 detik (`: hb\n\n`) mencegah timeout Cloudflare.
+- [x] Fase 2b: Chat via Runs API + Reattach tahan restart (`POST /api/agents/:id/chat` mengirim `run_id`, reattach via `GET /api/agents/:id/runs/:runId/stream` dengan replay dari SQLite `run_events`, live hub attachment, dan fallback `sessionChatStream`).
 
 ---
 
