@@ -1,23 +1,21 @@
 # Active Context: Hermes Virtual Office
 
 ## 1. Status Saat Ini
-- **Fase Terakhir Diselesaikan:** **Fase 3b (Service Hermes Provisioner & SOUL.md)** — Selesai & Terverifikasi penuh per 2026-10-20.
+- **Fase Terakhir Diselesaikan:** **Fase 3c (Endpoint Provisioning & Auto-Provisioning Hiring)** — Selesai & Terverifikasi penuh per 2026-10-20.
 - **Kondisi Kesehatan Sistem:**
   * `npm run typecheck`: **PASS (100%)** — 0 errors di seluruh workspace.
   * `npm run gap-check`: **PASS (8/8 Checks)** — Phase 19 meets all 8 completeness criteria (C3a - C3h).
-  * `npm test`: Suite pengujian aktif dan stabil (**905 tests passed across 86 test files**).
-- **Fitur Baru Fase 3b:**
-  * Implementasi service `provisionAgentProfile` (`apps/server/src/services/hermes/provisioner.ts`) yang idempoten.
-  * Sanitasi nama profil aman (`sanitizeProfileSlug`) dan resolusi profil idempoten (`resolveAgentProfileName`).
-  * Penyusunan berkas `SOUL.md` berstandar 9 seksi dengan identitas khusus agen dan integrasi daftar skill aktif.
-  * Eksekusi aman `execFile` ke CLI `hermes profile create` (mencegah shell injection), toleransi profil yang sudah ada, dan penulisan berkas direktori profil atomik.
-  * Unit test suite komprehensif (`apps/server/src/services/hermes/provisioner.test.ts` - 10 tests passed) memverifikasi lifecycle, idempotensi, dan error handling.
+  * `npm test`: Suite pengujian aktif dan stabil (**920 tests passed across 87 test files**).
+- **Fitur Baru Fase 3c:**
+  * Endpoint `POST /api/agents/:id/provision` terdaftar di Fastify dan didefinisikan secara resmi di `packages/shared/src/endpoints.ts`, memfasilitasi provision manual maupun re-provisioning idempoten.
+  * Integrasi auto-provisioning di `POST /api/hiring/:id/mark-hired`: saat kandidat diterima, profil Hermes dibuat otomatis dengan `SOUL.md` (menggunakan draft `soul_md` atau generate profil 9 seksi), status langsung beralih ke `ready`, dan tercatat di audit log.
+  * Integration test suite baru (`apps/server/src/fase3-provisioning.test.ts` - 15 tests) menguji rute provisioning, validasi input, 404 handling, idempotensi, dan auto-provisioning alur hiring.
 
 ---
 
 ## 2. Fokus & Prioritas Kerja Aktif
 - Menjaga kepatuhan mutlak terhadap 3 Hukum Mutlak (Zero-Gap, Strict Single Sub-Task, Memory Sync).
-- Prioritas berikutnya: **Sub-task 3.3 (Endpoint `POST /api/agents/:id/provision` & Integrasi Hiring Auto-Provision)** — mengekspos endpoint rute manual / re-provision dan mengaitkan auto-provisioning saat penerimaan agen baru di `POST /api/hiring/:id/mark-hired`.
+- Prioritas berikutnya: **Sub-task 3.4 (Script Backfill `scripts/provision-backfill.ts` & Pengkaitan Profil Chat)** — pembuatan script migrasi/backfill dengan opsi `--dry-run` untuk mem-provision seluruh agen yang ada saat ini (Bagas, Orion, Aura, dll.) ke profil masing-masing, serta verifikasi pemisahan sesi chat antar-agen.
 
 ---
 
