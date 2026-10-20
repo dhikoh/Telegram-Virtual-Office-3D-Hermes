@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
+import type BetterSqlite3 from 'better-sqlite3';
 import { z } from 'zod';
 import { AgentSchema, isCharacterModelId, type Agent } from '@hermes-office/shared';
 import { AgentRepository } from '../db/repositories/agents.js';
@@ -230,54 +231,122 @@ function applyScopeToContent<T>(content: T, directive: string | null): T {
 }
 
 /**
- * Fase 2b — sambungkan klien ke run yang sedang hidup.
+ * Fase 2b — baca riwayat peristiwa dari database (retensi 14 hari, tahan restart).
+ */
+function getRunEventsFromDb(
+  db: BetterSqlite3.Database,
+  runId: string,
+  agentId: string
+): RecordedRunEvent[] {
+  try {
+    const rows = db
+      .prepare(
+        'SELECT type, payload_json, ts FROM run_events WHERE run_id = ? AND agent_id = ? ORDER BY id ASC'
+      )
+      .all(runId, agentId) as { type: string; payload_json: string; ts: number }[];
+
+    return rows.map((r, i) => {
+      let data: unknown = {};
+      try {
+        data = JSON.parse(r.payload_json);
+      } catch {
+        data = {};
+      }
+      return {
+        seq: i + 1,
+        event: r.type,
+        data,
+        ts: r.ts,
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Fase 2b — verifikasi kepemilikan run: cek hub memori dulu, lalu cek tabel database.
+ * Mencegah run milik agen lain bocor (404) sekaligus mengenali run setelah restart.
+ */
+function runBelongsToAgent(
+  db: BetterSqlite3.Database,
+  runId: string,
+  agentId: string
+): boolean {
+  if (chatRunHub.agentOf(runId) === agentId) return true;
+  try {
+    const row = db
+      .prepare('SELECT agent_id FROM run_events WHERE run_id = ? LIMIT 1')
+      .get(runId) as { agent_id: string } | undefined;
+    return row?.agent_id === agentId;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Fase 2b — sambungkan klien ke run (live maupun dari database setelah restart).
  *
- * Urutannya penting dan tidak boleh tertukar: riwayat yang sudah ada dibaca
- * dulu, BARU pelanggan dipasang. Kalau sebaliknya, peristiwa yang tiba di
- * antara keduanya bisa terkirim dua kali (sekali dari langganan, sekali dari
- * riwayat).
+ * Urutan yang menjaga integritas:
+ * 1. Baca riwayat dari database (tahan restart & retensi 14 hari) atau hub memori.
+ * 2. Putar ulang event di atas afterSeq ke klien.
+ * 3. Jika terminal (selesai / gagal / batal), akhiri stream tanpa menggantung.
+ * 4. Jika masih hidup di hub, langganan event baru secara live.
  */
 async function attachToLiveRun(
+  db: BetterSqlite3.Database,
+  agentId: string,
   runId: string,
   reply: { raw: { write: (s: string) => void; writableEnded: boolean; destroyed?: boolean } },
   writeEvent: (s: string) => void,
   afterSeq = 0
 ): Promise<void> {
-  // Riwayat = pemutaran ulang. Yang melewati `afterSeq` dikirim, sisanya tidak
-  // diulang; kalau pemanggil memanggil ini tanpa riwayat (jalur x-run-id di
-  // atas), pemutaran ini yang menyalinnya.
-  const history = chatRunHub.history(runId);
+  const dbEvents = getRunEventsFromDb(db, runId, agentId);
+  const hubEvents = chatRunHub.history(runId);
+  // Database adalah kebenaran tahan restart; bila kosong (mock uji murni memori), pakai hub
+  const history = dbEvents.length > 0 ? dbEvents : hubEvents;
+
   for (const event of history) {
     if (event.seq > afterSeq) writeSseEvent(writeEvent, event);
   }
   const lastSeq = Math.max(afterSeq, history[history.length - 1]?.seq ?? 0);
-  if (history.some((e) => isTerminalEvent(e.event))) return;
-
-  const unsubscribe = chatRunHub.subscribe(
-    runId,
-    lastSeq,
-    (event) => writeSseEvent(writeEvent, event)
-  );
-  const socket = reply.raw as unknown as {
-    on?: (ev: string, fn: () => void) => void;
-    writableEnded: boolean;
-    destroyed: boolean;
-  };
-  const closed = () => socket.writableEnded || socket.destroyed;
-  if (closed()) return unsubscribe();
-
-  await new Promise<void>((resolve) => {
-    socket.on?.('close', () => {
-      unsubscribe();
-      resolve();
-    });
-    // Kalau socket sudah mati sebelum listener terpasang, jangan menunggu
-    // selamanya — lepaskan dan selesai.
-    if (closed()) {
-      unsubscribe();
-      resolve();
+  if (history.some((e) => isTerminalEvent(e.event))) {
+    // Pastikan frame [DONE] terkirim jika belum tertulis
+    if (history[history.length - 1]?.event === 'run.completed' && afterSeq >= lastSeq) {
+      reply.raw.write('data: [DONE]\n\n');
     }
-  });
+    return;
+  }
+
+  if (chatRunHub.isLive(runId)) {
+    const unsubscribe = chatRunHub.subscribe(
+      runId,
+      lastSeq,
+      (event) => writeSseEvent(writeEvent, event)
+    );
+    const socket = reply.raw as unknown as {
+      on?: (ev: string, fn: () => void) => void;
+      writableEnded: boolean;
+      destroyed: boolean;
+    };
+    const closed = () => socket.writableEnded || socket.destroyed;
+    if (closed()) return unsubscribe();
+
+    await new Promise<void>((resolve) => {
+      socket.on?.('close', () => {
+        unsubscribe();
+        resolve();
+      });
+      // Kalau socket sudah mati sebelum listener terpasang, lepaskan dan selesai
+      if (closed()) {
+        unsubscribe();
+        resolve();
+      }
+    });
+  } else {
+    // Tidak live di hub dan tidak ada terminal event (misal server restart di tengah jalan)
+    reply.raw.write('data: [DONE]\n\n');
+  }
 }
 
 function isTerminalEvent(event: string): boolean {
@@ -670,8 +739,11 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
         // panel yang tertutup lalu dibuka lagi), sambungkan ke papan itu dulu
         // alih-alih membuka giliran baru yang menggandakan pekerjaan.
         const requestedRun = request.headers['x-run-id'];
-        if (typeof requestedRun === 'string' && chatRunHub.isLive(requestedRun)) {
-          await attachToLiveRun(requestedRun, reply, writeEvent);
+        if (
+          typeof requestedRun === 'string' &&
+          (chatRunHub.has(requestedRun) || runBelongsToAgent(db, requestedRun, agent.id))
+        ) {
+          await attachToLiveRun(db, agent.id, requestedRun, reply, writeEvent, 0);
         } else if (sessionId) {
           if (!agent.session_id) {
             agentRepo.update(id, { session_id: sessionId });
@@ -680,18 +752,89 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
               'INSERT OR IGNORE INTO agent_sessions (agent_id, session_id, created_at, archived_at) VALUES (?, ?, ?, NULL)'
             ).run(id, sessionId, Date.now());
           }
-          await client.sessionChatStream(
-            sessionId,
-            applyScopeToContent(lastUser?.content || JSON.stringify(messages), scopeDirective),
-            (chunk) => {
-              writeEvent(
-                `data: ${JSON.stringify({ choices: [{ delta: { content: chunk } }] })}\n\n`
+
+          const input = applyScopeToContent(lastUser?.content || JSON.stringify(messages), scopeDirective);
+          let runId: string | null = null;
+          let runsApiStarted = false;
+
+          try {
+            await client.runChatStream(
+              {
+                input,
+                sessionId,
+                instructions: identityPrompt,
+              },
+              {
+                onRunId: (assignedRunId) => {
+                  runId = assignedRunId;
+                  runsApiStarted = true;
+                  // Fase 2b — daftarkan ke hub agar sambung-ulang menemukan run ini
+                  chatRunHub.start(assignedRunId, agent.id);
+                  // Fase 2b — kirim run_id ke klien sebagai frame pertama
+                  writeEvent(`data: ${JSON.stringify({ run_id: assignedRunId })}\n\n`);
+                },
+                onDelta: (delta) => {
+                  if (runId) {
+                    const data = { delta };
+                    chatRunHub.append(runId, 'message.delta', data);
+                    try {
+                      db.prepare(
+                        'INSERT INTO run_events (run_id, agent_id, type, payload_json, ts) VALUES (?, ?, ?, ?, ?)'
+                      ).run(runId, agent.id, 'message.delta', JSON.stringify(data), Date.now());
+                    } catch {}
+                  }
+                  writeEvent(
+                    `data: ${JSON.stringify({ choices: [{ delta: { content: delta } }] })}\n\n`
+                  );
+                },
+                onDone: () => {
+                  if (runId) {
+                    chatRunHub.append(runId, 'run.completed', {});
+                    chatRunHub.finish(runId);
+                    try {
+                      db.prepare(
+                        'INSERT INTO run_events (run_id, agent_id, type, payload_json, ts) VALUES (?, ?, ?, ?, ?)'
+                      ).run(runId, agent.id, 'run.completed', '{}', Date.now());
+                    } catch {}
+                  }
+                  reply.raw.write('data: [DONE]\n\n');
+                },
+                onError: (why) => {
+                  if (runId) {
+                    const data = { error: why };
+                    chatRunHub.append(runId, 'run.failed', data);
+                    chatRunHub.finish(runId);
+                    try {
+                      db.prepare(
+                        'INSERT INTO run_events (run_id, agent_id, type, payload_json, ts) VALUES (?, ?, ?, ?, ?)'
+                      ).run(runId, agent.id, 'run.failed', JSON.stringify(data), Date.now());
+                    } catch {}
+                  }
+                  writeEvent(
+                    `data: ${JSON.stringify({ error: 'run_failed', message: why })}\n\n`
+                  );
+                },
+              }
+            );
+          } catch (runErr) {
+            if (!runsApiStarted) {
+              // Fase 2b — fallback ke sessionChatStream bila runChatStream gagal di awal
+              await client.sessionChatStream(
+                sessionId,
+                input,
+                (chunk) => {
+                  writeEvent(
+                    `data: ${JSON.stringify({ choices: [{ delta: { content: chunk } }] })}\n\n`
+                  );
+                },
+                agent.model || undefined,
+                identityPrompt
               );
-            },
-            agent.model || undefined,
-            identityPrompt
-          );
-          reply.raw.write('data: [DONE]\n\n');
+              reply.raw.write('data: [DONE]\n\n');
+            } else {
+              throw runErr;
+            }
+          }
         } else {
           // Jalur tanpa sesi memakai role 'system' yang asli — riwayat tidak
           // tersentuh. Fase 1: identitas jadi pesan system pertama, instruksi
@@ -751,7 +894,7 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
       if (!agent) {
         return reply.code(404).send({ error: 'not_found', message: 'Agent not found' });
       }
-      if (chatRunHub.agentOf(runId) !== agent.id) {
+      if (!runBelongsToAgent(db, runId, agent.id)) {
         return reply.code(404).send({ error: 'not_found', message: 'Run not found' });
       }
 
@@ -769,16 +912,7 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
       const requestedSeq = Number.parseInt(request.query.seq || '0', 10);
       const afterSeq = Number.isFinite(requestedSeq) && requestedSeq > 0 ? requestedSeq : 0;
       try {
-        const history = chatRunHub.history(runId);
-        // Yang sudah dikirim klien tidak diulang; yang belum diputar dari papan.
-        for (const event of history) {
-          if (event.seq > afterSeq) writeSseEvent(writeEvent, event);
-        }
-        if (history.some((e) => isTerminalEvent(e.event))) {
-          reply.raw.write('data: [DONE]\n\n');
-        } else {
-          await attachToLiveRun(runId, reply, writeEvent, afterSeq);
-        }
+        await attachToLiveRun(db, agent.id, runId, reply, writeEvent, afterSeq);
       } catch (err) {
         writeEvent(
           `data: ${JSON.stringify({
