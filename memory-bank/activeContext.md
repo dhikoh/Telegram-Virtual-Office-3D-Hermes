@@ -1,33 +1,37 @@
 # Active Context: Hermes Virtual Office
 
 ## 1. Status Saat Ini
-- **Branch Aktif:** `fase/5-cron-fav`.
-- **Fase Terakhir Diselesaikan:** **Fase 5b (FAV Messenger & Agent Quick-Switcher) — FASE 5 TUNTAS 100%**.
+- **Branch Aktif:** `fase/6-skill-autoinstall`.
+- **Fase Terakhir Diselesaikan:** **Fase 6 (Skill Auto-Install & Catalog Synchronization — Migrasi-Proof)**.
 - **Kondisi Kesehatan Sistem:**
   * `npm run typecheck`: **PASS (100%)** — 0 errors di seluruh workspace.
   * `npm run gap-check`: **PASS (8/8 Checks)** — Phase 19 meets all 8 completeness criteria (C3a - C3h).
-  * `npm test`: Suite pengujian aktif dan stabil (**965 tests passed across 93 test files**).
-- **Fitur Selesai di Fase 5 (List Cron + FAV Messenger):**
-  * **Fase 5a (List Cron)**:
-    - Skema & tipe Zod `CronJob` di `@hermes-office/shared/schemas.ts`.
-    - Endpoint `GET /api/cron` terdaftar di `packages/shared/src/endpoints.ts` (Rule C3a & gap-check).
-    - Method `listJobs(): Promise<HermesJob[]>` di `HermesClient`, `RealHermesClient`, `MockHermesClient`, dan `MockHermesServer`.
-    - Implementasi route `GET /api/cron` di `apps/server/src/routes/cron.ts`: memetakan job gateway ke agen penanggung jawab, memfilter skill yang dinonaktifkan di `agent_skills`, dan memformat ekspresi cron ke label waktu WIB yang ramah manusia.
-    - Web API client `api.getCronJobs()` di `apps/web/src/services/api.ts`.
-    - Komponen UI [`CronScheduleView.tsx`](file:///d:/Workspace%20Virtual/VPS%20Mini%20App/apps/web/src/components/tasks/CronScheduleView.tsx) dengan status card per agen, display WIB, skill tags, serta mode switcher di header [`TasksScreen`](file:///d:/Workspace%20Virtual/VPS%20Mini%20App/apps/web/src/screens/Tasks.tsx).
-    - Unit tests `apps/server/src/routes/cron.test.ts` (15 tests) PASS 100%.
-  * **Fase 5b (FAV Messenger & Quick Switcher)**:
-    - Floating Action Button [`MessengerFAB.tsx`](file:///d:/Workspace%20Virtual/VPS%20Mini%20App/apps/web/src/components/office/MessengerFAB.tsx) dengan badge jumlah agen, haptic feedback, dan desain neumorphic modern.
-    - Bottom Sheet [`AgentMessengerModal.tsx`](file:///d:/Workspace%20Virtual/VPS%20Mini%20App/apps/web/src/components/office/AgentMessengerModal.tsx) dengan pencarian agen realtime, preview percakapan terkini (`speech`), status dot animasi, dan quick selection instant.
-    - Tombol integrasi quick-switch di header [`AgentSheet.tsx`](file:///d:/Workspace%20Virtual/VPS%20Mini%20App/apps/web/src/components/agent-sheet/AgentSheet.tsx) sehingga CEO dapat beralih obrolan antar agen dalam 1 ketukan tanpa keluar ke denah kantor 3D.
-    - Kamus i18n dwibahasa namespace `messenger` lengkap di `apps/web/src/i18n/index.ts` (Rule C3c).
-    - Unit test suite [`messenger.test.tsx`](file:///d:/Workspace%20Virtual/VPS%20Mini%20App/apps/web/src/components/office/__tests__/messenger.test.tsx) (5 tests) PASS 100%.
+  * `npm test`: Suite pengujian aktif dan stabil (**989 tests passed across 95 test files**).
+  * `npm run build`: Production bundle berhasil dibangun (`dist/` clean).
+- **Fitur Selesai di Fase 6 (Skill Auto-Install & Catalog Synchronization):**
+  * **Katalog Skill Resmi di Repositori (`skills/`)**:
+    - `skills/prospecting/SKILL.md`: Prospecting, lead qualification BANT, cold outreach draft.
+    - `skills/marketing-plan/SKILL.md`: Go-to-market plan, omnichannel channel mix, ROI/CAC evaluation.
+    - `skills/brand/SKILL.md`: Brand identity, tone of voice, touchpoint guidelines.
+    - `skills/sales-enablement/SKILL.md`: Sales deck structure, battlecard, objection handling.
+  * **Shared Schemas & Endpoints**:
+    - Skema Zod `LocalSkillSchema`, `SkillSyncStatusSchema`, dan `SkillSyncResultSchema` di `packages/shared/src/schemas.ts`.
+    - Pendaftaran endpoint `GET /api/skills/sync/status` dan `POST /api/skills/sync` di `packages/shared/src/endpoints.ts`.
+  * **Service Core `SkillSynchronizer`**:
+    - `apps/server/src/services/hermes/skill-sync.ts`: `readLocalSkillCatalog`, `checkSkillSyncStatus`, `syncSkills`.
+    - Sinkronisasi berkas skill ke target `~/.hermes/skills/` secara aman, atomik, dan idempoten.
+    - Integrasi audit log `skill.auto_sync` di database SQLite.
+    - 9 unit tests di `apps/server/src/services/hermes/skill-sync.test.ts` PASS 100%.
+  * **Route Handlers Fastify & API Client**:
+    - `GET /api/skills/sync/status` & `POST /api/skills/sync` di `apps/server/src/routes/skills.ts`.
+    - 15 integration tests di `apps/server/src/routes/skills.test.ts` PASS 100%.
+    - Client API frontend `api.getSkillSyncStatus()` dan `api.syncSkills(force)` di `apps/web/src/services/api.ts`.
 
 ---
 
 ## 2. Fokus & Prioritas Kerja Aktif
-- **Fase 5 (List Cron + FAV Messenger) telah selesai 100%.**
-- Menunggu arahan pengguna untuk fase atau fitur selanjutnya.
+- **Fase 6 (Skill Auto-Install & Catalog Synchronization) telah selesai 100%.**
+- Menunggu arahan pengguna untuk fase atau penyempurnaan selanjutnya.
 
 ---
 

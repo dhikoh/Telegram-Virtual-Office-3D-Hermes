@@ -58,6 +58,8 @@
 - [x] Fase 5a: Endpoint Cron & Pemetaan Job Jadwal Hermes (`GET /api/cron`, interface `HermesJob` & `listJobs()`, pemetaan job ke agen berdasarkan skill & role, filter `agent_skills`, komponen `CronScheduleView.tsx`, switcher mode di TasksScreen, dan 15 unit tests).
 - [x] Fase 5b: Floating Action Button (FAB) & Agent Messenger Modal Quick-Switcher (`MessengerFAB.tsx`, `AgentMessengerModal.tsx`, quick-switch button di `AgentSheet.tsx`, integrasi ke `Office.tsx`, kamus i18n dwibahasa `messenger`, dan 5 unit tests).
 - [x] FASE 5 — UI: List Cron + FAV Messenger: SELESAI & TERVERIFIKASI PENUH.
+- [x] Fase 6: Skill Auto-Install & Catalog Synchronization (`skills/` di repo, core `SkillSynchronizer`, endpoint `GET /api/skills/sync/status` & `POST /api/skills/sync`, audit log SQLite, client method frontend, dan 24 unit/integration tests).
+- [x] FASE 6 — Skill Auto-Install (Migrasi-Proof): SELESAI & TERVERIFIKASI PENUH.
 
 ---
 
