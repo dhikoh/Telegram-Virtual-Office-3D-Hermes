@@ -1,22 +1,23 @@
 # Active Context: Hermes Virtual Office
 
 ## 1. Status Saat Ini
-- **Fase Terakhir Diselesaikan:** **Fase 3a (Migrasi 011 Provisioning, Shared Schemas, & Repositori State)** — Selesai & Terverifikasi penuh per 2026-10-20.
+- **Fase Terakhir Diselesaikan:** **Fase 3b (Service Hermes Provisioner & SOUL.md)** — Selesai & Terverifikasi penuh per 2026-10-20.
 - **Kondisi Kesehatan Sistem:**
   * `npm run typecheck`: **PASS (100%)** — 0 errors di seluruh workspace.
   * `npm run gap-check`: **PASS (8/8 Checks)** — Phase 19 meets all 8 completeness criteria (C3a - C3h).
-  * `npm test`: Suite pengujian aktif dan stabil (**895 tests passed across 85 test files**).
-- **Fitur Baru Fase 3a:**
-  * Migrasi `011_agent_provisioning.sql` menambahkan kolom `provision_state`, `provision_error`, dan `provisioned_at` pada tabel `agents`.
-  * `SCHEMA_SPEC` dan skema Zod `AgentSchema`, `AgentPublicSchema`, `AgentInputSchema` diperbarui dengan enumerasi `AGENT_PROVISION_STATES` (`'unprovisioned'` | `'provisioning'` | `'ready'` | `'failed'`).
-  * `AgentRepository.create()` menyimpan atribut provisioning secara default `'unprovisioned'`, dan method baru `updateProvisionState()` menangani transisi status siklus hidup profil Hermes secara idempoten dan type-safe.
-  * Serialisasi API `toPublic` menyertakan `provision_state`, `provision_error`, dan `provisioned_at` untuk konsumsi klien web.
+  * `npm test`: Suite pengujian aktif dan stabil (**905 tests passed across 86 test files**).
+- **Fitur Baru Fase 3b:**
+  * Implementasi service `provisionAgentProfile` (`apps/server/src/services/hermes/provisioner.ts`) yang idempoten.
+  * Sanitasi nama profil aman (`sanitizeProfileSlug`) dan resolusi profil idempoten (`resolveAgentProfileName`).
+  * Penyusunan berkas `SOUL.md` berstandar 9 seksi dengan identitas khusus agen dan integrasi daftar skill aktif.
+  * Eksekusi aman `execFile` ke CLI `hermes profile create` (mencegah shell injection), toleransi profil yang sudah ada, dan penulisan berkas direktori profil atomik.
+  * Unit test suite komprehensif (`apps/server/src/services/hermes/provisioner.test.ts` - 10 tests passed) memverifikasi lifecycle, idempotensi, dan error handling.
 
 ---
 
 ## 2. Fokus & Prioritas Kerja Aktif
 - Menjaga kepatuhan mutlak terhadap 3 Hukum Mutlak (Zero-Gap, Strict Single Sub-Task, Memory Sync).
-- Prioritas berikutnya: **Sub-task 3.2 (Service Provisioner: `apps/server/src/services/hermes/provisioner.ts`)** — pembuatan profil Hermes via `execFile` (aman dari shell injection) atau simulasi mock, penyusunan `SOUL.md` terisolasi per agen, dan unit test lengkap.
+- Prioritas berikutnya: **Sub-task 3.3 (Endpoint `POST /api/agents/:id/provision` & Integrasi Hiring Auto-Provision)** — mengekspos endpoint rute manual / re-provision dan mengaitkan auto-provisioning saat penerimaan agen baru di `POST /api/hiring/:id/mark-hired`.
 
 ---
 

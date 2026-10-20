@@ -48,6 +48,7 @@
 - [x] Fase 2d: Idempotensi + Deteksi Stall (`client_message_id` wajib & deduplikasi request ganda, deteksi jeda 45s dengan frame status `tool_running` dan retry otomatis ke fallback model).
 - [x] Fase 2e: Persist Parsial (`010_agent_chat.sql` tabel `agent_runs` & `agent_messages`, simpan delta stream bertahap, status `partial` bila terputus, dan tombol interaktif "Lanjutkan").
 - [x] Fase 3a: Migrasi Provisioning & Skema (`011_agent_provisioning.sql` kolom `provision_state`, `provision_error`, `provisioned_at` pada tabel `agents`, Zod schemas, dan `AgentRepository.updateProvisionState()`).
+- [x] Fase 3b: Service Hermes Provisioner & SOUL.md (`apps/server/src/services/hermes/provisioner.ts` dengan eksekusi `execFile` aman, sanitasi slug profil, generator `SOUL.md` 9 seksi, dan penanganan idempotensi).
 
 ---
 
