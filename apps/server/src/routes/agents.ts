@@ -19,6 +19,7 @@ import {
 import { buildAgentIdentity } from '../services/hermes/identity.js';
 import { startHeartbeat } from '../services/agent-chat/heartbeat.js';
 import { chatRunHub } from '../services/agent-chat/run-hub.js';
+import { agentChatQueue, QueueFullError } from '../services/agent-chat/queue.js';
 import type { RecordedRunEvent } from '../services/agent-chat/types.js';
 import { runEventToChatFrame } from '../services/agent-chat/run-events.js';
 import { departmentExists } from '../db/repositories/departments.js';
@@ -706,6 +707,20 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
           .send({ error: 'invalid_input', message: 'Messages array is required' });
       }
 
+      // Fase 2b / 2c — periksa apakah ini penyambungan ulang ke run yang sudah ada
+      const requestedRun = request.headers['x-run-id'];
+      const isReattach =
+        typeof requestedRun === 'string' &&
+        (chatRunHub.has(requestedRun) || runBelongsToAgent(db, requestedRun, agent.id));
+
+      // Fase 2c — tolak 429 jika antrian pesan untuk agen ini sudah mencapai batas (5 pesan)
+      if (!isReattach && agentChatQueue.getPendingCount(agent.id) >= 5) {
+        return reply.code(429).send({
+          error: 'queue_full',
+          message: 'Antrian pesan agen penuh (maksimal 5 pesan). Tunggu hingga giliran sebelumnya selesai.',
+        });
+      }
+
       reply.raw.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
@@ -733,138 +748,140 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
       // stripSkillScope membersihkannya dari riwayat yang dibaca kembali.
       const identityPrompt = buildAgentIdentity(agent) || undefined;
       try {
-        // Tahap 8: prefer the gateway session — history and memory persist there.
-        const sessionId = agent.session_id || (await client.createSession(`${agent.name}`));
-        // Fase 2b — bila klien menyerahkan run lama yang masih berjalan (retry,
-        // panel yang tertutup lalu dibuka lagi), sambungkan ke papan itu dulu
-        // alih-alih membuka giliran baru yang menggandakan pekerjaan.
-        const requestedRun = request.headers['x-run-id'];
-        if (
-          typeof requestedRun === 'string' &&
-          (chatRunHub.has(requestedRun) || runBelongsToAgent(db, requestedRun, agent.id))
-        ) {
-          await attachToLiveRun(db, agent.id, requestedRun, reply, writeEvent, 0);
-        } else if (sessionId) {
-          if (!agent.session_id) {
-            agentRepo.update(id, { session_id: sessionId });
-            // Tahap 9 — record the live session so "Sesi baru" can archive it later.
-            db.prepare(
-              'INSERT OR IGNORE INTO agent_sessions (agent_id, session_id, created_at, archived_at) VALUES (?, ?, ?, NULL)'
-            ).run(id, sessionId, Date.now());
-          }
-
-          const input = applyScopeToContent(lastUser?.content || JSON.stringify(messages), scopeDirective);
-          let runId: string | null = null;
-          let runsApiStarted = false;
-
-          try {
-            await client.runChatStream(
-              {
-                input,
-                sessionId,
-                instructions: identityPrompt,
-              },
-              {
-                onRunId: (assignedRunId) => {
-                  runId = assignedRunId;
-                  runsApiStarted = true;
-                  // Fase 2b — daftarkan ke hub agar sambung-ulang menemukan run ini
-                  chatRunHub.start(assignedRunId, agent.id);
-                  // Fase 2b — kirim run_id ke klien sebagai frame pertama
-                  writeEvent(`data: ${JSON.stringify({ run_id: assignedRunId })}\n\n`);
-                },
-                onDelta: (delta) => {
-                  if (runId) {
-                    const data = { delta };
-                    chatRunHub.append(runId, 'message.delta', data);
-                    try {
-                      db.prepare(
-                        'INSERT INTO run_events (run_id, agent_id, type, payload_json, ts) VALUES (?, ?, ?, ?, ?)'
-                      ).run(runId, agent.id, 'message.delta', JSON.stringify(data), Date.now());
-                    } catch {}
-                  }
-                  writeEvent(
-                    `data: ${JSON.stringify({ choices: [{ delta: { content: delta } }] })}\n\n`
-                  );
-                },
-                onDone: () => {
-                  if (runId) {
-                    chatRunHub.append(runId, 'run.completed', {});
-                    chatRunHub.finish(runId);
-                    try {
-                      db.prepare(
-                        'INSERT INTO run_events (run_id, agent_id, type, payload_json, ts) VALUES (?, ?, ?, ?, ?)'
-                      ).run(runId, agent.id, 'run.completed', '{}', Date.now());
-                    } catch {}
-                  }
-                  reply.raw.write('data: [DONE]\n\n');
-                },
-                onError: (why) => {
-                  if (runId) {
-                    const data = { error: why };
-                    chatRunHub.append(runId, 'run.failed', data);
-                    chatRunHub.finish(runId);
-                    try {
-                      db.prepare(
-                        'INSERT INTO run_events (run_id, agent_id, type, payload_json, ts) VALUES (?, ?, ?, ?, ?)'
-                      ).run(runId, agent.id, 'run.failed', JSON.stringify(data), Date.now());
-                    } catch {}
-                  }
-                  writeEvent(
-                    `data: ${JSON.stringify({ error: 'run_failed', message: why })}\n\n`
-                  );
-                },
-              }
-            );
-          } catch (runErr) {
-            if (!runsApiStarted) {
-              // Fase 2b — fallback ke sessionChatStream bila runChatStream gagal di awal
-              await client.sessionChatStream(
-                sessionId,
-                input,
-                (chunk) => {
-                  writeEvent(
-                    `data: ${JSON.stringify({ choices: [{ delta: { content: chunk } }] })}\n\n`
-                  );
-                },
-                agent.model || undefined,
-                identityPrompt
-              );
-              reply.raw.write('data: [DONE]\n\n');
-            } else {
-              throw runErr;
-            }
-          }
+        if (isReattach) {
+          await attachToLiveRun(db, agent.id, requestedRun as string, reply, writeEvent, 0);
         } else {
-          // Jalur tanpa sesi memakai role 'system' yang asli — riwayat tidak
-          // tersentuh. Fase 1: identitas jadi pesan system pertama, instruksi
-          // cakupan skill menyusul sebagai system terpisah supaya keduanya
-          // tetap terbaca berurutan oleh model.
-          const statelessSystem = [
-            identityPrompt,
-            scopeDirective,
-          ].filter((part): part is string => Boolean(part && part.trim()));
-          await client.chatStream(
-            statelessSystem.length
-              ? [
-                  ...statelessSystem.map((content) => ({ role: 'system' as const, content })),
-                  ...messages,
-                ]
-              : messages,
-            (chunk) => {
-              writeEvent(chunk);
-            },
-            agent.model || undefined
-          );
+          // Fase 2c — antrian per agen: 1 run aktif, sisanya FIFO, maks 5 antrian
+          await agentChatQueue.enqueue(agent.id, async () => {
+            // Tahap 8: prefer the gateway session — history and memory persist there.
+            const sessionId = agent.session_id || (await client.createSession(`${agent.name}`));
+            if (sessionId) {
+              if (!agent.session_id) {
+                agentRepo.update(id, { session_id: sessionId });
+                // Tahap 9 — record the live session so "Sesi baru" can archive it later.
+                db.prepare(
+                  'INSERT OR IGNORE INTO agent_sessions (agent_id, session_id, created_at, archived_at) VALUES (?, ?, ?, NULL)'
+                ).run(id, sessionId, Date.now());
+              }
+
+              const input = applyScopeToContent(lastUser?.content || JSON.stringify(messages), scopeDirective);
+              let runId: string | null = null;
+              let runsApiStarted = false;
+
+              try {
+                await client.runChatStream(
+                  {
+                    input,
+                    sessionId,
+                    instructions: identityPrompt,
+                  },
+                  {
+                    onRunId: (assignedRunId) => {
+                      runId = assignedRunId;
+                      runsApiStarted = true;
+                      // Fase 2b — daftarkan ke hub agar sambung-ulang menemukan run ini
+                      chatRunHub.start(assignedRunId, agent.id);
+                      // Fase 2b — kirim run_id ke klien sebagai frame pertama
+                      writeEvent(`data: ${JSON.stringify({ run_id: assignedRunId })}\n\n`);
+                    },
+                    onDelta: (delta) => {
+                      if (runId) {
+                        const data = { delta };
+                        chatRunHub.append(runId, 'message.delta', data);
+                        try {
+                          db.prepare(
+                            'INSERT INTO run_events (run_id, agent_id, type, payload_json, ts) VALUES (?, ?, ?, ?, ?)'
+                          ).run(runId, agent.id, 'message.delta', JSON.stringify(data), Date.now());
+                        } catch {}
+                      }
+                      writeEvent(
+                        `data: ${JSON.stringify({ choices: [{ delta: { content: delta } }] })}\n\n`
+                      );
+                    },
+                    onDone: () => {
+                      if (runId) {
+                        chatRunHub.append(runId, 'run.completed', {});
+                        chatRunHub.finish(runId);
+                        try {
+                          db.prepare(
+                            'INSERT INTO run_events (run_id, agent_id, type, payload_json, ts) VALUES (?, ?, ?, ?, ?)'
+                          ).run(runId, agent.id, 'run.completed', '{}', Date.now());
+                        } catch {}
+                      }
+                      reply.raw.write('data: [DONE]\n\n');
+                    },
+                    onError: (why) => {
+                      if (runId) {
+                        const data = { error: why };
+                        chatRunHub.append(runId, 'run.failed', data);
+                        chatRunHub.finish(runId);
+                        try {
+                          db.prepare(
+                            'INSERT INTO run_events (run_id, agent_id, type, payload_json, ts) VALUES (?, ?, ?, ?, ?)'
+                          ).run(runId, agent.id, 'run.failed', JSON.stringify(data), Date.now());
+                        } catch {}
+                      }
+                      writeEvent(
+                        `data: ${JSON.stringify({ error: 'run_failed', message: why })}\n\n`
+                      );
+                    },
+                  }
+                );
+              } catch (runErr) {
+                if (!runsApiStarted) {
+                  // Fase 2b — fallback ke sessionChatStream bila runChatStream gagal di awal
+                  await client.sessionChatStream(
+                    sessionId,
+                    input,
+                    (chunk) => {
+                      writeEvent(
+                        `data: ${JSON.stringify({ choices: [{ delta: { content: chunk } }] })}\n\n`
+                      );
+                    },
+                    agent.model || undefined,
+                    identityPrompt
+                  );
+                  reply.raw.write('data: [DONE]\n\n');
+                } else {
+                  throw runErr;
+                }
+              }
+            } else {
+              // Jalur tanpa sesi memakai role 'system' yang asli — riwayat tidak
+              // tersentuh. Fase 1: identitas jadi pesan system pertama, instruksi
+              // cakupan skill menyusul sebagai system terpisah supaya keduanya
+              // tetap terbaca berurutan oleh model.
+              const statelessSystem = [
+                identityPrompt,
+                scopeDirective,
+              ].filter((part): part is string => Boolean(part && part.trim()));
+              await client.chatStream(
+                statelessSystem.length
+                  ? [
+                      ...statelessSystem.map((content) => ({ role: 'system' as const, content })),
+                      ...messages,
+                    ]
+                  : messages,
+                (chunk) => {
+                  writeEvent(chunk);
+                },
+                agent.model || undefined
+              );
+            }
+          });
         }
       } catch (err) {
-        // Surface a real error frame instead of a silently truncated stream
-        reply.raw.write(
-          `data: ${JSON.stringify({
-            error: 'gateway_error',
-            message: String((err as Error)?.message || err),
-          })}\n\n`
-        );
+        if (err instanceof QueueFullError) {
+          writeEvent(`data: ${JSON.stringify({ error: 'queue_full', message: err.message })}\n\n`);
+        } else {
+          // Surface a real error frame instead of a silently truncated stream
+          reply.raw.write(
+            `data: ${JSON.stringify({
+              error: 'gateway_error',
+              message: String((err as Error)?.message || err),
+            })}\n\n`
+          );
+        }
       } finally {
         // Fase 2a — detak WAJIB berhenti di sini: tanpa blok ini interval
         // tertinggal hidup dan menulis ke socket yang sudah ditutup.

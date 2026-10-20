@@ -294,3 +294,125 @@ describe('Fase 2b — POST /api/agents/:id/chat & Restart-Tolerant Reattach (E2E
   });
 });
 
+describe('Fase 2c — Antrian Chat per Agen (Route Level)', () => {
+  it('3 pesan beruntun ke POST /api/agents/:id/chat diproses berurutan (FIFO)', async () => {
+    const executedOrder: string[] = [];
+    const origRunChatStream = mockClient.runChatStream;
+
+    mockClient.runChatStream = async (params: any, handlers: any) => {
+      const input = params.input;
+      executedOrder.push(`start:${input}`);
+      await new Promise((r) => setTimeout(r, 20));
+      handlers.onRunId?.(`run_${input}`);
+      handlers.onDelta(`jawaban untuk ${input}`);
+      handlers.onDone();
+      executedOrder.push(`done:${input}`);
+    };
+
+    try {
+      const p1 = app.inject({
+        method: 'POST',
+        url: `/api/agents/${agentId}/chat`,
+        headers: { authorization: auth, 'content-type': 'application/json' },
+        payload: { messages: [{ role: 'user', content: 'pesan_1' }] },
+      });
+      const p2 = app.inject({
+        method: 'POST',
+        url: `/api/agents/${agentId}/chat`,
+        headers: { authorization: auth, 'content-type': 'application/json' },
+        payload: { messages: [{ role: 'user', content: 'pesan_2' }] },
+      });
+      const p3 = app.inject({
+        method: 'POST',
+        url: `/api/agents/${agentId}/chat`,
+        headers: { authorization: auth, 'content-type': 'application/json' },
+        payload: { messages: [{ role: 'user', content: 'pesan_3' }] },
+      });
+
+      const [r1, r2, r3] = await Promise.all([p1, p2, p3]);
+
+      expect(r1.statusCode).toBe(200);
+      expect(r2.statusCode).toBe(200);
+      expect(r3.statusCode).toBe(200);
+
+      expect(r1.payload).toContain('jawaban untuk pesan_1');
+      expect(r2.payload).toContain('jawaban untuk pesan_2');
+      expect(r3.payload).toContain('jawaban untuk pesan_3');
+
+      // Memastikan eksekusi benar-benar sekuensial FIFO: start 1 -> done 1 -> start 2 -> done 2 -> start 3 -> done 3
+      expect(executedOrder).toEqual([
+        'start:pesan_1',
+        'done:pesan_1',
+        'start:pesan_2',
+        'done:pesan_2',
+        'start:pesan_3',
+        'done:pesan_3',
+      ]);
+    } finally {
+      mockClient.runChatStream = origRunChatStream;
+    }
+  });
+
+  it('menolak HTTP 429 jika antrian pesan melebihi batas maksimal 5', async () => {
+    let releaseActive: () => void;
+    const blockActive = new Promise<void>((resolve) => {
+      releaseActive = resolve;
+    });
+
+    const origRunChatStream = mockClient.runChatStream;
+    mockClient.runChatStream = async (_params: any, handlers: any) => {
+      handlers.onRunId?.('run_blocking');
+      await blockActive;
+      handlers.onDelta('selesai');
+      handlers.onDone();
+    };
+
+    try {
+      // 1 aktif
+      const activeP = app.inject({
+        method: 'POST',
+        url: `/api/agents/${agentId}/chat`,
+        headers: { authorization: auth, 'content-type': 'application/json' },
+        payload: { messages: [{ role: 'user', content: 'blocking_run' }] },
+      });
+
+      // Tunggu hingga request pertama aktif
+      await new Promise((r) => setTimeout(r, 20));
+
+      // 5 menunggu di antrian
+      const pendingPs = [];
+      for (let i = 1; i <= 5; i++) {
+        pendingPs.push(
+          app.inject({
+            method: 'POST',
+            url: `/api/agents/${agentId}/chat`,
+            headers: { authorization: auth, 'content-type': 'application/json' },
+            payload: { messages: [{ role: 'user', content: `queue_${i}` }] },
+          })
+        );
+      }
+
+      // Tunggu hingga kelima-limanya masuk ke antrian
+      await new Promise((r) => setTimeout(r, 20));
+
+      // Request ke-7 (antrian ke-6) harus ditolak 429
+      const overflowRes = await app.inject({
+        method: 'POST',
+        url: `/api/agents/${agentId}/chat`,
+        headers: { authorization: auth, 'content-type': 'application/json' },
+        payload: { messages: [{ role: 'user', content: 'overflow' }] },
+      });
+
+      expect(overflowRes.statusCode).toBe(429);
+      expect(overflowRes.json().error).toBe('queue_full');
+
+      // Lepaskan blokir agar semua yang mengantri selesai
+      releaseActive!();
+      await activeP;
+      await Promise.all(pendingPs);
+    } finally {
+      mockClient.runChatStream = origRunChatStream;
+    }
+  });
+});
+
