@@ -1,4 +1,13 @@
-## 1. Current Phase: Tahap 19 (Chat Streaming & Timeout) — selesai
+## 1. Current Phase: Tahap 19 (Integrasi Hermes ↔ Mini App Fase 1-6) — selesai
+
+- **Status Integrasi Hermes ↔ Mini App (2026-10-20)**: Rilis Akbar 6 Fase Integrasi Selesai 100%:
+  1. **Fase 1 (Jembatan Identitas)**: Injeksi system prompt dinamis nama, peran, dan departemen agen sejak giliran chat pertama.
+  2. **Fase 2 (Reliabilitas Chat)**: Heartbeat SSE 10 detik anti-timeout Cloudflare, Runs API chat + reattach (`GET /api/agents/:id/runs/:runId/stream`), antrian chat FIFO 1 aktif per agen, idempotensi `client_message_id`, deteksi stall 45s retry model fallback, dan persistensi parsial SQLite (`010_agent_chat.sql`) dengan tombol "Lanjutkan".
+  3. **Fase 3 (Integrasi Profil)**: Generator `SOUL.md` 9 seksi, isolasi profil per agen di `~/.hermes/profiles/<profile>/`, auto-provisioning saat hiring kandidat, dan CLI `npm run provision:backfill`.
+  4. **Fase 4 (Task & Run Visibility)**: Materialisasi task chat otomatis saat memanggil tools (`012_tasks_visibility.sql`), filter pill di layar Tasks, dan modal timeline peristiwa run.
+  5. **Fase 5 (List Cron + FAV Messenger)**: Endpoint `GET /api/cron` jadwal cron WIB per agen, Floating Action Button (`MessengerFAB.tsx`), dan drawer modal quick-switcher obrolan agen (`AgentMessengerModal.tsx`).
+  6. **Fase 6 (Skill Auto-Install & Catalog Sync)**: 4 katalog skill kustom di repo (`skills/`), service `skill-sync.ts`, endpoint `GET /api/skills/sync/status` & `POST /api/skills/sync`, serta CLI runner `npm run skills:sync`.
+  **Verifikasi mandiri**: `vitest run` **989 test / 95 file hijau**, `tsc --build` exit 0, `gap-check` 8/8, production build bersih.
 
 - **Status Tahap 19 (2026-10-18)**: stabilitas streaming chat & perlindungan runaway task ditutup dan diuji:
   1. **Dua batas waktu terpisah klien gateway**: `HERMES_CHAT_TTFB_MS` (default 60s) untuk menunggu event/huruf pertama, dan `HERMES_CHAT_TIMEOUT_MS` (default 300s) untuk batas total satu giliran chat. Stream kosong (0 byte) diperlakukan sebagai galat provider, bukan sukses hampa.
