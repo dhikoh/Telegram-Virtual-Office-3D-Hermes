@@ -134,4 +134,35 @@ export const SCHEMA_SPEC: readonly TableSpec[] = [
     ],
     requiredPhase: 14,
   },
+  // Fase 2e — persistensi obrolan & status run (migrasi 010).
+  {
+    name: 'agent_runs',
+    columns: [
+      'id',
+      'agent_id',
+      'session_id',
+      'client_message_id',
+      'status',
+      'error_reason',
+      'model',
+      'started_at',
+      'finished_at',
+    ],
+    requiredPhase: 2,
+  },
+  {
+    name: 'agent_messages',
+    columns: [
+      'id',
+      'agent_id',
+      'run_id',
+      'client_message_id',
+      'role',
+      'content',
+      'status',
+      'created_at',
+      'updated_at',
+    ],
+    requiredPhase: 2,
+  },
 ] as const;

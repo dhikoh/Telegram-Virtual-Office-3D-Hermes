@@ -69,6 +69,8 @@ export const AgentSheetChat: React.FC<AgentSheetChatProps> = ({ agent }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [gatewayError, setGatewayError] = useState<string | null>(null);
+  // Fase 2e — status lanjutan bila balasan sebelumnya terpotong di tengah jalan.
+  const [canContinue, setCanContinue] = useState(false);
 
   /** Batas yang sama dengan server (MEDIA_UPLOAD_MAX_MB); dicek di klien dulu. */
   const MAX_IMAGE_MB = 8;
@@ -81,9 +83,10 @@ export const AgentSheetChat: React.FC<AgentSheetChatProps> = ({ agent }) => {
       setHistoryError(null);
       try {
         const res = await api.getChatHistory(agent.id, sessionId);
+        setCanContinue(Boolean(res.can_continue));
         setMessages(
           res.messages.map((m, i) => ({
-            id: `hist-${i}-${m.timestamp}`,
+            id: m.id || `hist-${i}-${m.timestamp}`,
             role: m.role,
             content: m.content,
             timestamp: m.timestamp,
@@ -114,6 +117,7 @@ export const AgentSheetChat: React.FC<AgentSheetChatProps> = ({ agent }) => {
     try {
       await api.resetAgentSession(agent.id);
       setMessages([]);
+      setCanContinue(false);
       setHistoryState('ready');
       setViewingSession(null);
       setSessionsPanel(false);
@@ -199,11 +203,13 @@ export const AgentSheetChat: React.FC<AgentSheetChatProps> = ({ agent }) => {
       },
       () => {
         setIsStreaming(false);
+        setCanContinue(false);
         if (assembled.trim()) recordSpeech(agent.id, assembled);
         tma.hapticNotification('success');
       },
       (err) => {
         setIsStreaming(false);
+        setCanContinue(assembled.trim().length > 0);
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantMsgId
@@ -477,6 +483,26 @@ export const AgentSheetChat: React.FC<AgentSheetChatProps> = ({ agent }) => {
         )}
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Fase 2e — Tombol Lanjutkan saat balasan sebelumnya terpotong */}
+      {canContinue && !isStreaming && (
+        <div
+          data-testid="chat-continue-banner"
+          className="mx-3 my-1.5 p-2 rounded-xl bg-office-warn/15 border border-office-warn/40 flex items-center justify-between gap-2"
+        >
+          <span className="text-[10px] text-office-text leading-tight">
+            Balasan sebelumnya terputus. Lanjutkan percakapan?
+          </span>
+          <button
+            type="button"
+            data-testid="continue-chat-button"
+            onClick={() => void handleSendMessage('Lanjutkan jawaban sebelumnya dari bagian terakhir yang terpotong.')}
+            className="px-2.5 py-1 rounded-lg bg-office-accent text-office-on-accent text-[10px] font-bold hover:brightness-110 shrink-0 shadow-nu-raised min-h-[32px]"
+          >
+            Lanjutkan
+          </button>
+        </div>
+      )}
 
       {/* Quick Prompts */}
       <div className="px-3 py-1 flex gap-1.5 overflow-x-auto no-scrollbar">

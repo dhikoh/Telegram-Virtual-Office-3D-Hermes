@@ -5,6 +5,7 @@ import { AgentSchema, isCharacterModelId, type Agent } from '@hermes-office/shar
 import { AgentRepository } from '../db/repositories/agents.js';
 import { AgentSkillRepository } from '../db/repositories/agent-skills.js';
 import { AuditRepository } from '../db/repositories/audit.js';
+import { AgentChatRepository } from '../db/repositories/agent-chat.js';
 import {
   invalidateGatewayCatalogCache,
   readGatewayCatalog,
@@ -413,6 +414,8 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
   const settingRepo = new SettingRepository(db);
   // Tahap 11 (bagian 2) — cakupan skill per agen (layer SOUL).
   const agentSkillRepo = new AgentSkillRepository(db);
+  // Fase 2e — persistensi pesan obrolan & run (tahan restart, mitigasi putus).
+  const agentChatRepo = new AgentChatRepository(db);
 
   fastify.get('/api/agents', async () => {
     const agents = agentRepo.getAll();
@@ -840,6 +843,23 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
         } else {
           // Fase 2c — antrian per agen: 1 run aktif, sisanya FIFO, maks 5 antrian
           await agentChatQueue.enqueue(agent.id, async () => {
+            // Fase 2e — catat pesan pengguna ke tabel agent_messages
+            const userContent = typeof lastUser?.content === 'string' ? lastUser.content : JSON.stringify(lastUser?.content || '');
+            if (userContent.trim()) {
+              try {
+                agentChatRepo.createMessage({
+                  agent_id: agent.id,
+                  client_message_id: clientMessageId,
+                  role: 'user',
+                  content: userContent,
+                  status: 'completed',
+                });
+              } catch {}
+            }
+
+            let asstMsgId: string | null = null;
+            let assembledContent = '';
+
             // Tahap 8: prefer the gateway session — history and memory persist there.
             const sessionId = agent.session_id || (await client.createSession(`${agent.name}`));
             if (sessionId) {
@@ -928,9 +948,39 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
                             );
                           } catch {}
                         }
+                        // Fase 2e — catat run ke agent_runs & buat record pesan assistant (status 'partial')
+                        try {
+                          agentChatRepo.createRun({
+                            id: assignedRunId,
+                            agent_id: agent.id,
+                            session_id: sessionId,
+                            client_message_id: clientMessageId,
+                            status: 'running',
+                            model: modelToUse,
+                          });
+                        } catch {}
+                        if (!asstMsgId) {
+                          try {
+                            const asstRec = agentChatRepo.createMessage({
+                              agent_id: agent.id,
+                              run_id: assignedRunId,
+                              client_message_id: clientMessageId,
+                              role: 'assistant',
+                              content: '',
+                              status: 'partial',
+                            });
+                            asstMsgId = asstRec.id;
+                          } catch {}
+                        }
                       },
                       onDelta: (delta) => {
                         stallDetector.recordActivity();
+                        assembledContent += delta;
+                        if (asstMsgId) {
+                          try {
+                            agentChatRepo.updateMessageContent(asstMsgId, assembledContent);
+                          } catch {}
+                        }
                         if (activeRunId) {
                           const data = { delta };
                           chatRunHub.append(activeRunId, 'message.delta', data);
@@ -953,6 +1003,12 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
                             db.prepare(
                               'INSERT INTO run_events (run_id, agent_id, type, payload_json, ts) VALUES (?, ?, ?, ?, ?)'
                             ).run(activeRunId, agent.id, 'run.completed', '{}', Date.now());
+                            agentChatRepo.updateRunStatus(activeRunId, 'completed', null, Date.now());
+                          } catch {}
+                        }
+                        if (asstMsgId) {
+                          try {
+                            agentChatRepo.updateMessageContent(asstMsgId, assembledContent, 'completed');
                           } catch {}
                         }
                         reply.raw.write('data: [DONE]\n\n');
@@ -967,6 +1023,13 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
                             db.prepare(
                               'INSERT INTO run_events (run_id, agent_id, type, payload_json, ts) VALUES (?, ?, ?, ?, ?)'
                             ).run(activeRunId, agent.id, 'run.failed', JSON.stringify(data), Date.now());
+                            agentChatRepo.updateRunStatus(activeRunId, 'failed', why, Date.now());
+                          } catch {}
+                        }
+                        if (asstMsgId) {
+                          try {
+                            // Fase 2e — biarkan status 'partial' agar isi parsial tersimpan dan tombol Lanjutkan aktif!
+                            agentChatRepo.updateMessageContent(asstMsgId, assembledContent, 'partial');
                           } catch {}
                         }
                         writeEvent(
@@ -989,11 +1052,29 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
                   }
 
                   if (!runsApiStarted) {
+                    if (!asstMsgId) {
+                      try {
+                        const asstRec = agentChatRepo.createMessage({
+                          agent_id: agent.id,
+                          client_message_id: clientMessageId,
+                          role: 'assistant',
+                          content: '',
+                          status: 'partial',
+                        });
+                        asstMsgId = asstRec.id;
+                      } catch {}
+                    }
                     // Fase 2b — fallback ke sessionChatStream bila runChatStream gagal di awal
                     await client.sessionChatStream(
                       sessionId,
                       input,
                       (chunk) => {
+                        assembledContent += chunk;
+                        if (asstMsgId) {
+                          try {
+                            agentChatRepo.updateMessageContent(asstMsgId, assembledContent);
+                          } catch {}
+                        }
                         writeEvent(
                           `data: ${JSON.stringify({ choices: [{ delta: { content: chunk } }] })}\n\n`
                         );
@@ -1001,6 +1082,11 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
                       modelToUse,
                       identityPrompt
                     );
+                    if (asstMsgId) {
+                      try {
+                        agentChatRepo.updateMessageContent(asstMsgId, assembledContent, 'completed');
+                      } catch {}
+                    }
                     reply.raw.write('data: [DONE]\n\n');
                   } else {
                     throw runErr;
@@ -1017,6 +1103,18 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
                 }
               }
             } else {
+              if (!asstMsgId) {
+                try {
+                  const asstRec = agentChatRepo.createMessage({
+                    agent_id: agent.id,
+                    client_message_id: clientMessageId,
+                    role: 'assistant',
+                    content: '',
+                    status: 'partial',
+                  });
+                  asstMsgId = asstRec.id;
+                } catch {}
+              }
               // Jalur tanpa sesi memakai role 'system' yang asli — riwayat tidak
               // tersentuh. Fase 1: identitas jadi pesan system pertama, instruksi
               // cakupan skill menyusul sebagai system terpisah supaya keduanya
@@ -1033,10 +1131,21 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
                     ]
                   : messages,
                 (chunk) => {
+                  assembledContent += chunk;
+                  if (asstMsgId) {
+                    try {
+                      agentChatRepo.updateMessageContent(asstMsgId, assembledContent);
+                    } catch {}
+                  }
                   writeEvent(chunk);
                 },
                 agent.model || undefined
               );
+              if (asstMsgId) {
+                try {
+                  agentChatRepo.updateMessageContent(asstMsgId, assembledContent, 'completed');
+                } catch {}
+              }
             }
           });
         }
@@ -1142,25 +1251,89 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
         }
         sessionId = requested;
       }
+      // Fase 2e — periksa apakah ada pesan parsial yang terputus untuk tombol Lanjutkan
+      const lastIncomplete = agentChatRepo.getLastIncompleteMessage(id);
+      const canContinue = Boolean(lastIncomplete && lastIncomplete.content.trim().length > 0);
+
       if (!sessionId) {
-        return { messages: [], session_id: null };
+        const local = agentChatRepo.getMessagesByAgent(id);
+        if (local.length === 0) {
+          return { messages: [], session_id: null, can_continue: false };
+        }
+        return {
+          session_id: null,
+          is_archived: false,
+          can_continue: canContinue,
+          incomplete_message_id: lastIncomplete?.id ?? null,
+          messages: local.map((m) => ({
+            id: m.id,
+            role: m.role,
+            content: stripSkillScope(m.content),
+            status: m.status,
+            timestamp: m.created_at,
+          })),
+        };
       }
       try {
         const client = getHermesClientForAgent(agent, db);
         const messages = await client.getSessionMessages(sessionId);
+        const mappedMessages: {
+          role: string;
+          content: string;
+          timestamp?: number;
+          status?: 'partial' | 'completed' | 'failed';
+        }[] = messages.map((m) => ({
+          role: m.role,
+          // Tahap 11 — garis cakupan skill yang ditambahkan aplikasi ikut
+          // terkirim ke gateway; saat riwayat dibaca, pesan milik pemilik
+          // dikembalikan persis seperti yang ia ketik.
+          content: stripSkillScope(m.content),
+          timestamp: m.timestamp,
+        }));
+
+        // Bila ada pesan parsial di DB lokal yang belum selesai dan belum tercatat di gateway,
+        // sertakan di akhir daftar agar user tetap melihat jawaban parsial dan tombol Lanjutkan.
+        if (lastIncomplete && lastIncomplete.content.trim().length > 0) {
+          const alreadyIncluded = mappedMessages.some(
+            (m) =>
+              m.role === 'assistant' &&
+              m.content.includes(lastIncomplete.content.trim().slice(0, 50))
+          );
+          if (!alreadyIncluded) {
+            mappedMessages.push({
+              role: 'assistant',
+              content: lastIncomplete.content,
+              timestamp: lastIncomplete.updated_at,
+              status: 'partial',
+            });
+          }
+        }
+
         return {
           session_id: sessionId,
           is_archived: Boolean(requested && requested !== agent.session_id),
-          messages: messages.map((m) => ({
-            role: m.role,
-            // Tahap 11 — garis cakupan skill yang ditambahkan aplikasi ikut
-            // terkirim ke gateway; saat riwayat dibaca, pesan milik pemilik
-            // dikembalikan persis seperti yang ia ketik.
-            content: stripSkillScope(m.content),
-            timestamp: m.timestamp,
-          })),
+          can_continue: canContinue,
+          incomplete_message_id: lastIncomplete?.id ?? null,
+          messages: mappedMessages,
         };
       } catch (err) {
+        // Fallback ke riwayat lokal jika gateway tidak dapat dihubungi (resilience)
+        const local = agentChatRepo.getMessagesByAgent(id);
+        if (local.length > 0) {
+          return {
+            session_id: sessionId,
+            is_archived: false,
+            can_continue: canContinue,
+            incomplete_message_id: lastIncomplete?.id ?? null,
+            messages: local.map((m) => ({
+              id: m.id,
+              role: m.role,
+              content: stripSkillScope(m.content),
+              status: m.status,
+              timestamp: m.created_at,
+            })),
+          };
+        }
         return reply
           .code(502)
           .send({ error: 'gateway_unreachable', message: `Riwayat chat gagal dimuat: ${err}` });

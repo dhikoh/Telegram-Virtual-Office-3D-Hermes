@@ -113,7 +113,15 @@ export const api = {
     request<{
       session_id: string | null;
       is_archived?: boolean;
-      messages: { role: 'user' | 'assistant'; content: string; timestamp: number }[];
+      can_continue?: boolean;
+      incomplete_message_id?: string | null;
+      messages: {
+        id?: string;
+        role: 'user' | 'assistant';
+        content: string;
+        status?: 'partial' | 'completed' | 'failed';
+        timestamp: number;
+      }[];
     }>(`/agents/${id}/chat${sessionId ? `?session=${encodeURIComponent(sessionId)}` : ''}`),
   /** Tahap 9 — akhiri sesi sekarang, mulai sesi baru; riwayat lama diarsipkan. */
   resetAgentSession: (id: string) =>
