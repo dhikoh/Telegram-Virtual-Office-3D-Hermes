@@ -35,8 +35,22 @@ export const taskRoutes: FastifyPluginAsync = async (fastify) => {
    *   { id, task_id, agent_id, filename, mime, size, created_at, download_url }
    * `download_url` = /api/artifacts/:id/download (butuh auth `tma …` yang sama).
    */
-  fastify.get('/api/tasks', async () => {
-    const tasks = taskRepo.getAll();
+  fastify.get<{
+    Querystring: { source?: string; agent_id?: string; status?: string };
+  }>('/api/tasks', async (request) => {
+    let tasks = taskRepo.getAll();
+    const { source, agent_id, status } = request.query || {};
+
+    if (source && source !== 'all') {
+      tasks = tasks.filter((t) => t.source === source);
+    }
+    if (agent_id) {
+      tasks = tasks.filter((t) => t.agent_id === agent_id);
+    }
+    if (status) {
+      tasks = tasks.filter((t) => t.status === status);
+    }
+
     const artifacts = listTaskArtifacts(db, tasks.map((t) => t.id));
     return tasks.map((task) => ({
       ...task,
@@ -133,5 +147,61 @@ export const taskRoutes: FastifyPluginAsync = async (fastify) => {
     const stopped = taskRepo.getById(id);
     if (stopped) broadcastTask(stopped);
     return { status: 'stopping' };
+  });
+
+  /**
+   * Fase 4: Riwayat timeline events untuk suatu task run (run_events).
+   * Menampilkan jejak eksekusi tool call, output streaming, hingga penyelesaian run.
+   */
+  fastify.get<{ Params: { id: string } }>('/api/tasks/:id/events', async (request, reply) => {
+    const { id } = request.params;
+    const task = taskRepo.getById(id);
+    if (!task) {
+      return reply.code(404).send({ error: 'not_found', message: 'Task not found' });
+    }
+
+    if (!task.run_id) {
+      return {
+        task_id: id,
+        run_id: null,
+        events: [],
+      };
+    }
+
+    interface RunEventRow {
+      id: number;
+      type: string;
+      payload_json: string;
+      ts: number;
+      agent_id: string;
+    }
+
+    const rows = db
+      .prepare(
+        'SELECT id, type, payload_json, ts, agent_id FROM run_events WHERE run_id = ? ORDER BY id ASC'
+      )
+      .all(task.run_id) as RunEventRow[];
+
+    const events = rows.map((r) => {
+      let payload: unknown = {};
+      try {
+        payload = JSON.parse(r.payload_json);
+      } catch {
+        payload = { raw: r.payload_json };
+      }
+      return {
+        id: r.id,
+        type: r.type,
+        payload,
+        timestamp: r.ts,
+        agent_id: r.agent_id,
+      };
+    });
+
+    return {
+      task_id: id,
+      run_id: task.run_id,
+      events,
+    };
   });
 };

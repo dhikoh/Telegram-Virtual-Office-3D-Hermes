@@ -176,6 +176,13 @@ export const ENDPOINTS: readonly EndpointDefinition[] = [
   },
   {
     method: 'GET',
+    path: '/api/tasks/:id/events',
+    phase: 2,
+    requiresAuth: true,
+    description: 'Retrieve recorded timeline run events for a specific task run (Fase 4)',
+  },
+  {
+    method: 'GET',
     path: '/api/approvals',
     phase: 2,
     requiresAuth: true,

@@ -81,3 +81,19 @@ export interface HermesCapabilities {
     reasoning_streaming?: boolean;
   };
 }
+
+/** Timeline event recorded during a task run execution (Fase 4). */
+export interface TaskTimelineEvent {
+  id: number;
+  type: string;
+  payload: unknown;
+  timestamp: number;
+  agent_id?: string;
+}
+
+/** API response for GET /api/tasks/:id/events (Fase 4). */
+export interface TaskEventsResponse {
+  task_id: string;
+  run_id: string | null;
+  events: TaskTimelineEvent[];
+}

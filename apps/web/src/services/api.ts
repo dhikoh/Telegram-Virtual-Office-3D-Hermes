@@ -7,6 +7,7 @@ import { tma } from './tma';
 import type {
   AgentPublic,
   Task,
+  TaskEventsResponse,
   Approval,
   Kpi,
   Report,
@@ -81,7 +82,15 @@ export const api = {
   createAgent: (body: unknown) => request<AgentPublic>('/agents', { method: 'POST', body: JSON.stringify(body) }),
   updateAgent: (id: string, body: unknown) =>
     request<AgentPublic>(`/agents/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
-  getTasks: () => request<Task[]>('/tasks'),
+  getTasks: (params?: { source?: string; agent_id?: string; status?: string }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.source && params.source !== 'all') searchParams.set('source', params.source);
+    if (params?.agent_id) searchParams.set('agent_id', params.agent_id);
+    if (params?.status) searchParams.set('status', params.status);
+    const query = searchParams.toString();
+    return request<Task[]>(`/tasks${query ? `?${query}` : ''}`);
+  },
+  getTaskEvents: (id: string) => request<TaskEventsResponse>(`/tasks/${id}/events`),
   createTask: (body: unknown) => request<Task>('/tasks', { method: 'POST', body: JSON.stringify(body) }),
   runTask: (id: string) => request<{ status: string; run_id: string }>(`/tasks/${id}/run`, { method: 'POST' }),
   stopTask: (id: string) => request<{ status: string }>(`/tasks/${id}/stop`, { method: 'POST' }),
