@@ -170,6 +170,13 @@ export const ENDPOINTS: readonly EndpointDefinition[] = [
     description: 'Update task properties, status, priority, or assigned agent',
   },
   {
+    method: 'DELETE',
+    path: '/api/tasks/:id',
+    phase: 20,
+    requiresAuth: true,
+    description: 'Delete a task (stops an active run first; 404 for unknown id)',
+  },
+  {
     method: 'POST',
     path: '/api/tasks/:id/run',
     phase: 2,

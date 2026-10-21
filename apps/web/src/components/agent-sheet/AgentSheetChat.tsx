@@ -550,6 +550,7 @@ export const AgentSheetChat: React.FC<AgentSheetChatProps> = ({ agent }) => {
         </button>
         <input
           type="text"
+          autoFocus
           value={inputMessage}
           onChange={(e) => setInputMessage(e.target.value)}
           onKeyDown={(e) => {

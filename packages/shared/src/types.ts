@@ -41,7 +41,7 @@ export interface OfficeApprovalUpdate {
 }
 
 export interface NormalizedOfficeEvent {
-  type: 'agent_status' | 'task_update' | 'approval_requested' | 'heartbeat';
+  type: 'agent_status' | 'task_update' | 'task_deleted' | 'approval_requested' | 'heartbeat';
   agent_id?: string;
   status?: AgentNormalizedStatus;
   current_tool?: string;

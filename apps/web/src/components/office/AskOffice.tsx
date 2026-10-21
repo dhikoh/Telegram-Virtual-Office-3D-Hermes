@@ -23,10 +23,18 @@ export const AskOffice: React.FC<AskOfficeProps> = ({ onClick }) => {
   };
 
   return (
+    /**
+     * Audit 2026-10-21 — jarak dasar FAB dan lapisannya.
+     * `bottom-20` dihitung dari tepi fisik layar, sedangkan BottomNav punya
+     * `pb-[max(env(safe-area-inset-bottom),8px)]`, sehingga di iPhone dengan
+     * home bar FAB tertutup sebagian. Posisi dasar kini di atas gutter
+     * safe-area, dan z-50 mengangkatnya di atas BottomNav.
+     */
     <button
       onClick={handleClick}
       type="button"
-      className={`fixed bottom-20 right-4 z-30 flex items-center gap-2 px-3.5 py-2.5 rounded-full bg-office-elevated text-office-accent-ink border border-office-accent/40 backdrop-blur-md shadow-nu-raised active:scale-95 transition-all min-h-[44px] ${
+      aria-label={t('office.askOffice')}
+      className={`fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-50 flex items-center gap-2 px-3.5 py-2.5 rounded-full bg-office-elevated text-office-accent-ink border border-office-accent/40 backdrop-blur-md shadow-nu-raised active:scale-95 transition-all min-h-[44px] ${
         isLowPower ? '' : 'hover:border-office-accent animate-pulse-ring'
       }`}
     >

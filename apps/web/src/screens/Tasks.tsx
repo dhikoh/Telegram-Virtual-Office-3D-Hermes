@@ -16,32 +16,86 @@ import {
   FileText,
   AlertTriangle,
   History,
+  Pencil,
+  Square,
+  Trash2,
 } from 'lucide-react';
 import type { Task, TaskStatus } from '@hermes-office/shared';
 import { useOfficeStore } from '../stores/office';
 import { api } from '../services/api';
 import { tma } from '../services/tma';
 import { CreateTaskModal } from '../components/tasks/CreateTaskModal';
+import { EditTaskModal } from '../components/tasks/EditTaskModal';
 import { TaskResultModal } from '../components/tasks/TaskResultModal';
 import { CronScheduleView } from '../components/tasks/CronScheduleView';
 
+/**
+ * Kolom papan. Audit 2026-10-21: 'cancelled' dan 'failed' sebelumnya TIDAK
+ * dirender, jadi setiap tugas yang baru dihentikan (atau gagal) lenyap dari
+ * papan tanpa bekas — terlihat seperti tugas yang hilang, bukan berhenti.
+ */
 const COLUMNS: { id: TaskStatus; label: string; color: string }[] = [
   { id: 'backlog', label: 'Backlog', color: 'border-office-border/40 text-office-muted' },
   { id: 'running', label: 'Running', color: 'border-office-accent/40 text-office-accent-ink' },
   { id: 'needs_approval', label: 'Needs Approval', color: 'border-office-warn/40 text-office-warn' },
   { id: 'done', label: 'Done', color: 'border-office-success/40 text-office-success' },
+  { id: 'failed', label: 'Failed', color: 'border-red-500/40 text-red-400' },
+  { id: 'cancelled', label: 'Cancelled', color: 'border-office-border/60 text-office-muted' },
 ];
 
 export const TasksScreen: React.FC = () => {
   const { t } = useTranslation();
-  const { tasks, agents, fetchInitialData } = useOfficeStore();
+  const { tasks, agents, fetchInitialData, stopTask, removeTask, updateTask } = useOfficeStore();
 
   const [screenMode, setScreenMode] = useState<'board' | 'cron'>('board');
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [viewingTask, setViewingTask] = useState<Task | null>(null);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [modalInitialTab, setModalInitialTab] = useState<'result' | 'events'>('result');
   const [runningTaskId, setRunningTaskId] = useState<string | null>(null);
+  const [stoppingTaskId, setStoppingTaskId] = useState<string | null>(null);
   const [sourceFilter, setSourceFilter] = useState<'all' | 'manual' | 'chat'>('all');
+
+  const handleDeleteTask = async (task: Task) => {
+    if (!window.confirm(t('tasks.deleteConfirm', { name: task.title }))) return;
+    tma.hapticNotification('warning');
+    try {
+      await removeTask(task.id);
+      tma.hapticNotification('success');
+    } catch (err: unknown) {
+      tma.hapticNotification('error');
+      useOfficeStore
+        .getState()
+        .addTickerMessage(err instanceof Error ? err.message : t('tasks.deleteFailed'), 'error');
+    }
+  };
+
+  /** Modal untuk memperbaiki judul/keterangan/prioritas/penerima tugas. */
+  const handleOpenEdit = (task: Task) => {
+    tma.hapticImpact('light');
+    setEditingTask(task);
+  };
+
+  /**
+   * Audit 2026-10-21 — Stop Task di papan.
+   * Sebelumnya papan tidak punya tombol ini sama sekali: penghentian hanya
+   * bisa dilakukan dari laci agen, dan bahkan di sana hasilnya ditelan `catch {}`.
+   */
+  const handleStopTask = async (task: Task) => {
+    if (stoppingTaskId) return;
+    setStoppingTaskId(task.id);
+    tma.hapticNotification('warning');
+    try {
+      await stopTask(task.id);
+    } catch (err: unknown) {
+      tma.hapticNotification('error');
+      useOfficeStore
+        .getState()
+        .addTickerMessage(err instanceof Error ? err.message : t('tasks.stopFailed'), 'error');
+            } finally {
+              setStoppingTaskId(null);
+    }
+  };
 
   const filteredTasks = tasks.filter((task) => {
     if (sourceFilter === 'manual') return task.source === 'manual' || !task.source;
@@ -378,6 +432,38 @@ export const TasksScreen: React.FC = () => {
                                     <span>{t('tasks.viewTimeline')}</span>
                                   </button>
                                 )}
+
+                                {/* Audit 2026-10-21 — Hentikan / Edit / Hapus */}
+                                {task.status === 'running' && (
+                                  <button
+                                    onClick={() => handleStopTask(task)}
+                                    type="button"
+                                    disabled={stoppingTaskId === task.id}
+                                    aria-label={`${t('tasks.stopTask')} ${task.title}`}
+                                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-400 border border-red-500/30 text-xs font-semibold min-h-[40px] disabled:opacity-60 active:scale-95 transition-transform"
+                                  >
+                                    <Square className="w-3.5 h-3.5" />
+                                    <span>{t('tasks.stopTask')}</span>
+                                  </button>
+                                )}
+
+                                <button
+                                  onClick={() => handleOpenEdit(task)}
+                                  type="button"
+                                  aria-label={`${t('tasks.editTask')} ${task.title}`}
+                                  className="p-2 rounded-lg bg-office-surface text-office-muted border border-office-border/40 hover:text-office-text active:scale-95 transition-transform min-h-[40px] min-w-[40px] flex items-center justify-center"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+
+                                <button
+                                  onClick={() => handleDeleteTask(task)}
+                                  type="button"
+                                  aria-label={`${t('tasks.deleteTask')} ${task.title}`}
+                                  className="p-2 rounded-lg bg-office-surface text-office-muted border border-office-border/40 hover:text-red-400 active:scale-95 transition-transform min-h-[40px] min-w-[40px] flex items-center justify-center"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
                               </div>
                             </div>
                           </div>
@@ -411,6 +497,15 @@ export const TasksScreen: React.FC = () => {
             tool_calls_count: 0,
           });
           await fetchInitialData();
+        }}
+      />
+
+      <EditTaskModal
+        task={editingTask}
+        agents={agents}
+        onClose={() => setEditingTask(null)}
+        onSave={async (id, body) => {
+          await updateTask(id, body);
         }}
       />
 

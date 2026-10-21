@@ -127,8 +127,23 @@ export const api = {
   getTaskEvents: (id: string) => request<TaskEventsResponse>(`/tasks/${id}/events`),
   getCronJobs: () => request<CronJob[]>('/cron'),
   createTask: (body: unknown) => request<Task>('/tasks', { method: 'POST', body: JSON.stringify(body) }),
+  patchTask: (id: string, body: unknown) =>
+    request<Task>(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(body), friendlyError: true }),
+  deleteTask: (id: string) =>
+    request<{ ok: boolean; id: string }>(`/tasks/${id}`, { method: 'DELETE', friendlyError: true }),
   runTask: (id: string) => request<{ status: string; run_id: string }>(`/tasks/${id}/run`, { method: 'POST' }),
-  stopTask: (id: string) => request<{ status: string }>(`/tasks/${id}/stop`, { method: 'POST' }),
+  /**
+   * Audit 2026-10-21 — server menjamin task selalu berakhir 'cancelled';
+   * `gateway_error` berisi galat hubungan bila run masih hidup di gateway
+   * (stopTask tidak lagi membalas 500 dan membiarkan task 'running').
+   */
+  stopTask: (id: string) =>
+    request<{
+      status: string | null;
+      reason: 'already_finished' | 'stopped' | 'no_run_id' | 'gateway_error';
+      stopped: boolean;
+      gateway_error: string | null;
+    }>(`/tasks/${id}/stop`, { method: 'POST' }),
   getAgentHealth: (id: string) =>
     request<{ status: string; capabilities?: unknown; model?: string | null }>(`/agents/${id}/health`),
   /**

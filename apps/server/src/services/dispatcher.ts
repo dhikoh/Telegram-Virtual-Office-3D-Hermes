@@ -22,6 +22,27 @@ const TERMINAL_RUN_EVENTS: ReadonlySet<string> = new Set([
   'run.cancelled',
 ]);
 
+/**
+ * Hasil `OfficeDispatcher.stopTask`.
+ *
+ * Kontrak: keadaan DB selalu konsisten dengan permintaan pengguna — kalau
+ * pengguna menekan Stop, task berakhir di status terminal, apa pun yang
+ * terjadi di gateway. `gateway_error` menyimpan kegagalan hubungan itu apa
+ * adanya (run mungkin sudah hilang, gateway mati, dsb) supaya lapisan di
+ * atas bisa memberi tahu pengguna, bukan diam-diam.
+ */
+export interface StopTaskResult {
+  /** false hanya bila task tidak ditemukan (rute sudah menangani 404 sebelumnya). */
+  ok: boolean;
+  reason: 'not_found' | 'already_finished' | 'stopped' | 'no_run_id' | 'gateway_error';
+  /** Status task SETELAH stop; null bila task tidak ditemukan. */
+  status: string | null;
+  /** true bila run di gateway benar-benar diminta berhenti tanpa galat. */
+  stopped: boolean;
+  /** Galat gateway (tanpa tumpukan), bila ada. */
+  gateway_error?: string | null;
+}
+
 export class OfficeDispatcher {
   private agentRepo: AgentRepository;
   private taskRepo: TaskRepository;
@@ -251,24 +272,75 @@ export class OfficeDispatcher {
     attemptConnect();
   }
 
-  public async stopTask(taskId: string): Promise<void> {
+  /**
+   * Hentikan run tugas milik `taskId`.
+   *
+   * Tiga jalan buntu lama sudah ditutup:
+   *  1. `run_id` kosong dulu bikin fungsi ini kembali diam — task tetap
+   *     'running' selamanya. Sekarang task tetap ditutup sebagai 'cancelled'.
+   *  2. Galat gateway (run sudah tidak ada, gateway mati) dulu merambat ke
+   *     rute sebagai 500 sehingga status tak pernah berubah. Sekarang galat
+   *     dicatat di `gateway_error`, stream tetap dibersihkan, dan task tetap
+   *     ditutup.
+   *  3. Task yang sudah tidak berjalan dulu ikut memanggil gateway. Sekarang
+   *     stop menjadi no-op sukses (idempoten) — menekan Stop dua kali aman.
+   */
+  public async stopTask(taskId: string): Promise<StopTaskResult> {
     const task = this.taskRepo.getById(taskId);
-    if (!task || !task.run_id) return;
-
-    const agent = this.agentRepo.getById(task.agent_id);
-    if (!agent) return;
-
-    const client = getHermesClientForAgent(agent, this.db);
-    await client.stopRun(task.run_id);
-
-    const cleanup = this.activeStreams.get(task.run_id);
-    if (cleanup) {
-      cleanup();
-      this.activeStreams.delete(task.run_id);
+    if (!task) {
+      return { ok: false, reason: 'not_found', status: null, stopped: false };
     }
 
+    const isStoppable =
+      task.status === 'running' || task.status === 'queued' || task.status === 'needs_approval';
+    if (!isStoppable) {
+      return { ok: true, reason: 'already_finished', status: task.status, stopped: false };
+    }
+
+    const agent = this.agentRepo.getById(task.agent_id);
+    let gateway_error: string | null = null;
+    let askedGateway = false;
+
+    if (task.run_id) {
+      if (agent) {
+        askedGateway = true;
+        try {
+          const client = getHermesClientForAgent(agent, this.db);
+          await client.stopRun(task.run_id);
+        } catch (err: unknown) {
+          gateway_error = err instanceof Error ? err.message : String(err);
+        }
+      } else {
+        gateway_error = `Agen ${task.agent_id} tidak ditemukan`;
+      }
+
+      const cleanup = this.activeStreams.get(task.run_id);
+      if (cleanup) {
+        cleanup();
+        this.activeStreams.delete(task.run_id);
+      }
+    }
+
+    // Tutup task SELALU: inilah yang membuat "Stop" betulan berhenti di sisi
+    // kantor, meski run di gateway sudah tidak terjangkau.
     this.updateTask(taskId, { status: 'cancelled' });
-    this.setAgentStatus(agent.id, 'idle');
+    if (agent) {
+      this.setAgentStatus(agent.id, 'idle');
+    }
+
+    const reason: StopTaskResult['reason'] = gateway_error
+      ? 'gateway_error'
+      : askedGateway
+        ? 'stopped'
+        : 'no_run_id';
+
+    return {
+      ok: true,
+      reason,
+      status: 'cancelled',
+      stopped: askedGateway && !gateway_error,
+      gateway_error,
+    };
   }
 
   public async resolveApproval(approvalId: string, decision: 'approve' | 'deny', userId: number): Promise<void> {

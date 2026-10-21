@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import type { OfficeAgent } from '../../stores/office';
 import { useOfficeStore } from '../../stores/office';
-import { api } from '../../services/api';
 import { tma } from '../../services/tma';
 import { AgentSheetChat } from './AgentSheetChat';
 import { AgentSheetProfile } from './AgentSheetProfile';
@@ -44,13 +43,21 @@ export const AgentSheet: React.FC<AgentSheetProps> = ({
   const runningTask = agentTasks.find((task) => task.status === 'running');
 
   // Stop running task
+  /**
+   * Audit 2026-10-21 — hasil stop tidak lagi ditelan `catch {}`.
+   * Server menutup task apa pun yang terjadi; galat hubungan diumumkan
+   * lewat ticker, dan status agen baru diubah bila stop benar-benar terjadi.
+   */
   const handleStopTask = async (taskId: string) => {
     tma.hapticNotification('warning');
     try {
-      await api.stopTask(taskId);
+      await useOfficeStore.getState().stopTask(taskId);
       setAgentStatus(agent.id, 'idle');
-    } catch {
-      // Ignore
+    } catch (err: unknown) {
+      tma.hapticNotification('error');
+      useOfficeStore
+        .getState()
+        .addTickerMessage(err instanceof Error ? err.message : 'Gagal menghentikan tugas.', 'error');
     }
   };
 

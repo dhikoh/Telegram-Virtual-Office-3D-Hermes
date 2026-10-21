@@ -238,4 +238,291 @@ describe('Task Visibility & Events Routes (Fase 4)', () => {
       expect(body.events[3].type).toBe('run.completed');
     });
   });
+
+  /**
+   * Audit 2026-10-21 — perbaikan Stop Task & CRUD.
+   * Sebelum perbaikan: stop pada task ber-run_id menghasilkan 500 dan DB
+   * tetap 'running'; stop tanpa run_id menghasilkan 200 'stopping' tanpa
+   * mengubah apa pun; DELETE 404; PATCH mentah menerima nama kolom injeksi.
+   */
+  describe('POST /api/tasks/:id/stop — selalu konsisten', () => {
+    const seedRunning = (id: string, runId: string | null) => {
+      const now = Date.now();
+      db.prepare(
+        `INSERT INTO tasks (id, title, description, agent_id, priority, status, run_id, result_md, due_at, created_by, created_at, updated_at, source, tool_calls_count)
+         VALUES (?, ?, '', 'agent_finance_01', 'normal', 'running', ?, NULL, NULL, 123456789, ?, ?, 'manual', 0)`
+      ).run(id, `Task ${id}`, runId, now, now);
+    };
+    const statusOf = (id: string) =>
+      (db.prepare('SELECT status FROM tasks WHERE id = ?').get(id) as { status: string }).status;
+
+    it('menutup task walau gateway tidak terjangkau, dan melaporkan galatnya', async () => {
+      seedRunning('task_stop_gw', 'run_mati_1');
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/tasks/task_stop_gw/stop',
+        headers: authHeader,
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body);
+      expect(body.status).toBe('cancelled');
+      expect(body.gateway_error).toBeTruthy();
+      expect(body.stopped).toBe(false);
+      expect(statusOf('task_stop_gw')).toBe('cancelled');
+    });
+
+    it('menutup task yang berjalan tanpa run_id', async () => {
+      seedRunning('task_stop_norun', null);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/tasks/task_stop_norun/stop',
+        headers: authHeader,
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body);
+      expect(body.status).toBe('cancelled');
+      expect(body.reason).toBe('no_run_id');
+      expect(statusOf('task_stop_norun')).toBe('cancelled');
+    });
+
+    it('idempoten: stop pada task yang sudah selesai tidak mengubah status', async () => {
+      const now = Date.now();
+      db.prepare(
+        `INSERT INTO tasks (id, title, description, agent_id, priority, status, run_id, result_md, due_at, created_by, created_at, updated_at, source, tool_calls_count)
+         VALUES ('task_stop_done', 'Selesai', '', 'agent_finance_01', 'normal', 'done', 'run_lama', NULL, NULL, 123456789, ?, ?, 'manual', 0)`
+      ).run(now, now);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/tasks/task_stop_done/stop',
+        headers: authHeader,
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(JSON.parse(res.body).reason).toBe('already_finished');
+      expect(statusOf('task_stop_done')).toBe('done');
+    });
+
+    it('404 untuk task yang tidak ada', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/tasks/task_tidak_ada/stop',
+        headers: authHeader,
+      });
+      expect(res.statusCode).toBe(404);
+    });
+  });
+
+  describe('DELETE /api/tasks/:id', () => {
+    const seed = (id: string, status: string, runId: string | null) => {
+      const now = Date.now();
+      db.prepare(
+        `INSERT INTO tasks (id, title, description, agent_id, priority, status, run_id, result_md, due_at, created_by, created_at, updated_at, source, tool_calls_count)
+         VALUES (?, ?, '', 'agent_finance_01', 'normal', ?, ?, NULL, NULL, 123456789, ?, ?, 'manual', 0)`
+      ).run(id, `Task ${id}`, status, runId, now, now);
+    };
+
+    it('menghapus task backlog dan mengembalikan 404 untuk permintaan kedua', async () => {
+      seed('task_del_1', 'backlog', null);
+
+      const first = await app.inject({
+        method: 'DELETE',
+        url: '/api/tasks/task_del_1',
+        headers: authHeader,
+      });
+      expect(first.statusCode).toBe(200);
+      expect(JSON.parse(first.body)).toEqual({ ok: true, id: 'task_del_1' });
+      expect(db.prepare('SELECT id FROM tasks WHERE id = ?').get('task_del_1')).toBeUndefined();
+
+      const second = await app.inject({
+        method: 'DELETE',
+        url: '/api/tasks/task_del_1',
+        headers: authHeader,
+      });
+      expect(second.statusCode).toBe(404);
+    });
+
+    it('menghentikan run lalu menghapus task yang sedang berjalan', async () => {
+      seed('task_del_2', 'running', 'run_del_2');
+
+      const res = await app.inject({
+        method: 'DELETE',
+        url: '/api/tasks/task_del_2',
+        headers: authHeader,
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(db.prepare('SELECT id FROM tasks WHERE id = ?').get('task_del_2')).toBeUndefined();
+    });
+  });
+
+  describe('PATCH /api/tasks/:id — validasi & anti injeksi', () => {
+    it('menolak nama kolom yang tidak dikenal (bukan lagi 500 maupun injeksi)', async () => {
+      const now = Date.now();
+      db.prepare(
+        `INSERT INTO tasks (id, title, description, agent_id, priority, status, run_id, result_md, due_at, created_by, created_at, updated_at, source, tool_calls_count)
+         VALUES ('task_patch_1', 'Judul asli', '', 'agent_finance_01', 'normal', 'backlog', NULL, NULL, NULL, 123456789, ?, ?, 'manual', 0)`
+      ).run(now, now);
+
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/tasks/task_patch_1',
+        headers: jsonHeaders,
+        body: JSON.stringify({ unknown_column_zzz: 1 }),
+      });
+      expect(res.statusCode).toBe(400);
+
+      // Uji injeksi: kunci yang menyuntik klausa SET harus ditolak mentah-mentah.
+      const inject = await app.inject({
+        method: 'PATCH',
+        url: '/api/tasks/task_patch_1',
+        headers: jsonHeaders,
+        body: JSON.stringify({ "status = 'cancelled', title": 'SUNTIK' }),
+      });
+      expect(inject.statusCode).toBe(400);
+
+      const row = db.prepare('SELECT title, status FROM tasks WHERE id = ?').get('task_patch_1');
+      expect(row).toEqual({ title: 'Judul asli', status: 'backlog' });
+    });
+
+    it('mengubah judul, prioritas, penerima, jadwal, dan status non-running', async () => {
+      const now = Date.now();
+      db.prepare(
+        `INSERT INTO tasks (id, title, description, agent_id, priority, status, run_id, result_md, due_at, created_by, created_at, updated_at, source, tool_calls_count)
+         VALUES ('task_patch_2', 'Lama', '', 'agent_finance_01', 'normal', 'backlog', NULL, NULL, NULL, 123456789, ?, ?, 'manual', 0)`
+      ).run(now, now);
+
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/tasks/task_patch_2',
+        headers: jsonHeaders,
+        body: JSON.stringify({
+          title: 'Baru',
+          description: 'Keterangan',
+          priority: 'high',
+          due_at: 1792583617700,
+          status: 'done',
+        }),
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(JSON.parse(res.body)).toMatchObject({
+        title: 'Baru',
+        description: 'Keterangan',
+        priority: 'high',
+        status: 'done',
+        due_at: 1792583617700,
+      });
+    });
+
+    it('menolak perpindahan ke running lewat PATCH (hanya /run yang boleh)', async () => {
+      const now = Date.now();
+      db.prepare(
+        `INSERT INTO tasks (id, title, description, agent_id, priority, status, run_id, result_md, due_at, created_by, created_at, updated_at, source, tool_calls_count)
+         VALUES ('task_patch_3', 'Tugas', '', 'agent_finance_01', 'normal', 'backlog', NULL, NULL, NULL, 123456789, ?, ?, 'manual', 0)`
+      ).run(now, now);
+
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/tasks/task_patch_3',
+        headers: jsonHeaders,
+        body: JSON.stringify({ status: 'running' }),
+      });
+
+      expect(res.statusCode).toBe(409);
+      expect(JSON.parse(res.body).error).toBe('invalid_transition');
+    });
+
+    it('menolak agent_id yang tidak ada dengan 400', async () => {
+      const now = Date.now();
+      db.prepare(
+        `INSERT INTO tasks (id, title, description, agent_id, priority, status, run_id, result_md, due_at, created_by, created_at, updated_at, source, tool_calls_count)
+         VALUES ('task_patch_4', 'Tugas', '', 'agent_finance_01', 'normal', 'backlog', NULL, NULL, NULL, 123456789, ?, ?, 'manual', 0)`
+      ).run(now, now);
+
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/tasks/task_patch_4',
+        headers: jsonHeaders,
+        body: JSON.stringify({ agent_id: 'agen_tidak_ada' }),
+      });
+
+      expect(res.statusCode).toBe(400);
+    });
+  });
+
+  describe('POST /api/tasks — bentuk masukan', () => {
+    it('menolak id ganda dengan 409, bukan 500', async () => {
+      const first = await app.inject({
+        method: 'POST',
+        url: '/api/tasks',
+        headers: jsonHeaders,
+        body: JSON.stringify({ id: 'task_id_ganda', title: 'Pertama', agent_id: 'agent_finance_01' }),
+      });
+      expect(first.statusCode).toBe(201);
+
+      const second = await app.inject({
+        method: 'POST',
+        url: '/api/tasks',
+        headers: jsonHeaders,
+        body: JSON.stringify({ id: 'task_id_ganda', title: 'Kedua', agent_id: 'agent_finance_01' }),
+      });
+      expect(second.statusCode).toBe(409);
+
+      const row = db.prepare('SELECT title FROM tasks WHERE id = ?').get('task_id_ganda');
+      expect(row).toEqual({ title: 'Pertama' });
+    });
+
+    it('menolak agent_id yang tidak ada dengan 400, bukan 500', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/tasks',
+        headers: jsonHeaders,
+        body: JSON.stringify({ title: 'Tanpa agen', agent_id: 'agen_tidak_ada' }),
+      });
+      expect(res.statusCode).toBe(400);
+    });
+  });
+
+  describe('GET /api/tasks — pembatas halaman', () => {
+    it('tanpa limit tetap mengembalikan seluruh baris; dengan limit mengembalikan objek halaman', async () => {
+      const allRes = await app.inject({ method: 'GET', url: '/api/tasks', headers: authHeader });
+      expect(allRes.statusCode).toBe(200);
+      expect(Array.isArray(JSON.parse(allRes.body))).toBe(true);
+
+      const pageRes = await app.inject({
+        method: 'GET',
+        url: '/api/tasks?limit=2&offset=0',
+        headers: authHeader,
+      });
+      expect(pageRes.statusCode).toBe(200);
+      const page = JSON.parse(pageRes.body);
+      expect(page.items.length).toBeLessThanOrEqual(2);
+      expect(page.total).toBeGreaterThan(page.items.length);
+      expect(page.offset).toBe(0);
+    });
+  });
+
+  describe('POST /api/tasks/:id/run — tanpa dua run bersamaan', () => {
+    it('menolak 409 ketika task masih berjalan', async () => {
+      const now = Date.now();
+      db.prepare(
+        `INSERT INTO tasks (id, title, description, agent_id, priority, status, run_id, result_md, due_at, created_by, created_at, updated_at, source, tool_calls_count)
+         VALUES ('task_running_ganda', 'Berjalan', '', 'agent_finance_01', 'normal', 'running', 'run_1', NULL, NULL, 123456789, ?, ?, 'manual', 0)`
+      ).run(now, now);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/tasks/task_running_ganda/run',
+        headers: authHeader,
+      });
+
+      expect(res.statusCode).toBe(409);
+      expect(JSON.parse(res.body).error).toBe('already_running');
+    });
+  });
 });

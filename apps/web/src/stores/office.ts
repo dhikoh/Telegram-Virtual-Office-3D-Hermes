@@ -60,6 +60,15 @@ interface OfficeState {
   setSelectedAgentId: (id: string | null) => void;
   setAgentStatus: (agentId: string, status: AgentNormalizedStatus, currentTool?: string) => void;
   addTickerMessage: (text: string, type?: TickerItem['type']) => void;
+  /**
+   * Audit 2026-10-21 — Stop Task: server selalu menutup task, tetapi galat
+   * hubungan (`gateway_error`) dilaporkan apa adanya, tidak disembunyikan.
+   */
+  stopTask: (id: string) => Promise<{ reason: string; gateway_error: string | null }>;
+  /** Hapus task dari server lalu buang dari papan. */
+  removeTask: (id: string) => Promise<void>;
+  /** Edit atribut task (judul, deskripsi, prioritas, penerima) lalu sinkron. */
+  updateTask: (id: string, body: Record<string, unknown>) => Promise<Task>;
   createKpi: (kpi: Omit<Kpi, 'created_at'>) => Promise<Kpi>;
   /** Tahap 8 — edit atribut agen (PATCH server, lalu sinkron ke state). */
   patchAgent: (id: string, body: Record<string, unknown>) => Promise<AgentPublic | null>;
@@ -222,6 +231,18 @@ export const useOfficeStore = create<OfficeState>((set, get) => ({
         }
       });
 
+      eventSource.addEventListener('task_deleted', (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          const task = payload.task;
+          if (!task?.id) return;
+          get().addTickerMessage(`Tugas "${task.title || task.id}" dihapus.`, 'info');
+          set((state) => ({ tasks: state.tasks.filter((t) => t.id !== task.id) }));
+        } catch {
+          // Ignore
+        }
+      });
+
       eventSource.onerror = () => {
         set({ streamStatus: 'error' });
       };
@@ -271,6 +292,41 @@ export const useOfficeStore = create<OfficeState>((set, get) => ({
       ),
     }));
     get().addTickerMessage(`${updated.name} diperbarui oleh pemilik.`, 'success');
+    return updated;
+  },
+
+  stopTask: async (id) => {
+    const result = await api.stopTask(id);
+    // Papan disinkronkan lewat SSE `task_update`; baris di bawah hanya agar
+    // tombol Stop hilang seketika tanpa menunggu putaran server.
+    set((state) => ({
+      tasks: state.tasks.map((t) =>
+        t.id === id ? { ...t, status: 'cancelled', updated_at: Date.now() } : t
+      ),
+    }));
+    get().addTickerMessage(
+      result.gateway_error
+        ? `Tugas dihentikan, tetapi gateway tidak terjangkau — run mungkin masih hidup di sana.`
+        : result.reason === 'already_finished'
+          ? 'Tugas sudah berhenti sebelumnya.'
+          : 'Tugas dihentikan.',
+      result.gateway_error ? 'error' : 'success'
+    );
+    return { reason: result.reason, gateway_error: result.gateway_error };
+  },
+
+  removeTask: async (id) => {
+    await api.deleteTask(id);
+    set((state) => ({ tasks: state.tasks.filter((t) => t.id !== id) }));
+    get().addTickerMessage('Tugas dihapus dari papan.', 'info');
+  },
+
+  updateTask: async (id, body) => {
+    const updated = await api.patchTask(id, body);
+    set((state) => ({
+      tasks: state.tasks.map((t) => (t.id === id ? { ...t, ...updated } : t)),
+    }));
+    get().addTickerMessage(`Tugas "${updated.title}" diperbarui.`, 'success');
     return updated;
   },
 

@@ -22,7 +22,7 @@ export const MessengerFAB: React.FC<MessengerFABProps> = ({ onClick }) => {
       onClick={handleClick}
       type="button"
       aria-label={t('messenger.title')}
-      className="fixed bottom-36 right-4 z-30 flex items-center gap-2 px-3 py-2.5 rounded-full bg-office-elevated text-cyan-300 border border-cyan-500/40 backdrop-blur-md shadow-nu-raised hover:border-cyan-400 active:scale-95 transition-all min-h-[44px]"
+      className="fixed bottom-[calc(9rem+env(safe-area-inset-bottom))] right-4 z-50 flex items-center gap-2 px-3 py-2.5 rounded-full bg-office-elevated text-cyan-300 border border-cyan-500/40 backdrop-blur-md shadow-nu-raised hover:border-cyan-400 active:scale-95 transition-all min-h-[44px]"
     >
       <div className="w-6 h-6 rounded-full bg-cyan-500/20 flex items-center justify-center relative">
         <MessageCircle className="w-3.5 h-3.5 text-cyan-300" />

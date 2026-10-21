@@ -4,6 +4,33 @@ import type { Task } from '@hermes-office/shared';
 export const coalesce = <T>(incoming: T | undefined, current: T | null): T | null =>
   incoming === undefined ? current : incoming;
 
+/**
+ * Kolom `tasks` yang boleh diubah lewat `update()`.
+ *
+ * Identitas (`id`, `created_by`, `created_at`) sengaja tidak ada: PATCH dari
+ * klien tidak boleh memutasi riwayat penciptaan task. Daftar ini juga yang
+ * membuat nama kolom dari input pengguna tidak pernah menyusun string SQL —
+ * kunci di luar daftar dibuang sebelum query disusun.
+ */
+export const UPDATABLE_TASK_COLUMNS = [
+  'title',
+  'description',
+  'agent_id',
+  'priority',
+  'status',
+  'run_id',
+  'result_md',
+  'due_at',
+  'project_id',
+  'depends_on',
+  'source',
+  'tool_calls_count',
+] as const;
+
+const UPDATABLE_TASK_COLUMN_SET: ReadonlySet<string> = new Set(UPDATABLE_TASK_COLUMNS);
+
+export const isUpdatableTaskColumn = (key: string): boolean => UPDATABLE_TASK_COLUMN_SET.has(key);
+
 export class TaskRepository {
   constructor(private db: Database.Database) {}
 
@@ -62,7 +89,10 @@ export class TaskRepository {
     const values: unknown[] = [];
 
     for (const [key, val] of Object.entries(updates)) {
-      if (key !== 'id' && val !== undefined) {
+      // Saringan lapis dua: `UPDATABLE_TASK_COLUMNS` menolak nama kolom yang
+      // tidak dikenal, dan nilai `?` dipasok terpisah sehingga nama kolom tidak
+      // pernah menyusun string SQL dari input pengguna (Rule S4: tanpa injeksi).
+      if (key !== 'id' && val !== undefined && isUpdatableTaskColumn(key)) {
         fields.push(`${key} = ?`);
         values.push(val);
       }
@@ -72,7 +102,11 @@ export class TaskRepository {
     fields.push('updated_at = ?');
     values.push(Date.now());
     values.push(id);
-
     this.db.prepare(`UPDATE tasks SET ${fields.join(', ')} WHERE id = ?`).run(...values);
+  }
+
+  public deleteById(id: string): boolean {
+    const info = this.db.prepare('DELETE FROM tasks WHERE id = ?').run(id);
+    return info.changes > 0;
   }
 }
