@@ -26,6 +26,7 @@ import {
   type RoomVariant,
 } from '@hermes-office/shared';
 import { GLTFurniture } from './GLTFurniture';
+import { GLTFFloor } from './GLTFFloor';
 
 interface FurnitureProps {
   onSelectRoom?: (nameKey: string) => void;
@@ -192,11 +193,8 @@ export const Furniture: React.FC<FurnitureProps> = ({ onSelectRoom }) => {
           <meshBasicMaterial color={roomVariant('lounge').floor.accent} wireframe />
         </mesh>
 
-        {/* Central Coffee Table */}
-        <mesh position={[0, 0.2, 0]} castShadow receiveShadow>
-          <cylinderGeometry args={[0.9, 0.9, 0.15, 16]} />
-          <meshStandardMaterial color="#CBD5E1" roughness={0.45} metalness={0.15} />
-        </mesh>
+        {/* Tahap 18 — CC0 Kenney Mini Market floor tiles */}
+        <GLTFFloor />
       </group>
 
       {/* Tahap 13 — CC0 GLB props (Kenney Furniture Kit) */}

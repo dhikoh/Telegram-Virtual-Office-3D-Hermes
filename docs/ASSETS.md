@@ -109,4 +109,33 @@ Source: Kenney **RPG Urban Pack 1.0**, CC0 1.0, <https://kenney.nl/assets/rpg-ur
 
 **Rendering** (`Map.tsx` → `<pattern>` 16 px, `imageRendering: 'pixelated'`): the flat street rectangles are still drawn **first**, so a missing PNG renders nothing and the previous flat street shows through; props are drawn before the vehicle fleet so a passing vehicle is never covered, and the strip geometry (y 354–414) is unchanged — the floor plan above is untouched. 14 tests in `apps/web/src/components/office/__tests__/street-tiles.test.ts`; Map chunk 42.99 KB gzip (budget ≤ 222 KB).
 
+---
+
+## 7. CC0 3D Vehicle Models (Kenney Car Kit — provenance, Rule R3)
+
+Source: Kenney **Car Kit 1.0**, CC0 1.0, <https://kenney.nl/assets/car-kit> — 3 models stored in `apps/web/public/assets/3d/vehicles/`. **Zero remote/CDN requests at runtime** (Rule 9.4).
+
+Each GLB embeds its own colormap texture as a self-contained base64 `data:image/png` URI, ensuring single-request fetch on the application's origin without network dependencies. Models are normalized at base `y = 0` with proportional scaling `0.75` matching the human character scale (~1.0 unit).
+
+| File | Size | Model | Role | Author | Licence |
+|---|---|---|---|---|---|
+| `vehicles/sedan.glb` | 188.5 KB | Sedan | Passenger traffic | Kenney | CC0 |
+| `vehicles/suv.glb` | 223.9 KB | SUV | Passenger traffic | Kenney | CC0 |
+| `vehicles/delivery.glb` | 256.5 KB | Delivery Van | Public / delivery transit | Kenney | CC0 |
+
+Licence + provenance committed next to the models: `vehicles/LICENSE-Kenney.txt`, `vehicles/PROVENANCE.md`.
+
+---
+
+## 8. CC0 3D Floor Tiles (Kenney Mini Market — provenance, Rule R3)
+
+Source: Kenney **Mini Market 1.0**, CC0 1.0, <https://kenney.nl/assets/mini-market> — modular floor tile stored in `apps/web/public/assets/3d/floor/`. **Zero remote/CDN requests at runtime** (Rule 9.4).
+
+| File | Size | Tile | Usage | Author | Licence |
+|---|---|---|---|---|---|
+| `floor/floor.glb` | 15.5 KB | Modular Floor Tile (1x1m) | Central Lounge flooring grid | Kenney | CC0 |
+
+Licence + provenance committed next to the models: `floor/LICENSE-Kenney.txt`, `floor/PROVENANCE.md`.
+
+
 

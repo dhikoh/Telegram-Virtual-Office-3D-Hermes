@@ -10,9 +10,9 @@
  * use (Tahap 5), so the view out of the window and the map never disagree.
  */
 
-import React, { useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import type { Mesh } from 'three';
+import type { Group, Mesh } from 'three';
 import {
   streetTraffic,
   STREET_SPAN,
@@ -21,6 +21,8 @@ import {
   type StreetVehicle,
 } from '@hermes-office/shared';
 import { usePowerStore } from '../../../stores/power';
+import { vehicleModelForKind } from './glbVehicles';
+import { loadVehicleScenes, type VehicleScenes } from './loadVehicleModels';
 
 /** Wall geometry: opening for the window is x -6.5..6.5, y 0.7..3.4. */
 export const WALL_Z = -11.9;
@@ -74,17 +76,33 @@ const Buildings: React.FC = () => {
   );
 };
 
+export const VEHICLE_SCALE = 0.75;
+
 const Street: React.FC = () => {
   const isLowPower = usePowerStore((s) => s.isLowPower);
   const { invalidate } = useThree();
-  const refs = useRef<Record<string, Mesh | null>>({});
+  const refs = useRef<Record<string, Group | Mesh | null>>({});
+  const [vehicleScenes, setVehicleScenes] = useState<VehicleScenes | null>(null);
+
+  useEffect(() => {
+    if (isLowPower) return undefined;
+    let alive = true;
+    loadVehicleScenes().then((loaded) => {
+      if (!alive) return;
+      setVehicleScenes(loaded);
+      invalidate();
+    });
+    return () => {
+      alive = false;
+    };
+  }, [isLowPower, invalidate]);
 
   useFrame((state) => {
     if (isLowPower) return;
     const vehicles = streetTraffic(state.clock.elapsedTime, false);
     for (const v of vehicles) {
-      const mesh = refs.current[v.id];
-      if (mesh) mesh.position.x = v.x;
+      const obj = refs.current[v.id];
+      if (obj) obj.position.x = v.x;
     }
     // frameloop is "demand": the street only keeps moving if we ask for frames.
     invalidate();
@@ -110,19 +128,43 @@ const Street: React.FC = () => {
         </mesh>
       ))}
 
-      {streetTraffic(0).map((v: StreetVehicle) => (
-        <mesh
-          key={v.id}
-          ref={(el) => {
-            refs.current[v.id] = el;
-          }}
-          castShadow
-          position={[v.x, 0.45, LANE_Z[v.lane]]}
-        >
-          <boxGeometry args={v.kind === 'bus' ? [3.2, 1.1, 1.1] : [1.6, 0.7, 0.95]} />
-          <meshStandardMaterial color={v.color} roughness={0.6} metalness={0} />
-        </mesh>
-      ))}
+      {streetTraffic(0).map((v: StreetVehicle) => {
+        const modelId = vehicleModelForKind(v.kind, v.id);
+        const sourceScene = vehicleScenes?.[modelId];
+        // Direction: speed > 0 moves right (+X) -> yaw = PI / 2. speed < 0 moves left (-X) -> yaw = -PI / 2.
+        const rotY = v.speed > 0 ? Math.PI / 2 : -Math.PI / 2;
+
+        if (sourceScene) {
+          return (
+            <group
+              key={v.id}
+              ref={(el) => {
+                refs.current[v.id] = el;
+              }}
+              position={[v.x, 0, LANE_Z[v.lane]]}
+              rotation={[0, rotY, 0]}
+              scale={VEHICLE_SCALE}
+            >
+              <primitive object={sourceScene.clone(true)} />
+            </group>
+          );
+        }
+
+        // Fallback procedural box only when GLB is not yet loaded or in ECO mode (zero overlapping)
+        return (
+          <mesh
+            key={v.id}
+            ref={(el) => {
+              refs.current[v.id] = el;
+            }}
+            castShadow
+            position={[v.x, 0.45, LANE_Z[v.lane]]}
+          >
+            <boxGeometry args={v.kind === 'bus' ? [3.2, 1.1, 1.1] : [1.6, 0.7, 0.95]} />
+            <meshStandardMaterial color={v.color} roughness={0.6} metalness={0} />
+          </mesh>
+        );
+      })}
     </group>
   );
 };

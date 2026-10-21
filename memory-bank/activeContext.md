@@ -6,7 +6,7 @@
 - **Kondisi Kesehatan Sistem:**
   * `npm run typecheck`: **PASS (100%)** — 0 errors di seluruh workspace monorepo.
   * `npm run gap-check`: **PASS (8/8 Checks)** — Phase 19 meets all 8 completeness criteria (C3a - C3h).
-  * `npm test`: Suite pengujian aktif dan stabil (**1005 tests passed across 95 test files**).
+  * `npm test`: Suite pengujian aktif dan stabil (**1143 tests passed across 109 test files**).
   * `npm run build`: Production bundle berhasil dibangun (`dist/` clean, index gzip 120.85 KB, 0 jsxDEV).
 - **Perbaikan Terbaru — Hotfix GET /api/cron (2026-10-20)**:
   * Memperbaiki bug 500 `cronExpr.trim is not a function` akibat payload gateway Hermes mengirimkan field `schedule` berupa objek (`{ kind: 'cron', expr: '0 1 * * *', display: '0 1 * * *' }`).
@@ -19,7 +19,14 @@
     2. Komponen `AvatarSymbolPicker.tsx` (`@hermes-office/shared` array `AVATAR_SYMBOLS`) dengan 18 simbol terkurasi di `Step2SpecForm.tsx` dan `AgentSheetProfile.tsx` untuk pemilihan avatar satu sentuhan tanpa ketik manual.
     3. Kontrol slider zoom dinamis + tombol `+` / `−` di `Office3D.tsx` terhubung ke `cameraState.ts` (`CAMERA_ZOOM_EVENT`) dan `CameraController.tsx` untuk mengatur FOV kamera (25 s/d 65) secara halus di mobile & desktop.
     4. Unit test `avatar-symbol-picker.test.tsx` (3 tests) & `camera-zoom.test.ts` (4 tests) passing.
-  * **Verifikasi Mandiri**: `tsc --build` lolos 100% (0 error), vitest passing, dan `gap-check` lolos 8/8 kriteria (Phase 20).
+  * **Sub-Task 2 (Selesai)**:
+    1. Mobil Kenney Car Kit (`sedan.glb`, `suv.glb`, `delivery.glb`) dengan embedded base64 data URI colormap atlas (Rule 9.4) menggantikan balok primitif di jalan raya (`Backdrop.tsx`) dengan rotasi arah jalur dinamis (`Math.PI / 2` untuk jalur 0 ke kanan, `-Math.PI / 2` untuk jalur 1 ke kiri) dan skala `0.75` yang proporsional terhadap karakter (~1.0 unit).
+    2. Lantai modular Kenney Mini Market (`floor.glb`) diintegrasikan di area Central Lounge (`GLTFFloor.tsx` dan `Furniture.tsx`).
+    3. Furniture Kenney Furniture Kit dimaksimalkan, dan silinder primitif meja kopi lama di Central Lounge dihapus agar tidak bertumpuk dengan `sideTable` Kenney (zero overlapping).
+    4. Sekat kaca akrilik transparan/neon antar ruangan tetap dipertahankan 100% utuh.
+    5. Dokumentasi CC0 dan provenance lengkap di `docs/ASSETS.md` (Seksi 7 & 8).
+    6. Unit tests di `vehicles-and-floor-3d.test.ts` (12 tests) passing. Total vitest 1143 passing.
+  * **Verifikasi Mandiri**: `tsc --build` lolos 100% (0 error), vitest passing (1143/1143), dan `gap-check` lolos 8/8 kriteria (Phase 20).
 - **Tahap 20 — Endpoint Mode & Auto-Detect Model (BERJALAN, ST-1 selesai 2026-10-20)**:
   * **ST-1 (selesai)**: normalisasi suffix `/v1` di seluruh jalur. Helper `stripApiSuffix()` di `services/hermes/detect.ts` dipakai di jalur tulis (`normalizeBaseUrl`), jalur baca (`resolveAgentBaseUrl` — membetulkan baris lama di SQLite tanpa migrasi), di dalam `probeModels`, dan di `config.ts` (`HERMES_BASE_URL` dinormalisasi sekali supaya health/hiring/skills/klien gateway ikut bersih). Akar masalah terbukti: `https://openrouter.ai/api/v1/v1/models` membalas 404, `/api/v1/models` membalas 200.
   * **Koreksi diri saat implementasi**: suffix `/api/v1` awalnya ikut di daftar sehingga `https://openrouter.ai/api` terpotong jadi `https://openrouter.ai` (kehilangan `/api`) — ditangkap oleh tes yang baru ditulis, lalu dihapus dari daftar.
