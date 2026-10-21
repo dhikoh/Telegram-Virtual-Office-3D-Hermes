@@ -109,26 +109,4 @@ Source: Kenney **RPG Urban Pack 1.0**, CC0 1.0, <https://kenney.nl/assets/rpg-ur
 
 **Rendering** (`Map.tsx` → `<pattern>` 16 px, `imageRendering: 'pixelated'`): the flat street rectangles are still drawn **first**, so a missing PNG renders nothing and the previous flat street shows through; props are drawn before the vehicle fleet so a passing vehicle is never covered, and the strip geometry (y 354–414) is unchanged — the floor plan above is untouched. 14 tests in `apps/web/src/components/office/__tests__/street-tiles.test.ts`; Map chunk 42.99 KB gzip (budget ≤ 222 KB).
 
----
-
-## 7. CC0 Modular Office Assets (KayKit: Prototype Bits 1.0 — provenance, Rule R3)
-
-Source: Kay Lousberg **KayKit: Prototype Bits 1.0**, CC0 1.0, <https://kaylousberg.itch.io/prototype-bits> — ten modular architecture and furniture GLBs in `apps/web/public/assets/3d/modular/`. **Zero remote/CDN requests at runtime** (Rule 9.4): static files on the app's own origin, referenced from `apps/web/src/components/office/office-3d/glbModular.ts`.
-
-Each GLB embeds the 29.6 KB gradient atlas texture as a self-contained base64 `data:image/png` URI, eliminating external sidecar files.
-
-| File | Bytes | Source Model | Role in Virtual Office |
-|---|---|---|---|
-| `modular/wall.glb` | 47,388 | `Wall.gltf` | Solid modular room wall |
-| `modular/wall_window.glb` | 53,268 | `Wall_Window_Closed.gltf` | Transparent glazed office window |
-| `modular/wall_doorway.glb` | 51,984 | `Wall_Doorway.gltf` | Entry portal / doorway |
-| `modular/wall_half.glb` | 46,552 | `Wall_Half.gltf` | Cubicle partition divider |
-| `modular/floor_tile.glb` | 42,272 | `Floor_Prototype.gltf` | Expandable modular grid floor |
-| `modular/pillar.glb` | 44,024 | `Pillar_A.gltf` | Corner structural column |
-| `modular/table_work.glb` | 49,368 | `table_medium.gltf` | Agent modular work desk |
-| `modular/table_meeting.glb` | 49,364 | `table_medium_long.gltf` | Central conference / meeting table |
-| `modular/door.glb` | 55,716 | `Door_A.gltf` | Office entrance door |
-| `modular/box_archive.glb` | 44,944 | `Box_A.gltf` | Storage / archive box |
-
-**Total: 10 files, ~480 KB.** Verified with `apps/web/src/components/office/__tests__/modular-office.test.ts`. Served as static files, lazily fetched only after the 3D scene mounts (Rule 9.2).
 

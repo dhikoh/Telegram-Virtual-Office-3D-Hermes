@@ -26,7 +26,6 @@ import {
   type RoomVariant,
 } from '@hermes-office/shared';
 import { GLTFurniture } from './GLTFurniture';
-import { GLTModularOffice } from './GLTModularOffice';
 
 interface FurnitureProps {
   onSelectRoom?: (nameKey: string) => void;
@@ -202,8 +201,6 @@ export const Furniture: React.FC<FurnitureProps> = ({ onSelectRoom }) => {
 
       {/* Tahap 13 — CC0 GLB props (Kenney Furniture Kit) */}
       <GLTFurniture />
-      {/* KayKit: Prototype Bits Modular Office Architecture & Furniture */}
-      <GLTModularOffice />
     </group>
   );
 };

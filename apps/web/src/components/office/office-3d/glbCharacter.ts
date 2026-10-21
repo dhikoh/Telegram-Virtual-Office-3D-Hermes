@@ -62,22 +62,22 @@ export const CHARACTER_MODEL_SOURCES: Record<CharacterModelId, string> = Object.
 ) as Record<CharacterModelId, string>;
 
 /**
- * Picker labels. Taken from the source file names only — nothing here claims
- * anything the assets do not say (`character-female-a` -> "Wanita A").
+ * Picker labels. Deskriptif berdasarkan bentuk fisik, potongan rambut,
+ * dan aksesori khas model 3D (misal: "Wanita Kuncir Kuda", "Pria Bertopi").
  */
 export const CHARACTER_MODEL_LABELS: Record<CharacterModelId, string> = {
-  'female-a': 'Wanita A',
-  'female-b': 'Wanita B',
-  'female-c': 'Wanita C',
-  'female-d': 'Wanita D',
-  'female-e': 'Wanita E',
-  'female-f': 'Wanita F',
-  'male-a': 'Pria A',
-  'male-b': 'Pria B',
-  'male-c': 'Pria C',
-  'male-d': 'Pria D',
-  'male-e': 'Pria E',
-  'male-f': 'Pria F',
+  'female-a': 'Wanita Kuncir Kuda',
+  'female-b': 'Wanita Bob Pendek',
+  'female-c': 'Wanita Sanggul Rapi',
+  'female-d': 'Wanita Berponi',
+  'female-e': 'Wanita Terurai',
+  'female-f': 'Wanita Kuncir Dua',
+  'male-a': 'Pria Sisir Samping',
+  'male-b': 'Pria Bertopi',
+  'male-c': 'Pria Jambul',
+  'male-d': 'Pria Ikal',
+  'male-e': 'Pria Cepak',
+  'male-f': 'Pria Kasual',
 };
 
 /* -------------------------------------------------------------- departments */

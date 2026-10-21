@@ -372,7 +372,7 @@ export const AgentSheetProfile: React.FC<AgentSheetProfileProps> = ({ agent }) =
                     {CHARACTER_MODEL_LABELS[id]}
                   </span>
                   <span className="text-[9px] text-office-muted font-medium truncate mt-0.5">
-                    {CHARACTER_ROLE_TAGS[id] || 'Spesialis'}
+                    {CHARACTER_ROLE_TAGS[id] ? `Default: ${CHARACTER_ROLE_TAGS[id]}` : 'Spesialis'}
                   </span>
                 </div>
 
