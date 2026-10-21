@@ -6,7 +6,7 @@
 - **Kondisi Kesehatan Sistem:**
   * `npm run typecheck`: **PASS (100%)** — 0 errors di seluruh workspace monorepo.
   * `npm run gap-check`: **PASS (8/8 Checks)** — Phase 19 meets all 8 completeness criteria (C3a - C3h).
-  * `npm test`: Suite pengujian aktif dan stabil (**1143 tests passed across 109 test files**).
+  * `npm test`: Suite pengujian aktif dan stabil (**1144 tests passed across 109 test files**).
   * `npm run build`: Production bundle berhasil dibangun (`dist/` clean, index gzip 120.85 KB, 0 jsxDEV).
 - **Perbaikan Terbaru — Hotfix GET /api/cron (2026-10-20)**:
   * Memperbaiki bug 500 `cronExpr.trim is not a function` akibat payload gateway Hermes mengirimkan field `schedule` berupa objek (`{ kind: 'cron', expr: '0 1 * * *', display: '0 1 * * *' }`).
@@ -25,8 +25,12 @@
     3. Furniture Kenney Furniture Kit dimaksimalkan, dan silinder primitif meja kopi lama di Central Lounge dihapus agar tidak bertumpuk dengan `sideTable` Kenney (zero overlapping).
     4. Sekat kaca akrilik transparan/neon antar ruangan tetap dipertahankan 100% utuh.
     5. Dokumentasi CC0 dan provenance lengkap di `docs/ASSETS.md` (Seksi 7 & 8).
-    6. Unit tests di `vehicles-and-floor-3d.test.ts` (12 tests) passing. Total vitest 1143 passing.
-  * **Verifikasi Mandiri**: `tsc --build` lolos 100% (0 error), vitest passing (1143/1143), dan `gap-check` lolos 8/8 kriteria (Phase 20).
+    6. Unit tests di `vehicles-and-floor-3d.test.ts` (12 tests) passing.
+  * **Sub-Task 3 (Selesai)**:
+    1. Garis kawat wireframe neon di sekeliling lantai ruangan departemen, approval gate, dan central lounge dihapus sepenuhnya (`wireframe` eliminasi 100% dari `Furniture.tsx`).
+    2. Digantikan dengan alas karpet ruangan eksekutif (*plush room carpet pad*) dengan lis tepi bordir (*soft textile rug border trim*) bermaterial matte (`MeshStandardMaterial`, roughness 0.95–0.96) yang hangat, bersih, dan menapak (*grounded*).
+    3. Unit test di `vehicles-and-floor-3d.test.ts` diperluas memvalidasi eliminasi total wireframe dan keberadaan karpet (13 tests passed).
+  * **Verifikasi Mandiri**: `tsc --build` lolos 100% (0 error), vitest passing (1144/1144), dan `gap-check` lolos 8/8 kriteria (Phase 20).
 - **Tahap 20 — Endpoint Mode & Auto-Detect Model (BERJALAN, ST-1 selesai 2026-10-20)**:
   * **ST-1 (selesai)**: normalisasi suffix `/v1` di seluruh jalur. Helper `stripApiSuffix()` di `services/hermes/detect.ts` dipakai di jalur tulis (`normalizeBaseUrl`), jalur baca (`resolveAgentBaseUrl` — membetulkan baris lama di SQLite tanpa migrasi), di dalam `probeModels`, dan di `config.ts` (`HERMES_BASE_URL` dinormalisasi sekali supaya health/hiring/skills/klien gateway ikut bersih). Akar masalah terbukti: `https://openrouter.ai/api/v1/v1/models` membalas 404, `/api/v1/models` membalas 200.
   * **Koreksi diri saat implementasi**: suffix `/api/v1` awalnya ikut di daftar sehingga `https://openrouter.ai/api` terpotong jadi `https://openrouter.ai` (kehilangan `/api`) — ditangkap oleh tes yang baru ditulis, lalu dihapus dari daftar.

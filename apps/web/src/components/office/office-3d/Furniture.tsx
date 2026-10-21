@@ -59,8 +59,13 @@ const RoomPad: React.FC<{
     <>
       {boxes.map((box, i) => (
         <group key={`pad-${i}`} position={[box.x, 0, box.z]}>
-          {/* Room Base Floor Pad — one box per footprint piece, so an L-shape
-              or a notch really is a cut slab and not a painted rectangle. */}
+          {/* Room Carpet Border Trim — soft textile rug trim (solid textile edge) */}
+          <mesh position={[0, PAD_TOP - 0.005, 0]} receiveShadow>
+            <boxGeometry args={[box.width + 0.08, 0.03, box.depth + 0.08]} />
+            <meshStandardMaterial color={variant.floor.accent} roughness={0.95} metalness={0} />
+          </mesh>
+
+          {/* Room Base Carpet Pad — plush executive carpet with dept color */}
           <mesh
             position={[0, PAD_TOP, 0]}
             castShadow
@@ -71,13 +76,7 @@ const RoomPad: React.FC<{
             }}
           >
             <boxGeometry args={[box.width, 0.04, box.depth]} />
-            <meshStandardMaterial color={variant.floor.base} roughness={0.9} metalness={0} />
-          </mesh>
-
-          {/* Room Perimeter Trim — the room's own ink, still a wireframe. */}
-          <mesh position={[0, PAD_TOP + 0.04, 0]}>
-            <boxGeometry args={[box.width + 0.1, 0.02, box.depth + 0.1]} />
-            <meshBasicMaterial color={variant.floor.accent} wireframe />
+            <meshStandardMaterial color={variant.floor.base} roughness={0.96} metalness={0} />
           </mesh>
         </group>
       ))}
@@ -157,6 +156,11 @@ export const Furniture: React.FC<FurnitureProps> = ({ onSelectRoom }) => {
 
       {/* Approval Gate Section */}
       <group position={APPROVAL_GATE.pos3d}>
+        {/* Warning Caution Border Trim — solid matte caution edge */}
+        <mesh position={[0, 0.02, 0]} receiveShadow>
+          <boxGeometry args={[3.28, 0.02, 1.68]} />
+          <meshStandardMaterial color="#FBBF24" roughness={0.9} metalness={0.05} />
+        </mesh>
         <mesh position={[0, 0.03, 0]} castShadow receiveShadow>
           <boxGeometry args={[3.2, 0.04, 1.6]} />
           <meshStandardMaterial
@@ -164,11 +168,6 @@ export const Furniture: React.FC<FurnitureProps> = ({ onSelectRoom }) => {
             roughness={0.95}
             metalness={0}
           />
-        </mesh>
-        {/* Warning Caution Border */}
-        <mesh position={[0, 0.06, 0]}>
-          <boxGeometry args={[3.3, 0.02, 1.7]} />
-          <meshBasicMaterial color="#FBBF24" wireframe />
         </mesh>
         {/* Gate Barrier Pillars */}
         <mesh position={[-1.4, 0.4, 0]} castShadow>
@@ -183,14 +182,19 @@ export const Furniture: React.FC<FurnitureProps> = ({ onSelectRoom }) => {
 
       {/* Central Lounge Area */}
       <group position={LOUNGE_AREA.pos3d}>
-        {/* Lounge Carpet Pad */}
-        <mesh position={[0, 0.015, 0]} receiveShadow>
-          <boxGeometry args={[4.8, 0.03, 7.5]} />
-          <meshStandardMaterial color={roomVariant('lounge').floor.base} roughness={0.95} metalness={0} />
+        {/* Lounge Carpet Border Trim — soft textile rug border */}
+        <mesh position={[0, 0.01, 0]} receiveShadow>
+          <boxGeometry args={[4.9, 0.02, 7.6]} />
+          <meshStandardMaterial
+            color={roomVariant('lounge').floor.accent}
+            roughness={0.96}
+            metalness={0}
+          />
         </mesh>
-        <mesh position={[0, 0.035, 0]}>
-          <boxGeometry args={[4.9, 0.01, 7.6]} />
-          <meshBasicMaterial color={roomVariant('lounge').floor.accent} wireframe />
+        {/* Lounge Carpet Pad */}
+        <mesh position={[0, 0.02, 0]} receiveShadow>
+          <boxGeometry args={[4.8, 0.02, 7.5]} />
+          <meshStandardMaterial color={roomVariant('lounge').floor.base} roughness={0.96} metalness={0} />
         </mesh>
 
         {/* Tahap 18 — CC0 Kenney Mini Market floor tiles */}

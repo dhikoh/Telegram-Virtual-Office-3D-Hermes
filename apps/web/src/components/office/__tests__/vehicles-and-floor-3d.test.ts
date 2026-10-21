@@ -103,6 +103,12 @@ describe('Kenney Mini Market Floor Asset', () => {
     // Ensure redundant cylinder table is not rendered inside Central Lounge
     expect(furniture).not.toContain('cylinderGeometry args={[0.9, 0.9, 0.15, 16]}');
   });
+
+  it('eliminates legacy neon wireframes in favour of soft executive carpet pads', () => {
+    expect(furniture).not.toContain('wireframe');
+    expect(furniture).toContain('Room Carpet Border Trim');
+    expect(furniture).toContain('Room Base Carpet Pad');
+  });
 });
 
 describe('docs/ASSETS.md provenance', () => {
