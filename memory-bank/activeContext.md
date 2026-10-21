@@ -13,10 +13,13 @@
   * Normalisasi aman melalui `readCronExpr` dan pengetatan `formatCronWIB` (return `null` alih-alih melempar error).
   * Validasi runtime boundary dengan `HermesJobGatewaySchema` (Zod `.passthrough()`) di `real.client.ts`.
   * Rute `/api/cron` tetap 200 untuk job dengan jadwal invalid dan mengembalikan 502 jika gateway gagal total.
-- **Penyempurnaan Visual & Karakter (2026-10-21)**:
-  * **Sub-Task 1 (Selesai)**: Peningkatan display pemilihan karakter 3D di `apps/web/src/components/agent-sheet/AgentSheetProfile.tsx`. Kartu visual preview lengkap dengan avatar silhouette berbasis gender, badge inisial huruf model (A s/d F), penanda departemen default (Command, Social, Marketing, Sales, Analytics, Finance, Support, HR, Spesialis), dan checkmark seleksi elegan dengan token tema `office-*`.
-  * **Sub-Task 2 (Selesai)**: Penyesuaian nama karakter menjadi nama deskriptif bentuk fisik/gaya di `glbCharacter.ts` (misal: "Wanita Kuncir Kuda", "Wanita Bob Pendek", "Pria Bertopi", "Pria Jambul", dsb.). Mengembalikan dinding dan lantai kantor ke arsitektur prosedural kaca/akrilik neon emissive (menghapus model greybox Prototype Bits agar estetika cyberpunk tetap elegan dan sightlines meja kerja tidak terhalang), dengan mempertahankan bidang pandang kamera yang lebih luas (`DEFAULT_FOV = 44`, `MAX_FOV = 65`) di `CameraController.tsx`.
-  * **Verifikasi Mandiri**: `tsc --build` lolos 100%, seluruh tes visual kantor hijau (`window-view`, `character-3d`, `tahap17-identity`, `theme-guard`), dan `gap-check` lolos 8/8 kriteria (Phase 20).
+- **Penyempurnaan Visual, Label & Kontrol Kamera (2026-10-21)**:
+  * **Sub-Task 1 (Selesai)**:
+    1. Pembersihan label karakter di `Agent3D.tsx`: nama model 3D tidak lagi muncul mengganggu di atas kepala karakter, digantikan fokus tunggal pada badge nama agen dan logo avatar.
+    2. Komponen `AvatarSymbolPicker.tsx` (`@hermes-office/shared` array `AVATAR_SYMBOLS`) dengan 18 simbol terkurasi di `Step2SpecForm.tsx` dan `AgentSheetProfile.tsx` untuk pemilihan avatar satu sentuhan tanpa ketik manual.
+    3. Kontrol slider zoom dinamis + tombol `+` / `−` di `Office3D.tsx` terhubung ke `cameraState.ts` (`CAMERA_ZOOM_EVENT`) dan `CameraController.tsx` untuk mengatur FOV kamera (25 s/d 65) secara halus di mobile & desktop.
+    4. Unit test `avatar-symbol-picker.test.tsx` (3 tests) & `camera-zoom.test.ts` (4 tests) passing.
+  * **Verifikasi Mandiri**: `tsc --build` lolos 100% (0 error), vitest passing, dan `gap-check` lolos 8/8 kriteria (Phase 20).
 - **Tahap 20 — Endpoint Mode & Auto-Detect Model (BERJALAN, ST-1 selesai 2026-10-20)**:
   * **ST-1 (selesai)**: normalisasi suffix `/v1` di seluruh jalur. Helper `stripApiSuffix()` di `services/hermes/detect.ts` dipakai di jalur tulis (`normalizeBaseUrl`), jalur baca (`resolveAgentBaseUrl` — membetulkan baris lama di SQLite tanpa migrasi), di dalam `probeModels`, dan di `config.ts` (`HERMES_BASE_URL` dinormalisasi sekali supaya health/hiring/skills/klien gateway ikut bersih). Akar masalah terbukti: `https://openrouter.ai/api/v1/v1/models` membalas 404, `/api/v1/models` membalas 200.
   * **Koreksi diri saat implementasi**: suffix `/api/v1` awalnya ikut di daftar sehingga `https://openrouter.ai/api` terpotong jadi `https://openrouter.ai` (kehilangan `/api`) — ditangkap oleh tes yang baru ditulis, lalu dihapus dari daftar.

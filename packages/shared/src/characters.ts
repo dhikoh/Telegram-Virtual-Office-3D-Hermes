@@ -30,3 +30,31 @@ export type CharacterModelId = (typeof CHARACTER_MODEL_IDS)[number];
 export function isCharacterModelId(value: unknown): value is CharacterModelId {
   return typeof value === 'string' && (CHARACTER_MODEL_IDS as readonly string[]).includes(value);
 }
+
+/**
+ * Pilihan simbol/emoji avatar agen yang terkurasi.
+ * Memudahkan CEO/pemilik memilih identitas tanpa harus mengetik emoji secara manual.
+ */
+export const AVATAR_SYMBOLS = [
+  '🤖',
+  '💼',
+  '📊',
+  '⚡',
+  '🎯',
+  '🚀',
+  '💡',
+  '🛡️',
+  '👑',
+  '🛠️',
+  '🎨',
+  '🔬',
+  '📈',
+  '💬',
+  '📱',
+  '🧭',
+  '🧩',
+  '🔮',
+] as const;
+
+export type AvatarSymbol = (typeof AVATAR_SYMBOLS)[number];
+

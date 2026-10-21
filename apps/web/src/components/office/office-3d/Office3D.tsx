@@ -11,9 +11,14 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Scene } from './Scene';
-import { Hand, RotateCcw } from 'lucide-react';
+import { Hand, RotateCcw, Plus, Minus } from 'lucide-react';
 import { useViewModeStore } from '../../../stores/view-mode';
-import { requestCameraReset, getCameraGestureMode, toggleCameraGestureMode } from './cameraState';
+import {
+  requestCameraReset,
+  requestCameraZoom,
+  getCameraGestureMode,
+  toggleCameraGestureMode,
+} from './cameraState';
 import type { OfficeAgent } from '../../../stores/office';
 
 interface Office3DProps {
@@ -41,6 +46,19 @@ export const Office3D: React.FC<Office3DProps> = ({
   // a finger has no modifier — audit 2026-10-14).
   const [gestureMode, setGestureMode] = useState(getCameraGestureMode());
   const nextGestureMode = () => setGestureMode(toggleCameraGestureMode());
+
+  // Zoom state (Poin 6): 0% = terjauh (FOV 65), 100% = terdekat (FOV 25), default 52% (~FOV 44)
+  const [zoomLevel, setZoomLevel] = useState(52);
+  const handleZoomChange = (nextLevel: number) => {
+    const clamped = Math.max(0, Math.min(100, nextLevel));
+    setZoomLevel(clamped);
+    const fov = 65 - (clamped / 100) * 40;
+    requestCameraZoom({ fov });
+  };
+  const handleResetCamera = () => {
+    setZoomLevel(52);
+    requestCameraReset();
+  };
 
   // Quality Tier detection (low vs medium) based on hardware capability (Rule REQ-114)
   const qualityTier = useMemo<'low' | 'medium'>(() => {
@@ -131,6 +149,44 @@ export const Office3D: React.FC<Office3DProps> = ({
         {gestureMode === 'pan' ? 'Seret: geser • 2 jari: zoom' : 'Seret: putar • 2 jari: geser & zoom'}
       </div>
 
+      {/* Dynamic Zoom Slider Control (Poin 6) */}
+      <div
+        className="absolute top-2 right-2 z-10 flex items-center gap-1.5 p-1 rounded-xl bg-office-surface/90 border border-office-border shadow-nu-raised backdrop-blur-md"
+        data-testid="camera-zoom-controls"
+      >
+        <button
+          type="button"
+          onClick={() => handleZoomChange(zoomLevel - 10)}
+          aria-label="Perkecil zoom (Zoom out)"
+          title="Zoom out (−)"
+          className="w-7 h-7 flex items-center justify-center rounded-lg bg-office-inset border border-office-border text-office-text hover:bg-office-accent hover:text-office-on-accent active:scale-95 transition-all text-xs"
+        >
+          <Minus size={13} aria-hidden="true" />
+        </button>
+
+        <input
+          type="range"
+          min="0"
+          max="100"
+          step="2"
+          value={zoomLevel}
+          onChange={(e) => handleZoomChange(Number(e.target.value))}
+          aria-label="Penggeser zoom dinamis"
+          title={`Zoom: ${zoomLevel}%`}
+          className="w-16 sm:w-20 h-1.5 bg-office-inset rounded-lg appearance-none cursor-pointer accent-office-accent"
+        />
+
+        <button
+          type="button"
+          onClick={() => handleZoomChange(zoomLevel + 10)}
+          aria-label="Perbesar zoom (Zoom in)"
+          title="Zoom in (+)"
+          className="w-7 h-7 flex items-center justify-center rounded-lg bg-office-inset border border-office-border text-office-text hover:bg-office-accent hover:text-office-on-accent active:scale-95 transition-all text-xs"
+        >
+          <Plus size={13} aria-hidden="true" />
+        </button>
+      </div>
+
       <div className="absolute bottom-2 right-2 flex gap-1.5">
         {/* One-finger gesture switch: rotate ⇄ pan (no modifier key on a phone) */}
         <button
@@ -149,7 +205,7 @@ export const Office3D: React.FC<Office3DProps> = ({
         {/* Reset the diorama to the framing it was cut for */}
         <button
           type="button"
-          onClick={requestCameraReset}
+          onClick={handleResetCamera}
           aria-label="Atur ulang tampilan 3D"
           title="Atur ulang tampilan 3D"
           className="w-11 h-11 flex items-center justify-center rounded-md bg-office-surface border border-office-border text-office-text/75 hover:bg-office-accent hover:text-office-on-accent active:scale-95 transition-colors"

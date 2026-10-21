@@ -347,10 +347,11 @@ export const Agent3D: React.FC<Agent3DProps> = ({
               {agent.name}
             </span>
           </div>
-          {showLabel && characterLabel && (
+          {/* Nama karakter 3D tidak dimunculkan visual di atas karakter (digantikan fokus nama agen) */}
+          {characterLabel && (
             <span
               data-testid="agent3d-character"
-              className="mt-0.5 text-[9px] font-mono text-office-muted leading-none"
+              className="sr-only"
             >
               {characterLabel}
             </span>

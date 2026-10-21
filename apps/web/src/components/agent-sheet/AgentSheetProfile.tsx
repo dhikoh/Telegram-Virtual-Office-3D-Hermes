@@ -11,6 +11,7 @@ import {
   CHARACTER_MODEL_URLS,
   characterModelFor,
 } from '../office/office-3d/glbCharacter';
+import { AvatarSymbolPicker } from '../common/AvatarSymbolPicker';
 
 /** Tahap 9 — pilihan warna baju avatar (Rule 9.4: palet lokal, nol aset eksternal). */
 const SHIRT_SWATCHES = [
@@ -57,6 +58,7 @@ export const AgentSheetProfile: React.FC<AgentSheetProfileProps> = ({ agent }) =
   const [probeMessage, setProbeMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
   // Tahap 17 — avatar editor: warna baju + karakter 3D (identitas tunggal).
+  const [symbol, setSymbol] = useState(agent.avatar || '🤖');
   const [shirt, setShirt] = useState(agent.avatar_style?.shirt ?? '');
   const [character, setCharacter] = useState(
     agent.avatar_style?.character ?? characterModelFor(agent.department, null) ?? CHARACTER_MODEL_IDS[0]
@@ -72,6 +74,9 @@ export const AgentSheetProfile: React.FC<AgentSheetProfileProps> = ({ agent }) =
     setAvatarSaving(true);
     setAvatarMsg(null);
     try {
+      if (symbol && symbol !== agent.avatar) {
+        await api.updateAgent(agent.id, { avatar: symbol });
+      }
       // `character` is always sent: it IS the agent's identity, and the server
       // validates it against CHARACTER_MODEL_IDS before it reaches SQL.
       const style = { ...(shirt ? { shirt } : {}), character };
@@ -300,7 +305,10 @@ export const AgentSheetProfile: React.FC<AgentSheetProfileProps> = ({ agent }) =
             AGEN SISTEM — permanen, tidak bisa dihapus
           </span>
         )}
-        <span className="text-[11px] text-office-muted">Warna baju (kosongkan = warna ruangan)</span>
+        <span className="text-[11px] text-office-muted">Simbol Avatar (logo identitas agen)</span>
+        <AvatarSymbolPicker value={symbol} onChange={setSymbol} />
+
+        <span className="text-[11px] text-office-muted pt-1">Warna baju (kosongkan = warna ruangan)</span>
         <div className="flex flex-wrap items-center gap-1.5">
           {SHIRT_SWATCHES.map((color) => (
             <button

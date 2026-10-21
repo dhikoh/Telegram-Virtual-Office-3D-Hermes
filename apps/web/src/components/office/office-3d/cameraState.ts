@@ -54,7 +54,22 @@ export function requestCameraReset(): void {
   }
 }
 
+/** Office3D dispatches this from its dynamic zoom slider & +/- buttons. */
+export const CAMERA_ZOOM_EVENT = 'hermes-office-camera-zoom';
+
+export interface CameraZoomDetail {
+  fov?: number;
+  delta?: number;
+}
+
+export function requestCameraZoom(detail: CameraZoomDetail): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent<CameraZoomDetail>(CAMERA_ZOOM_EVENT, { detail }));
+  }
+}
+
 /** Call from an agent's onClick: a camera drag must never select an agent. */
 export function isCameraDrag(): boolean {
   return cameraDrag.down && cameraDrag.moved;
 }
+

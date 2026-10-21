@@ -9,6 +9,7 @@ import { ArrowLeft, ArrowRight, ShieldAlert, Check } from 'lucide-react';
 import { tma } from '../../services/tma';
 import { api } from '../../services/api';
 import { SpecListEditor } from './SpecListEditor';
+import { AvatarSymbolPicker } from '../common/AvatarSymbolPicker';
 
 interface Step2SpecFormProps {
   initialSpec: AgentHiringSpec;
@@ -106,6 +107,12 @@ export const Step2SpecForm: React.FC<Step2SpecFormProps> = ({
             className="w-full px-3 py-2 rounded-xl bg-office-inset border border-office-border text-xs text-office-text focus:outline-none focus:border-office-accent min-h-[44px]"
           />
         </div>
+      </div>
+
+      {/* Pilihan Simbol Avatar Cepat */}
+      <div>
+        <label className="text-[11px] text-office-muted block mb-1.5">Pilih Simbol Avatar Cepat</label>
+        <AvatarSymbolPicker value={avatar} onChange={setAvatar} />
       </div>
 
       <div className="grid grid-cols-2 gap-2">

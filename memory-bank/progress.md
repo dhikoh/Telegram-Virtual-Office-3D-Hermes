@@ -6,7 +6,7 @@
 - **Status Typecheck:** ✅ Lolos (TypeScript 5.7) — 0 Error
 - **Status Test Suite:** ✅ 1007 tests passed across 95 test files
 - **Penyempurnaan Terkini (2026-10-21):**
-  * [x] **Sub-Task 1 (Selesai)**: Peningkatan display pemilihan karakter 3D di `AgentSheetProfile.tsx` (kartu avatar portrait visual, gender badge, departemen role tag, token `office-*` compliant).
+  * [x] **Sub-Task 1 (Selesai)**: Pembersihan label nama karakter 3D dari atas kepala agen di `Agent3D.tsx`, komponen `AvatarSymbolPicker.tsx` dengan 18 simbol terkurasi di `Step2SpecForm.tsx` & `AgentSheetProfile.tsx`, dan penambahan penggeser zoom kamera dinamis beserta tombol `+` / `−` di `Office3D.tsx` terhubung ke `CameraController.tsx`.
   * [x] **Sub-Task 2 (Selesai)**: Penyesuaian nama karakter 3D menjadi nama deskriptif bentuk fisik/gaya di `glbCharacter.ts` (misal: "Wanita Kuncir Kuda", "Pria Bertopi", dsb.). Dinding dan lantai kantor dikembalikan ke arsitektur prosedural kaca/akrilik neon emissive (menghapus model greybox Prototype Bits agar estetika cyberpunk tetap elegan dan sightlines meja kerja tidak terhalang), dengan mempertahankan bidang pandang kamera yang lebih luas (`DEFAULT_FOV = 44`, `MAX_FOV = 65`) di `CameraController.tsx`.
 - **Hotfix Terkini:** ✅ Hotfix GET /api/cron (Payload gateway schedule object handled gracefully, formatCronWIB safe, Zod boundary validation)
 

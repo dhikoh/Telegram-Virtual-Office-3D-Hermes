@@ -16,7 +16,13 @@
 import React, { useEffect, useRef } from 'react';
 import { useThree } from '@react-three/fiber';
 import { Vector3, PerspectiveCamera } from 'three';
-import { cameraDrag, CAMERA_RESET_EVENT, getCameraGestureMode } from './cameraState';
+import {
+  cameraDrag,
+  CAMERA_RESET_EVENT,
+  CAMERA_ZOOM_EVENT,
+  type CameraZoomDetail,
+  getCameraGestureMode,
+} from './cameraState';
 import { getRoomFocusTarget } from '@hermes-office/shared';
 import { useRoomFocusStore } from '../../../stores/room-focus';
 
@@ -88,8 +94,23 @@ export const CameraController: React.FC = () => {
       }
       apply();
     };
+    const onZoom = (e: Event) => {
+      const custom = e as CustomEvent<CameraZoomDetail>;
+      if (!(camera instanceof PerspectiveCamera)) return;
+      if (typeof custom.detail?.fov === 'number') {
+        camera.fov = Math.max(MIN_FOV, Math.min(MAX_FOV, custom.detail.fov));
+      } else if (typeof custom.detail?.delta === 'number') {
+        camera.fov = Math.max(MIN_FOV, Math.min(MAX_FOV, camera.fov + custom.detail.delta));
+      }
+      camera.updateProjectionMatrix();
+      apply();
+    };
     window.addEventListener(CAMERA_RESET_EVENT, onReset);
-    return () => window.removeEventListener(CAMERA_RESET_EVENT, onReset);
+    window.addEventListener(CAMERA_ZOOM_EVENT, onZoom);
+    return () => {
+      window.removeEventListener(CAMERA_RESET_EVENT, onReset);
+      window.removeEventListener(CAMERA_ZOOM_EVENT, onZoom);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [camera, invalidate]);
 
