@@ -208,7 +208,7 @@ describe('Modular Gap-Check Suite (Rule C3 & FR3 Fixture Verification)', () => {
       expect(readCurrentPhase('Current Phase: Tahap 18')).toBe(18);
       expect(readCurrentPhase('Current Phase: Phase 9')).toBe(9);
       expect(readCurrentPhase('Current Phase: Stage 4')).toBe(4);
-      expect(readCurrentPhase(rootDir)).toBe(19);
+      expect(readCurrentPhase(rootDir)).toBe(20);
     });
   });
 });

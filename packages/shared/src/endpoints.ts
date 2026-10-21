@@ -12,6 +12,8 @@ export interface EndpointDefinition {
 }
 
 export const ENDPOINTS: readonly EndpointDefinition[] = [
+  { method: 'GET', path: '/api/agents/:id/model-priority', phase: 20, requiresAuth: true, description: 'Read ordered per-agent primary and fallback models' },
+  { method: 'PATCH', path: '/api/agents/:id/model-priority', phase: 20, requiresAuth: true, description: 'Atomically save 1–5 ordered models and primary in settings' },
   {
     method: 'GET',
     path: '/api/health',
@@ -53,6 +55,13 @@ export const ENDPOINTS: readonly EndpointDefinition[] = [
     phase: 7,
     requiresAuth: true,
     description: 'Probe a gateway endpoint with a stored key and auto-detect the models it serves',
+  },
+  {
+    method: 'GET',
+    path: '/api/agents/:id/models',
+    phase: 20,
+    requiresAuth: true,
+    description: 'Read-only list of models served by the agent endpoint (server default or custom draft), sorted A-Z',
   },
   {
     method: 'GET',

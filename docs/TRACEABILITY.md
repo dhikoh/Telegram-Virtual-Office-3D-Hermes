@@ -128,12 +128,19 @@
 | **REQ-117** | Phase 9 Resiliency: WebGL unavailable or context loss automatically falls back to 2D with dismissible alert | 9 | apps/web/src/stores/view-mode.ts, apps/web/src/screens/Office.tsx | VERIFIED | webglcontextlost listener and detectWebGL() fallback to 2D with dismissible banner; unit test verified |
 | **REQ-118** | Phase 9 Chunk budget: 3D chunk <= 700 KB gzip; verified in build output | 9 | apps/web/dist | VERIFIED | A-1 verified: Office3D chunk is 217.00 KB gzip (well within <= 700 KB budget); automated check enforced in gap-check C3e (scripts/gap-check/c3e-hygiene.ts) |
 | **REQ-119** | Phase 9 Acceptance: Unit tests for getAgentPlacement, gap-check verification, and docs/3D_PHONE_TEST.md owner test script | 9 | docs/3D_PHONE_TEST.md | BLOCKED | BLOCKED (needs owner) — owner smartphone testing script created in docs/3D_PHONE_TEST.md |
+| **REQ-120** | Tahap 20 / ST-1: Base URL agent, fallback server, probe dan config menyaring sufiks `/v1` & `/api/v1` sehingga tidak pernah membentuk `/v1/v1/models` | 20 | apps/server/src/services/hermes/base-url.test.ts, detect.ts, config.ts | VERIFIED | `stripApiSuffix()` dipanggil di 4 pembentuk URL; 5 tes regresi di `base-url.test.ts` + `detect.test.ts` membuktikan `https://openrouter.ai/api/v1` tidak pernah menjadi `/v1/v1/models` |
+| **REQ-121** | Tahap 20 / ST-2: Endpoint read-only `GET /api/agents/:id/models` terdaftar di shared endpoints dan tidak pernah membocorkan URL internal, nama variabel kunci, atau isi kunci | 20 | apps/server/src/routes/agents.test.ts, packages/shared/src/endpoints.ts | VERIFIED | Tes rute membuktikan daftar model terbaca per agen, 401 gateway diteruskan apa adanya, dan respons bebas `hermes_base_url`/`api_key_env` (Rule S4) |
+| **REQ-122** | Tahap 20 / ST-3: `api.listAgentModels(id, baseUrlDraft?)` di klien web menangani respons non-JSON (502 teks polos) tanpa menutupi `listError` | 20 | apps/web/src/services/api.ts, apps/web/src/services/__tests__/tahap20-models.test.ts | VERIFIED | 5 tes `tahap20-models.test.ts` hijau: respons terstruktur, respons bukan JSON, dan draft URL ikut terkirim |
+| **REQ-123** | Tahap 20 / ST-4: Toggle endpoint `Ikuti Server` / `Custom` mengirim `hermes_base_url: ''` eksplisit dan label membaca `endpoint_configured` dari server | 20 | apps/web/src/components/agent-sheet/AgentSheetProfile.tsx, apps/web/src/services/__tests__/tahap20-endpoint-api.test.ts | VERIFIED | `tahap20-endpoint.test.tsx` + `tahap20-endpoint-api.test.ts` hijau; server membalas status sumber yang sama dan `resetAgentEndpoint` mengosongkan override |
+| **REQ-124** | Tahap 20 / ST-5: Panel daftar model auto-detect urut A-Z dengan filter, model aktif di baris pertama, cap render 60, tanpa kolom ketik nama model | 20 | apps/web/src/components/agent-sheet/AgentSheetProfile.tsx | VERIFIED | `tahap20-modellist.test.tsx` membuktikan urutan abjad, dedupe, penanda model aktif, pesan jumlah tersembunyi, dan nol elemen `input` untuk mengetik nama |
+| **REQ-125** | Tahap 20 / ST-6: Prioritas model berurutan per agen (maks 5) disimpan tanpa migrasi baru, divalidasi ulang di jalur baca, dan tiap langkah fallback dicatat ke audit | 20 | packages/shared/src/model-priority.ts, apps/server/src/services/agent-chat/model-priority.ts | VERIFIED | `routes/model-priority.test.ts` (17 tes) menutup CRUD + normalisasi data rusak + panjang lemah; kunci `settings` `agent_model_priority:<id>`, nol migrasi |
+| **REQ-126** | Tahap 20 / ST-6: Rantai fallback kirim model berikutnya hanya pada penolakan eksplisit, berhenti pada run terbuka/stream parsial/timeout, dan gagal jujur ketika habis | 20 | apps/server/src/services/agent-chat/priority-client.ts | VERIFIED | `priority-client.test.ts` (15 tes) & `routes/model-priority-chat.test.ts` (13 tes): 401/400/500 tak mengulang, `ModelPriorityExhaustedError` sampai ke rute, `agent_runs.model` berisi model yang benar-benar dipakai |
 
 ---
 
 ### Ledger Summary Counts (Post-Audit Remediation)
-- **Total Requirements**: 119
-- **VERIFIED**: 118 (100% of automatable requirements)
+- **Total Requirements**: 126
+- **VERIFIED**: 125 (100% of automatable requirements)
 - **BLOCKED (needs owner)**: 1 (REQ-119: physical smartphone manual testing)
 - **IMPLEMENTED-UNTESTED**: 0
 - **TODO**: 0

@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import type BetterSqlite3 from 'better-sqlite3';
 import { z } from 'zod';
-import { AgentSchema, isCharacterModelId, type Agent } from '@hermes-office/shared';
+import { AgentSchema, isCharacterModelId, ModelPriorityPatchSchema, MAX_MODEL_PRIORITY, type Agent } from '@hermes-office/shared';
 import { AgentRepository } from '../db/repositories/agents.js';
 import { AgentSkillRepository } from '../db/repositories/agent-skills.js';
 import { AuditRepository } from '../db/repositories/audit.js';
@@ -24,6 +24,8 @@ import { chatRunHub } from '../services/agent-chat/run-hub.js';
 import { chatIdempotencyHub } from '../services/agent-chat/idempotency.js';
 import { StallDetector } from '../services/agent-chat/stall-detector.js';
 import { resolveFallbackModel } from '../services/agent-chat/fallback-model.js';
+import { readModelPriority, priorityKey } from '../services/agent-chat/model-priority.js';
+import { ModelPriorityExhaustedError } from '../services/agent-chat/priority-client.js';
 import { agentChatQueue, QueueFullError } from '../services/agent-chat/queue.js';
 import type { RecordedRunEvent } from '../services/agent-chat/types.js';
 import { runEventToChatFrame } from '../services/agent-chat/run-events.js';
@@ -34,10 +36,10 @@ import {
   getHermesClientForAgent,
   hasCustomEndpoint,
   isLoopbackUrl,
+  resolveAgentApiKey,
   resolveAgentBaseUrl,
 } from '../services/hermes/index.js';
-import { normalizeBaseUrl, probeModels } from '../services/hermes/detect.js';
-import { config } from '../config.js';
+import { normalizeBaseUrl, probeModels, sortModels } from '../services/hermes/detect.js';
 
 /**
  * Avatar style stored as JSON on the agent row, parsed for the client.
@@ -60,6 +62,19 @@ function parseAvatarStyle(
     return null;
   }
 }
+
+/**
+ * Tahap 20 — satu kamus pesan untuk semua kegagalan probe gateway, dipakai
+ * POST /connection dan GET /models supaya owner tidak melihat dua versi
+ * penjelasan untuk masalah yang sama.
+ */
+const GATEWAY_ERROR_HINT: Record<string, string> = {
+  unauthorized: 'Kunci API ditolak gateway (401).',
+  connection_refused: 'Tidak ada gateway yang menjawab di alamat itu.',
+  dns: 'Alamat gateway tidak dapat ditemukan.',
+  unreachable: 'Alamat gateway tidak dapat dijangkau dari server.',
+  timeout: 'Gateway tidak menjawab tepat waktu.',
+};
 
 /** F-08: Strip server-only fields from agent before sending to client */
 function toPublic(
@@ -412,7 +427,18 @@ function writeSseEvent(writeEvent: (s: string) => void, event: RecordedRunEvent)
   }
 }
 
-export const agentRoutes: FastifyPluginAsync = async (fastify) => {
+export interface AgentRoutesOptions {
+  /**
+   * Tahap 20 — implementasi probe daftar model. Produksi memakai `probeModels`
+   * sungguhan; test memasang implementasi sendiri lewat `buildServer` supaya
+   * suite tidak pernah membuat panggilan jaringan nyata (pola yang sama dengan
+   * `chatHeartbeatMs` / `chatStallMs`).
+   */
+  probeModelsImpl?: typeof probeModels;
+}
+
+export const agentRoutes: FastifyPluginAsync<AgentRoutesOptions> = async (fastify, opts) => {
+  const probeModelsImpl = opts.probeModelsImpl ?? probeModels;
   // F-09: Typed decorations — no cast needed with types/fastify.d.ts augmentation
   const { db, dispatcher } = fastify;
   const agentRepo = new AgentRepository(db);
@@ -466,6 +492,26 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
 
     // F-08: Return public shape — no hermes URLs in response
     return reply.code(201).send(toPublic(agent));
+  });
+
+  fastify.get<{ Params: { id: string } }>('/api/agents/:id/model-priority', async (request, reply) => {
+    const agent = agentRepo.getById(request.params.id);
+    if (!agent) return reply.code(404).send({ error: 'not_found', message: 'Agent not found' });
+    return { models: readModelPriority(db, agent.id, agent.model), current_model: agent.model ?? null, max_models: MAX_MODEL_PRIORITY };
+  });
+
+  fastify.patch<{ Params: { id: string } }>('/api/agents/:id/model-priority', async (request, reply) => {
+    const { id } = request.params;
+    if (!agentRepo.getById(id)) return reply.code(404).send({ error: 'not_found', message: 'Agent not found' });
+    const parsed = ModelPriorityPatchSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ error: 'invalid_input', message: 'Pilih 1–5 model unik dan tidak kosong.' });
+    const models = parsed.data.models;
+    db.transaction(() => {
+      agentRepo.update(id, { model: models[0] });
+      settingRepo.set(priorityKey(id), JSON.stringify(models));
+      auditRepo.logAction(request.user!.id, 'agent.model_priority_updated', id, JSON.stringify({ models }));
+    })();
+    return { models, current_model: models[0], max_models: MAX_MODEL_PRIORITY };
   });
 
   fastify.patch<{ Params: { id: string } }>('/api/agents/:id', async (request, reply) => {
@@ -524,7 +570,16 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
 
-    agentRepo.update(id, updates);
+    db.transaction(() => {
+      agentRepo.update(id, updates);
+      if ('model' in updates) {
+        if (typeof updates.model === 'string') {
+          settingRepo.set(priorityKey(id), JSON.stringify(readModelPriority(db, id, updates.model)));
+        } else {
+          settingRepo.delete(priorityKey(id));
+        }
+      }
+    })();
     auditRepo.logAction(
       request.user!.id,
       'agent.update',
@@ -638,6 +693,77 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   /**
+   * Tahap 20 — daftar model READ-ONLY.
+   *
+   * Berbeda dari POST /connection yang MENYIMPAN endpoint dan model, rute ini
+   * tidak pernah menulis apa pun ke database. Dipakai panel Profil untuk
+   * menampilkan pilihan model terurut A-Z pada mode "Ikuti Server" maupun
+   * "Custom", termasuk saat base URL masih berupa draft yang belum disimpan
+   * (lewat query `?base_url=`).
+   */
+  fastify.get<{ Params: { id: string }; Querystring: { base_url?: string } }>(
+    '/api/agents/:id/models',
+    async (request, reply) => {
+      const { id } = request.params;
+      const agent = agentRepo.getById(id);
+      if (!agent) {
+        return reply.code(404).send({ error: 'not_found', message: 'Agent not found' });
+      }
+
+      const raw = typeof request.query.base_url === 'string' ? request.query.base_url.trim() : '';
+      const draft = raw ? normalizeBaseUrl(raw) : null;
+      if (raw && !draft) {
+        return reply.code(400).send({ error: 'invalid_input', message: 'Base URL tidak valid' });
+      }
+      if (draft && isLoopbackUrl(draft)) {
+        // S5: sama dengan /connection — loopback menunjuk ke kontainer itu sendiri.
+        return reply.code(400).send({
+          error: 'invalid_input',
+          message:
+            'Alamat loopback (127.0.0.1/localhost) ditolak — gunakan alamat host VPS atau kosongkan untuk mengikuti server.',
+        });
+      }
+
+      // Kunci dipakai dari urutan resolusi yang sama dengan jalur chat:
+      // per-agent (settings agent_key:<id>) -> env -> default server.
+      const baseUrl = draft || resolveAgentBaseUrl(agent);
+      const probe = await probeModelsImpl(baseUrl, resolveAgentApiKey(agent, db));
+
+      auditRepo.logAction(
+        request.user!.id,
+        'agent.models_listed',
+        id,
+        JSON.stringify({ error: probe.error, status_code: probe.status_code, draft: Boolean(draft) })
+      );
+
+      const endpointSource = hasCustomEndpoint(agent) ? 'agent' : 'server';
+
+      if (!probe.ok) {
+        // `models: []` disertakan agar klien tidak perlu menebak: kegagalan
+        // probe dibedakan tegas dari "gateway menjawab tapi tidak menyebut model".
+        return reply.code(502).send({
+          error: probe.error || 'unreachable',
+          message:
+            GATEWAY_ERROR_HINT[probe.error || ''] || `Gagal membaca daftar model (${probe.error}).`,
+          models: [],
+          current_model: agent.model ?? null,
+          endpoint_source: endpointSource,
+          base_url_used: baseUrl,
+        });
+      }
+
+      return {
+        models: sortModels(probe.models),
+        current_model: agent.model ?? null,
+        endpoint_source: endpointSource,
+        base_url_used: baseUrl,
+        status_code: probe.status_code,
+        latency_ms: probe.latency_ms,
+      };
+    }
+  );
+
+  /**
    * Tahap 7 — auto-detect: the owner pastes a base URL + API key, we probe the
    * gateway for the models it serves, store the key server-side and adopt the
    * first advertised model when the agent has none yet.
@@ -670,11 +796,14 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
 
       const keyStored = storeAgentKey(settingRepo, id, body.api_key);
       const baseUrl = explicitUrl || resolveAgentBaseUrl(agent);
-      const apiKey = keyStored
-        ? String(body.api_key).trim()
-        : process.env[agent.api_key_env] || config.HERMES_KEY_DEFAULT;
+      // Tahap 20 — kalau body tidak membawa kunci baru, probe memakai kunci yang
+      // SUDAH tersimpan (settings `agent_key:<id>`) lewat urutan resolusi yang
+      // sama dengan jalur chat. Sebelumnya baris ini langsung jatuh ke env /
+      // default, sehingga "Uji Koneksi" menguji kunci berbeda dari yang benar-
+      // benar dipakai saat agent mengobrol.
+      const apiKey = keyStored ? String(body.api_key).trim() : resolveAgentApiKey(agent, db);
 
-      const probe = await probeModels(baseUrl, apiKey);
+      const probe = await probeModelsImpl(baseUrl, apiKey);
       if (!probe.ok) {
         auditRepo.logAction(
           request.user!.id,
@@ -682,16 +811,10 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
           id,
           JSON.stringify({ error: probe.error, status_code: probe.status_code })
         );
-        const hint: Record<string, string> = {
-          unauthorized: 'Kunci API ditolak gateway (401).',
-          connection_refused: 'Tidak ada gateway yang menjawab di alamat itu.',
-          dns: 'Alamat gateway tidak dapat ditemukan.',
-          unreachable: 'Alamat gateway tidak dapat dijangkau dari server.',
-          timeout: 'Gateway tidak menjawab tepat waktu.',
-        };
         return reply.code(502).send({
           error: probe.error || 'unreachable',
-          message: hint[probe.error || ''] || `Gateway gagal dihubungi (${probe.error}).`,
+          message:
+            GATEWAY_ERROR_HINT[probe.error || ''] || `Gateway gagal dihubungi (${probe.error}).`,
           key_stored: keyStored,
         });
       }
@@ -932,7 +1055,7 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
                       signal: currentAbortController.signal,
                     },
                     {
-                      onRunId: (assignedRunId) => {
+                      onRunId: (assignedRunId, actualModel) => {
                         activeRunId = assignedRunId;
                         runsApiStarted = true;
                         stallDetector.recordActivity();
@@ -964,7 +1087,7 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
                             session_id: sessionId,
                             client_message_id: clientMessageId,
                             status: 'running',
-                            model: modelToUse,
+                            model: actualModel ?? modelToUse,
                           });
                         } catch {}
                         if (!asstMsgId) {
@@ -1098,6 +1221,7 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
                     return executeRun(fallback);
                   }
 
+                  if (runErr instanceof ModelPriorityExhaustedError) throw runErr;
                   if (!runsApiStarted) {
                     if (!asstMsgId) {
                       try {
@@ -1520,6 +1644,7 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
       .prepare('DELETE FROM tasks WHERE agent_id = ?')
       .run(id).changes;
     settingRepo.delete(`agent_key:${id}`);
+    settingRepo.delete(priorityKey(id));
     // Tahap 11 — cakupan skill ikut dibersihkan (jaring pengaman bila
     // PRAGMA foreign_keys mati; ON DELETE CASCADE tetap didefinisikan di 008).
     const skillRowsRemoved = agentSkillRepo.deleteForAgent(id);

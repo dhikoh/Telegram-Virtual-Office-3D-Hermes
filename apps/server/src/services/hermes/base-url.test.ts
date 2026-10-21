@@ -58,6 +58,18 @@ describe('resolveAgentBaseUrl', () => {
     );
   });
 
+  // Tahap 20 — baris LAMA di SQLite bisa saja menyimpan suffix /v1 yang diketik
+  // owner sebelum normalisasi ada; pemotongan di jalur BACA membetulkannya
+  // tanpa migrasi database.
+  it('strips a legacy /v1 suffix already stored in the agent row', () => {
+    expect(resolveAgentBaseUrl({ hermes_base_url: 'https://openrouter.ai/api/v1' })).toBe(
+      'https://openrouter.ai/api'
+    );
+    expect(resolveAgentBaseUrl({ hermes_base_url: 'http://172.16.1.1:8642/v1' })).toBe(
+      'http://172.16.1.1:8642'
+    );
+  });
+
   it('still honours a deliberate dev gateway on a non-default loopback port', () => {
     expect(resolveAgentBaseUrl({ hermes_base_url: 'http://127.0.0.1:59999' })).toBe(
       'http://127.0.0.1:59999'

@@ -1,4 +1,19 @@
-## 1. Current Phase: Tahap 19 (Integrasi Hermes ↔ Mini App Fase 1-6) — selesai
+## 1. Current Phase: Tahap 20 (Endpoint Mode & Auto-Detect Model) — selesai
+
+- **Status Tahap 20 (2026-10-21)**: laporan awal pemilik terpecahkan dari akarnya, lalu diperluas menjadi pengaturan endpoint dan model per agen. Enam sub-task, dikerjakan satu per siklus:
+  1. **ST-1 — sufiks `/v1` ganda** (`stripApiSuffix()`): `normalizeBaseUrl` (parameter agen), `resolveAgentBaseUrl` (fallback `HERMES_BASE_URL` server), `probeModels`, dan `config.ts` sama-sama menyusulkan `/v1`, sehingga `https://openrouter.ai/api/v1` berubah jadi `https://openrouter.ai/api/v1/v1/models` dan selalu 404. Sekarang setiap pembentuk URL menyaring ekornya sendiri — `.../v1` dan `.../api/v1` dipotong satu kali, tanpa memotong path yang memang berakhiran `/v1` di tengah.
+  2. **ST-2 — `GET /api/agents/:id/models`**: daftar model dibaca di server memakai API key milik agen, lalu dikembalikan sebagai `{ models: [...] }`. Respons tidak pernah memuat `hermes_base_url`, nama variabel kunci, atau isi kunci (Rule S4).
+  3. **ST-3 — `api.listAgentModels(id, baseUrlDraft?)`**: memakai jalur `modelsRequest()` sendiri karena gateway yang sedang mati membalas 502 teks polos; menyaringnya lewat `request()` yang sudah ada akan melempar `Error('API error 502 … unauthorized')` dan menutupi `listError` yang jujur.
+  4. **ST-4 — toggle `Ikuti Server` / `Custom`**: `''` dikirim secara eksplisit sebagai "ikuti pengaturan server" (field yang tidak dikirim berarti "jangan ubah" — itulah kenapa tombol ini dulu mustahil ditekan), dan label tombol membaca `endpoint_configured` dari server, bukan state lokal.
+  5. **ST-5 — panel auto-detect**: daftar model terisi begitu panel terbuka, urut abjad, model aktif di baris pertama, kotak filter, maksimum 60 baris dirender dengan jumlah sisanya disebut apa adanya. Kolom ketik-nama-model sengaja tidak dibuat.
+  6. **ST-6 — prioritas model berurutan + fallback**: kunci `settings` `agent_model_priority:<id>` (maksimum 5, tanpa migrasi), editor UI urut-naik/turun/hapus, dan rantai percobaan di klien gateway.
+  **Verifikasi mandiri**: `tsc --build` exit 0; `vitest run` **1124 test / 106 file hijau**; `gap-check` 8/8 (Phase 20). Bukti per sub-task: `base-url.test.ts` 12, `detect.test.ts` 12, `agents.test.ts` 18, `routes/model-priority.test.ts` 17, `services/agent-chat/priority-client.test.ts` 15, `routes/model-priority-chat.test.ts` 13, `web/…/model-priority.test.tsx` 10, `web/…/tahap20-modellist.test.tsx` 8, `web/…/tahap20-endpoint.test.tsx` 5, `web/services/__tests__/tahap20-models.test.ts` 5, `web/services/__tests__/tahap20-endpoint-api.test.ts` 4, `web/services/__tests__/model-priority.test.ts` 1.
+- **Aturan keras yang lahir dari Tahap 20 (lihat DEC-051..DEC-056)**:
+  - Rantai fallback **tidak pernah mengulang** pada run yang sudah terbuka, stream yang sudah memancarkan data parsial, timeout, atau status HTTP selain 402/400/404 yang menyebut model. Status dibaca hanya dari awalan pesan (`Hermes chat error: 404`), jadi `401` berisi teks "model 404" tidak memicu ulang.
+  - Bila seluruh rantai habis, `ModelPriorityExhaustedError` naik ke rute dan pemilik melihat `gateway_error`. Jika dibiarkan jatuh ke mode non-prioritas, kueri akan diulang dan merusak jaminan idempotensi `client_message_id`.
+  - Model agen (`agents.model`) tidak pernah diganti oleh fallback; `agent_runs.model` mencatat model yang benar-benar dipakai lewat `onRunId(runId, actualModel)`.
+
+## 1a. Tahap 19 (Integrasi Hermes ↔ Mini App Fase 1-6) — selesai
 
 - **Status Integrasi Hermes ↔ Mini App (2026-10-20)**: Rilis Akbar 6 Fase Integrasi Selesai 100%:
   1. **Fase 1 (Jembatan Identitas)**: Injeksi system prompt dinamis nama, peran, dan departemen agen sejak giliran chat pertama.

@@ -12,7 +12,7 @@ import { OfficeDispatcher } from './services/dispatcher.js';
 import { ProjectService } from './services/projects.js';
 import { healthRoutes } from './routes/health.js';
 import { meRoutes } from './routes/me.js';
-import { agentRoutes } from './routes/agents.js';
+import { agentRoutes, type AgentRoutesOptions } from './routes/agents.js';
 import { taskRoutes } from './routes/tasks.js';
 import { approvalRoutes } from './routes/approvals.js';
 import { streamRoutes } from './routes/stream.js';
@@ -45,6 +45,13 @@ export interface BuildServerOptions {
    * Fase 2d — nama model fallback khusus saat stall (opsional).
    */
   chatFallbackModel?: string;
+  /**
+   * Tahap 20 — implementasi probe daftar model. Produksi memakai `probeModels`
+   * sungguhan dari services/hermes; test memasang versi sendiri supaya suite
+   * tidak pernah membuat panggilan jaringan nyata (pola sama dengan
+   * `chatHeartbeatMs` / `chatStallMs`).
+   */
+  probeModels?: AgentRoutesOptions['probeModelsImpl'];
 }
 
 export function buildServer(options: BuildServerOptions): FastifyInstance {
@@ -128,7 +135,7 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
   // Register all office routes
   app.register(healthRoutes);
   app.register(meRoutes);
-  app.register(agentRoutes);
+  app.register(agentRoutes, { probeModelsImpl: options.probeModels });
   app.register(taskRoutes);
   app.register(approvalRoutes);
   app.register(streamRoutes);

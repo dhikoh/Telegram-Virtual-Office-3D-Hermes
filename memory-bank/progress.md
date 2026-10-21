@@ -4,7 +4,9 @@
 - **Fase Aktif Saat Ini:** Phase 19 (Tahap 19) — Selesai & Terverifikasi
 - **Status Gap-Check:** ✅ 8/8 Kriteria Lolos (C3a sampai C3h)
 - **Status Typecheck:** ✅ Lolos (TypeScript 5.7) — 0 Error
-- **Status Test Suite:** ✅ 1005 tests passed across 95 test files
+- **Status Test Suite:** ✅ 1007 tests passed across 95 test files
+- **Penyempurnaan Terkini (2026-10-21):**
+  * [x] **Sub-Task 1 (Selesai)**: Peningkatan display pemilihan karakter 3D di `AgentSheetProfile.tsx` (kartu avatar portrait visual, gender badge, departemen role tag, token `office-*` compliant).
 - **Hotfix Terkini:** ✅ Hotfix GET /api/cron (Payload gateway schedule object handled gracefully, formatCronWIB safe, Zod boundary validation)
 
 ---
@@ -94,5 +96,11 @@
 ---
 
 ## 4. Pekerjaan Tersisa (What's Left to Build)
-- Menunggu arahan fase atau fitur baru selanjutnya dari pengguna.
+- **Tahap 20 — Endpoint Mode & Auto-Detect Model (aktif, satu sub-task per siklus):**
+  - [x] ST-1 — `stripApiSuffix()` + penerapan di `normalizeBaseUrl`, `resolveAgentBaseUrl`, `probeModels`, `config.ts`; 5 tes regresi. Gate: `tsc --build` 0, `vitest` 1012/95, `gap-check` 8/8.
+  - [x] ST-2 — endpoint read-only `GET /api/agents/:id/models` + pendaftaran `packages/shared/src/endpoints.ts`. Gate: `agents.test.ts` 18 tes.
+  - [x] ST-3 — `api.listAgentModels()` di `apps/web/src/services/api.ts` lewat `modelsRequest()`. Gate: `tahap20-models.test.ts` 5 tes.
+  - [x] ST-4 — toggle UI `Ikuti Server` / `Custom` (mode server mengirim `hermes_base_url: ''` eksplisit). Gate: `tahap20-endpoint.test.tsx` 5 + `tahap20-endpoint-api.test.ts` 4.
+  - [x] ST-5 — panel model auto-detect terurut A-Z (filter + cap render 60, tanpa kolom ketik nama model). Gate: `tahap20-modellist.test.tsx` 8 tes.
+  - [x] ST-6 — **model prioritas berurutan per agen + rantai fallback**, dokumen `PROGRESS.md` ke Tahap 20, `TRACEABILITY.md` (REQ-120..126), `DECISIONS.md` (DEC-051..056), i18n `modelPriority.*`. Gate akhir: `tsc --build` 0, `vitest run` **1124/106 hijau**, `gap-check` 8/8 (Phase 20).
 - Eksekusi fitur baru wajib diawali dengan PRD / Task List sesuai protokol `.agent/rules.md`.

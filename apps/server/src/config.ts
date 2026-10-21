@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { EnvSchema } from './env-schema.js';
+import { stripApiSuffix } from './services/hermes/detect.js';
 
 /**
  * Values shipped in docs/examples that must never reach production.
@@ -72,6 +73,11 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
 
   return {
     ...parsed,
+    // Tahap 20 — HERMES_BASE_URL dinormalisasi sekali di sini, sehingga semua
+    // pemakai (health, hiring, skills, resolveAgentBaseUrl, klien gateway)
+    // otomatis memakai base URL tanpa suffix /v1 dan tidak pernah memanggil
+    // /v1/v1/... Validasi localhost di atas sengaja tetap memakai nilai mentah.
+    HERMES_BASE_URL: stripApiSuffix(parsed.HERMES_BASE_URL),
     ownerIdsList,
     ownerEmailsList,
   };

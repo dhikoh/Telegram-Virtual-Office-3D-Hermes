@@ -4,7 +4,7 @@
  * the endpoint is validated before use).
  */
 import { describe, it, expect, vi } from 'vitest';
-import { normalizeBaseUrl, probeModels } from './detect.js';
+import { normalizeBaseUrl, probeModels, stripApiSuffix } from './detect.js';
 
 describe('normalizeBaseUrl', () => {
   it('accepts a full URL and strips a trailing slash', () => {
@@ -19,6 +19,39 @@ describe('normalizeBaseUrl', () => {
     expect(normalizeBaseUrl('')).toBeNull();
     expect(normalizeBaseUrl('   ')).toBeNull();
     expect(normalizeBaseUrl('http://')).toBeNull();
+  });
+
+  // Tahap 20 — bukti regresi: base URL ber- suffix /v1 membuat semua endpoint
+  // menjadi /v1/v1/... (terbukti 404 pada https://openrouter.ai/api/v1/v1/models).
+  it('strips a trailing /v1 so the appended path never doubles', () => {
+    expect(normalizeBaseUrl('https://openrouter.ai/api/v1')).toBe('https://openrouter.ai/api');
+    expect(normalizeBaseUrl('https://openrouter.ai/api/v1/')).toBe('https://openrouter.ai/api');
+    expect(normalizeBaseUrl('https://openrouter.ai/api/v1/chat/completions')).toBe(
+      'https://openrouter.ai/api'
+    );
+    expect(normalizeBaseUrl('172.16.1.1:8642/v1')).toBe('http://172.16.1.1:8642');
+  });
+
+  it('leaves endpoints that are not an API version untouched', () => {
+    expect(normalizeBaseUrl('https://host.example/v1beta')).toBe('https://host.example/v1beta');
+    expect(normalizeBaseUrl('https://host.example/api')).toBe('https://host.example/api');
+    expect(normalizeBaseUrl('http://172.16.1.1:8642')).toBe('http://172.16.1.1:8642');
+  });
+});
+
+describe('stripApiSuffix', () => {
+  it('removes one or several trailing API version segments', () => {
+    expect(stripApiSuffix('https://openrouter.ai/api/v1')).toBe('https://openrouter.ai/api');
+    expect(stripApiSuffix('https://openrouter.ai/api/v1/v1')).toBe('https://openrouter.ai/api');
+    expect(stripApiSuffix('http://gw:8642/v1/')).toBe('http://gw:8642');
+    expect(stripApiSuffix('http://gw:8642/v1/capabilities')).toBe('http://gw:8642');
+  });
+
+  it('never strips a scheme, host, port or non-version path', () => {
+    expect(stripApiSuffix('http://172.16.1.1:8642')).toBe('http://172.16.1.1:8642');
+    expect(stripApiSuffix('https://v1.example.com')).toBe('https://v1.example.com');
+    expect(stripApiSuffix('https://host.example/v1beta')).toBe('https://host.example/v1beta');
+    expect(stripApiSuffix('')).toBe('');
   });
 });
 

@@ -12,3 +12,4 @@ export * from './schema-spec.js';
 export * from './characters.js';
 export * from './speech.js';
 export * from './roomVariants.js';
+export * from './model-priority.js';

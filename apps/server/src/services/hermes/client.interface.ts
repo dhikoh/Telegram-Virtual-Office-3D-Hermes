@@ -50,7 +50,7 @@ export interface HermesRunStatus {
 }
 
 export interface RunChatStreamHandlers {
-  onRunId?: (runId: string) => void;
+  onRunId?: (runId: string, actualModel?: string) => void;
   onDelta: (delta: string) => void;
   onDone: () => void;
   onError?: (message: string) => void;

@@ -99,8 +99,17 @@ describe('per-agent connection & model auto-detect', () => {
 
   it('lets the owner pick the detected model per agent', () => {
     expect(profile).toContain('api.setAgentModel');
-    expect(profile).toContain('knownModels.map');
-    expect(profile).toContain('Model aktif');
+    expect(profile).toContain('visibleModels.map');
+    expect(profile).toContain('Model tersedia');
+  });
+
+  // Tahap 20 (ST-5) — perilakunya (A-Z, pin aktif, filter, cap 60, galat apa
+  // adanya) dikunci oleh tahap20-modellist.test.tsx; di sini hanya dipastikan
+  // sambungan read-only dan batasnya benar-benar ada di sumber.
+  it('auto-detects the model list over the read-only endpoint', () => {
+    expect(profile).toContain('api.listAgentModels');
+    expect(profile).toContain('MODEL_RENDER_CAP');
+    expect(profile).toContain('localeCompare');
   });
 
   it('keeps the API key server-side and off the wire (Rule S4)', () => {

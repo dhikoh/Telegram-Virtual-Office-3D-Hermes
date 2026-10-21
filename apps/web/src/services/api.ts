@@ -6,6 +6,7 @@
 import { tma } from './tma';
 import type {
   AgentPublic,
+  AgentModelPriority,
   Task,
   TaskEventsResponse,
   CronJob,
@@ -48,9 +49,35 @@ export interface ChatMediaUploadResult {
   gateway_error?: string;
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+/**
+ * Tahap 20 — isi GET /api/agents/:id/models (read-only).
+ * `current_model` = model yang aktif tersimpan; `endpoint_source` menandai
+ * apakah agen memakai pengaturan server ('server') atau endpoint miliknya ('agent').
+ */
+export interface AgentModelList {
+  models: string[];
+  current_model: string | null;
+  endpoint_source: 'server' | 'agent';
+  base_url_used: string;
+  status_code?: number | null;
+  latency_ms?: number | null;
+}
+
+interface ApiRequestInit extends RequestInit {
+  /**
+   * Tahap 20 — lempar Error berisi `message` dari badan galat (pesan Indonesia
+   * yang sudah dirancang untuk dibaca orang), bukan blob JSON mentah.
+   * Dipakai rute /models dan PATCH endpoint; panggilan lain sengaja dibiarkan
+   * memakai format `API error ...` yang lama agar tidak mengubah perilaku yang
+   * sudah dikunci test lain.
+   */
+  friendlyError?: boolean;
+}
+
+async function request<T>(path: string, options: ApiRequestInit = {}): Promise<T> {
+  const { friendlyError, ...init } = options;
   const initData = tma.getInitData();
-  const headers = new Headers(options.headers || {});
+  const headers = new Headers(init.headers || {});
 
   // Attach Telegram initData authorization header (Rule S1)
   if (initData) {
@@ -58,16 +85,20 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
 
   // Only set application/json if there is a body
-  if (options.body && typeof options.body === 'string') {
+  if (init.body && typeof init.body === 'string') {
     headers.set('Content-Type', 'application/json');
   }
 
   const response = await fetch(`${API_BASE}${path}`, {
-    ...options,
+    ...init,
     headers,
   });
 
   if (!response.ok) {
+    if (friendlyError) {
+      const body = (await response.json().catch(() => null)) as { message?: string } | null;
+      throw new Error(body?.message || `Gagal memproses permintaan (${response.status})`);
+    }
     const errorText = await response.text();
     throw new Error(`API error ${response.status} (${path}): ${errorText}`);
   }
@@ -113,8 +144,49 @@ export const api = {
       endpoint_configured: boolean;
       latency_ms?: number | null;
     }>(`/agents/${id}/connection`, { method: 'POST', body: JSON.stringify(body) }),
+  getAgentModelPriority: (id: string) =>
+    request<AgentModelPriority>(`/agents/${encodeURIComponent(id)}/model-priority`, { friendlyError: true }),
+  saveAgentModelPriority: (id: string, models: string[]) =>
+    request<AgentModelPriority>(`/agents/${encodeURIComponent(id)}/model-priority`, {
+      method: 'PATCH', body: JSON.stringify({ models }), friendlyError: true,
+    }),
   setAgentModel: (id: string, model: string) =>
     request<AgentPublic>(`/agents/${id}`, { method: 'PATCH', body: JSON.stringify({ model }) }),
+  /**
+   * Tahap 20 — daftar model yang dilayani endpoint agen (read-only).
+   *
+   * `baseUrl` opsional: dipakai panel untuk mengetes endpoint "Custom" yang masih
+   * berupa draft sebelum disimpan. Server tidak pernah menulis draft itu ke DB.
+   * Daftar sudah terurut A-Z dan bebas duplikat dari sisi server.
+   */
+  listAgentModels: (id: string, baseUrl?: string) => {
+    const query = baseUrl && baseUrl.trim() ? `?base_url=${encodeURIComponent(baseUrl.trim())}` : '';
+    return request<AgentModelList>(`/agents/${id}/models${query}`, { friendlyError: true });
+  },
+  /**
+   * Tahap 20 (ST-4) — simpan endpoint kustom milik agen. Nilai kosong berarti
+   * "ikuti pengaturan server". Server menormalisasi URL dan menolak loopback (S5).
+   */
+  saveAgentEndpoint: (id: string, baseUrl: string) =>
+    request<AgentPublic>(`/agents/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ hermes_base_url: baseUrl.trim() }),
+      friendlyError: true,
+    }),
+  /**
+   * Tahap 20 (ST-4) — kembalikan agen ke endpoint bawaan server.
+   *
+   * Field-nya harus dikirim EKSPLISIT: server memperlakukan '' sebagai
+   * "ikuti pengaturan server", sedangkan field yang tidak ikut dikirim berarti
+   * "jangan ubah apa pun" — itu sebabnya selama ini tombol kembalikan ke bawaan
+   * tidak pernah menyentuh apa pun.
+   */
+  resetAgentEndpoint: (id: string) =>
+    request<AgentPublic>(`/agents/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ hermes_base_url: '' }),
+      friendlyError: true,
+    }),
   /** Tahap 8 — hapus agen dari roster beserta tugasnya. */
   deleteAgent: (id: string) =>
     request<{ success: boolean; id: string; tasks_removed: number }>(`/agents/${id}`, {

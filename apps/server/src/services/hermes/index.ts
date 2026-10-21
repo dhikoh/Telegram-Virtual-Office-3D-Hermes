@@ -1,10 +1,14 @@
 import type { Agent } from '@hermes-office/shared';
 import type Database from 'better-sqlite3';
 import type { HermesClient } from './client.interface.js';
+import { stripApiSuffix } from './detect.js';
 import { MockHermesClient } from './mock.client.js';
 import { RealHermesClient } from './real.client.js';
 import { SettingRepository } from '../../db/repositories/settings.js';
 import { config } from '../../config.js';
+import { readModelPriority } from '../agent-chat/model-priority.js';
+import { withModelPriority } from '../agent-chat/priority-client.js';
+import { AuditRepository } from '../../db/repositories/audit.js';
 
 export * from './client.interface.js';
 export * from './mock.client.js';
@@ -46,10 +50,13 @@ export function isUnsetEndpoint(url: string | null | undefined): boolean {
 }
 
 export function resolveAgentBaseUrl(agent: Pick<Agent, 'hermes_base_url'>): string {
-  // Rule S5: URL comes from the agent registry, else the server config
+  // Rule S5: URL comes from the agent registry, else the server config.
+  // Tahap 20 — pemotongan suffix /v1 dilakukan di jalur BACA juga: baris lama
+  // di SQLite masih memuat base URL yang diketik owner sebelum normalisasi ada,
+  // dan memperbaiki hanya jalur tulis tidak akan menyentuh data produksi.
   return isUnsetEndpoint(agent.hermes_base_url)
     ? config.HERMES_BASE_URL
-    : (agent.hermes_base_url as string).trim();
+    : stripApiSuffix((agent.hermes_base_url as string).trim());
 }
 
 /** True when the agent carries its own endpoint instead of the server default. */
@@ -101,13 +108,13 @@ export function getHermesClientForAgent(agent: Agent, db?: Database.Database): H
   const timeoutMs = resolveTimeout('HERMES_TIMEOUT_MS', config.HERMES_TIMEOUT_MS);
   const { ttfbMs, totalMs } = chatTimeouts();
 
-  if (config.HERMES_MODE === 'real') {
-    // Rule S4: key stays server-side, resolved from settings/env only
-    const key = resolveAgentApiKey(agent, db);
-    return new RealHermesClient(baseUrl, key, timeoutMs, ttfbMs, totalMs);
-  }
+  const client: HermesClient = config.HERMES_MODE === 'real'
+    ? new RealHermesClient(baseUrl, resolveAgentApiKey(agent, db), timeoutMs, ttfbMs, totalMs)
+    : new MockHermesClient(baseUrl, timeoutMs);
+  if (!db) return client;
+  return withModelPriority(client, readModelPriority(db, agent.id, agent.model), config.HERMES_FALLBACK_MODEL,
+    (event) => new AuditRepository(db).logAction(0, 'agent.model_fallback', agent.id, JSON.stringify(event)));
 
-  return new MockHermesClient(baseUrl, timeoutMs);
 }
 
 /** Tahap 8 — server-wide client (skills, capabilities) not tied to one agent. */

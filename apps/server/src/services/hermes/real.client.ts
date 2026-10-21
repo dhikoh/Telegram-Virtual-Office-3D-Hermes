@@ -505,7 +505,7 @@ export class RealHermesClient implements HermesClient {
     sessionId: string,
     message: ChatMessageContent,
     onDelta: (delta: string) => void,
-    _model?: string,
+    model?: string,
     /** Fase 1 — identitas agen, diteruskan sebagai `system_message`. Gateway
      *  membacanya di `_prepare_session_chat`; riwayat sesi tidak tersentuh. */
     systemPrompt?: string
@@ -547,7 +547,7 @@ export class RealHermesClient implements HermesClient {
             method: 'POST',
             headers: this.headers(),
             body: JSON.stringify(
-              systemPrompt ? { message, system_message: systemPrompt } : { message }
+              { message, ...(systemPrompt ? { system_message: systemPrompt } : {}), ...(model ? { model } : {}) }
             ),
             signal: controller.signal,
           }

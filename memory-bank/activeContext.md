@@ -13,6 +13,14 @@
   * Normalisasi aman melalui `readCronExpr` dan pengetatan `formatCronWIB` (return `null` alih-alih melempar error).
   * Validasi runtime boundary dengan `HermesJobGatewaySchema` (Zod `.passthrough()`) di `real.client.ts`.
   * Rute `/api/cron` tetap 200 untuk job dengan jadwal invalid dan mengembalikan 502 jika gateway gagal total.
+- **Penyempurnaan Visual & Karakter (2026-10-21)**:
+  * **Sub-Task 1 (Selesai)**: Peningkatan display pemilihan karakter 3D di `apps/web/src/components/agent-sheet/AgentSheetProfile.tsx`. Tombol teks polos ("Wanita A", "Pria B") diubah menjadi kartu visual preview lengkap dengan avatar silhouette berbasis gender, badge inisial huruf model (A s/d F), penanda departemen default (Command, Social, Marketing, Sales, Analytics, Finance, Support, HR, Spesialis), dan checkmark seleksi elegan dengan token tema `office-*`.
+  * **Verifikasi Mandiri**: `tsc --build` lolos 100%, 45/45 tes unit & integrasi hijau (`tahap17-identity`, `tahap9`, `tahap7`, `theme-guard`), dan `gap-check` lolos 8/8 kriteria.
+- **Tahap 20 — Endpoint Mode & Auto-Detect Model (BERJALAN, ST-1 selesai 2026-10-20)**:
+  * **ST-1 (selesai)**: normalisasi suffix `/v1` di seluruh jalur. Helper `stripApiSuffix()` di `services/hermes/detect.ts` dipakai di jalur tulis (`normalizeBaseUrl`), jalur baca (`resolveAgentBaseUrl` — membetulkan baris lama di SQLite tanpa migrasi), di dalam `probeModels`, dan di `config.ts` (`HERMES_BASE_URL` dinormalisasi sekali supaya health/hiring/skills/klien gateway ikut bersih). Akar masalah terbukti: `https://openrouter.ai/api/v1/v1/models` membalas 404, `/api/v1/models` membalas 200.
+  * **Koreksi diri saat implementasi**: suffix `/api/v1` awalnya ikut di daftar sehingga `https://openrouter.ai/api` terpotong jadi `https://openrouter.ai` (kehilangan `/api`) — ditangkap oleh tes yang baru ditulis, lalu dihapus dari daftar.
+  * **Verifikasi mandiri**: `tsc --build` exit 0, `vitest run` **1012 test / 95 file hijau** (+5 tes baru), `gap-check` 8/8 (Phase 19).
+  * **Tersisa (ST-2 s/d ST-6)**: endpoint read-only `GET /api/agents/:id/models`, toggle UI `Ikuti Server` / `Custom` (kirim `hermes_base_url: ''` eksplisit), panel daftar model auto-detect terurut A-Z (OpenRouter mengembalikan 468 model → perlu filter + cap render), **model prioritas berurutan per agen beserta rantai fallback-nya**, lalu dokumen Tahap 20.
 - **Fitur Selesai di Fase 6 (Skill Auto-Install & Catalog Synchronization):**
   * **Katalog Skill Resmi di Repositori (`skills/`)**:
     - `skills/prospecting/SKILL.md`: Prospecting, lead qualification BANT, cold outreach draft.
@@ -35,8 +43,8 @@
 ---
 
 ## 2. Fokus & Prioritas Kerja Aktif
-- **Fase 6 (Skill Auto-Install & Catalog Synchronization) telah selesai 100%.**
-- Menunggu arahan pengguna untuk fase atau penyempurnaan selanjutnya.
+- **Tahap 20 (Endpoint Mode & Auto-Detect Model) telah selesai 100%** — `tsc --build` 0, `vitest run` 1124/106 hijau, `gap-check` 8/8 (Phase 20). Isinya: `stripApiSuffix()` (bug `/v1/v1`), endpoint read-only `GET /api/agents/:id/models`, `api.listAgentModels()`, toggle `Ikuti Server`/`Custom`, panel model A-Z, dan prioritas model berurutan + rantai fallback per agen (tanpa migrasi, DEC-051..056, REQ-120..126).
+- Menunggu arahan pengguna: perubahan Tahap 20 sudah di-commit dan di-push; langkah berikutnya menunggu arahan (mis. verifikasi di Telegram/VPS atau penyesuaian UI).
 
 ---
 

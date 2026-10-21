@@ -5,7 +5,25 @@ import { AgentRepository } from '../db/repositories/agents.js';
 import { AuditRepository } from '../db/repositories/audit.js';
 import { departmentExists } from '../db/repositories/departments.js';
 import { provisionAgentProfile } from '../services/hermes/provisioner.js';
-import { config } from '../config.js';
+import { normalizeBaseUrl } from '../services/hermes/detect.js';
+import { isLoopbackUrl } from '../services/hermes/index.js';
+
+/**
+ * Tahap 20 — endpoint yang melekat pada agen hasil rekrutmen.
+ *
+ * '' berarti ikut pengaturan server, semantik yang sudah dipakai
+ * 004_tahap9_orchestrator.sql (komentar: "hermes_base_url '' = ikut pengaturan
+ * server") dan dinormalisasi ulang oleh 002_agent_model_and_endpoint.sql.
+ *
+ * Nilai dari owner dinormalisasi lebih dulu (suffix /v1 dibuang — Tahap 20 ST-1)
+ * supaya tidak tersimpan URL yang menghasilkan /v1/v1/... saat dipakai nanti.
+ */
+export function resolveHiredBaseUrl(raw: unknown): string {
+  // Hanya string yang boleh jadi kandidat: `String(0)` akan menjadi '0' dan
+  // dianggap sebagai hostname yang sah oleh normalizer.
+  if (typeof raw !== 'string') return '';
+  return normalizeBaseUrl(raw.trim()) || '';
+}
 
 export const hiringRoutes: FastifyPluginAsync = async (fastify) => {
   // F-09: Typed decorations via types/fastify.d.ts
@@ -59,7 +77,20 @@ export const hiringRoutes: FastifyPluginAsync = async (fastify) => {
             message: `Ruang/departemen '${wantedDept}' tidak dikenal.`,
           });
         }
-        // F-08: hermes_base_url comes from server config, not client request
+        // Tahap 20 — '' = ikut pengaturan server. Baris ini sebelumnya menyalin
+        // config.HERMES_BASE_URL, sehingga setiap agen tercatat sebagai endpoint
+        // "Custom" milik agen padahal owner tidak pernah memilihnya, plus membeku
+        // pada URL yang berlaku saat ia direkrut (perubahan env tidak terbawa).
+        const requestedBase = resolveHiredBaseUrl(agentData.hermes_base_url);
+        if (requestedBase && isLoopbackUrl(requestedBase)) {
+          // S5 — konsisten dengan PATCH /api/agents/:id dan POST /connection.
+          return reply.code(400).send({
+            error: 'invalid_input',
+            message:
+              'Alamat loopback (127.0.0.1/localhost) ditolak — gunakan alamat host VPS atau kosongkan untuk mengikuti server.',
+          });
+        }
+
         agentRepo.create({
           id: String(agentData.id),
           name: String(agentData.name),
@@ -67,7 +98,7 @@ export const hiringRoutes: FastifyPluginAsync = async (fastify) => {
           department: wantedDept,
           avatar: String(agentData.avatar || '🤖'),
           soul_summary: String(agentData.soul_summary || ''),
-          hermes_base_url: config.HERMES_BASE_URL,
+          hermes_base_url: requestedBase,
           api_key_env: String(agentData.api_key_env || 'HERMES_KEY_DEFAULT'),
           hermes_profile: String(agentData.hermes_profile || 'default'),
           active: 1,
