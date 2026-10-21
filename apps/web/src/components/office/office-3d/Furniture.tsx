@@ -26,6 +26,7 @@ import {
   type RoomVariant,
 } from '@hermes-office/shared';
 import { GLTFurniture } from './GLTFurniture';
+import { GLTModularOffice } from './GLTModularOffice';
 
 interface FurnitureProps {
   onSelectRoom?: (nameKey: string) => void;
@@ -199,10 +200,10 @@ export const Furniture: React.FC<FurnitureProps> = ({ onSelectRoom }) => {
         </mesh>
       </group>
 
-      {/* Tahap 13 — CC0 GLB props (Kenney Furniture Kit). Purely additive:
-          nothing above depends on them, and a failed load renders nothing at
-          all, so the procedural desks, sofas and gate above remain the scene. */}
+      {/* Tahap 13 — CC0 GLB props (Kenney Furniture Kit) */}
       <GLTFurniture />
+      {/* KayKit: Prototype Bits Modular Office Architecture & Furniture */}
+      <GLTModularOffice />
     </group>
   );
 };

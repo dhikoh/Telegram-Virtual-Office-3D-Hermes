@@ -7,6 +7,7 @@
 - **Status Test Suite:** ✅ 1007 tests passed across 95 test files
 - **Penyempurnaan Terkini (2026-10-21):**
   * [x] **Sub-Task 1 (Selesai)**: Peningkatan display pemilihan karakter 3D di `AgentSheetProfile.tsx` (kartu avatar portrait visual, gender badge, departemen role tag, token `office-*` compliant).
+  * [x] **Sub-Task 2 (Selesai)**: Integrasi Aset 3D Modular KayKit Prototype Bits (`apps/web/public/assets/3d/modular/`) 10 GLBs self-contained + manifest `glbModular.ts` + loader `loadModularModels.ts` + komponen `GLTModularOffice.tsx` + penyesuaian sudut pandang kamera `CameraController.tsx` (`DEFAULT_FOV = 44`, `MAX_FOV = 65`) untuk layout kantor modular yang luas dan dapat diekspansi.
 - **Hotfix Terkini:** ✅ Hotfix GET /api/cron (Payload gateway schedule object handled gracefully, formatCronWIB safe, Zod boundary validation)
 
 ---

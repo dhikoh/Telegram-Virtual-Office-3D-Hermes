@@ -26,12 +26,12 @@ export const DEFAULT_VIEW = {
   elevation: Math.atan2(12, Math.hypot(10, 12)),
   radius: 17,
 };
-const DEFAULT_FOV = 38;
+const DEFAULT_FOV = 44;
 
 const MIN_ELEVATION = (18 * Math.PI) / 180;
 const MAX_ELEVATION = (72 * Math.PI) / 180;
 const MIN_FOV = 25;
-const MAX_FOV = 60;
+const MAX_FOV = 65;
 /** Closer than the overview: a focused room should fill the diorama. */
 const FOCUS_RADIUS = 11;
 /** Pointer travel that turns a tap into a camera drag (and blocks selection). */
