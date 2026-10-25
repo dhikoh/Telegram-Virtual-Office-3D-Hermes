@@ -15,6 +15,7 @@ import { buildServer } from './server.js';
 import { runMigrations } from './db/migrator.js';
 import { createTelegramInitData } from './auth.test.js';
 import { chatRunHub } from './services/agent-chat/run-hub.js';
+import { agentChatQueue } from './services/agent-chat/queue.js';
 
 const { mockClient } = vi.hoisted(() => {
   return {
@@ -297,8 +298,24 @@ describe('Fase 2b — POST /api/agents/:id/chat & Restart-Tolerant Reattach (E2E
 });
 
 describe('Fase 2c — Antrian Chat per Agen (Route Level)', () => {
+  /** Sinyal "run pertama sudah mulai" — diisi per tes, dipakai mock gateway. */
+  let queueFirstStarted: (() => void) | null = null;
+
+  beforeEach(() => {
+    // Sinyal flake-guard tidak boleh bocor antar tes: promise yang sudah
+    // resolve dari tes sebelumnya akan membuat tes berikutnya "langsung lolos"
+    // tanpa benar-benar menunggu apa pun.
+    queueFirstStarted = null;
+  });
+
   it('3 pesan beruntun ke POST /api/agents/:id/chat diproses berurutan (FIFO)', async () => {
     const executedOrder: string[] = [];
+    // Fix flake: menunggu 20 ms lalu BERASUMSI request pertama sudah masuk
+    // antrian. Saat event loop sibuk, urutan bisa berubah dan assertion FIFO
+    // gagal tanpa ada yang rusak. Sinyal nyata dipakai sebagai gantinya.
+    const firstStarted = new Promise<void>((resolve) => {
+      queueFirstStarted = resolve;
+    });
     const origRunChatStream = mockClient.runChatStream;
 
     mockClient.runChatStream = async (params: any, handlers: any) => {
@@ -307,6 +324,7 @@ describe('Fase 2c — Antrian Chat per Agen (Route Level)', () => {
       // string. Yang diuji di sini tetap urutan FIFO, bukan isi blok.
       const input = String(params.input).replace(/^\[IDENTITAS AGEN:[^\]]*\]\s*/, '');
       executedOrder.push(`start:${input}`);
+      queueFirstStarted?.();
       await new Promise((r) => setTimeout(r, 20));
       handlers.onRunId?.(`run_${input}`);
       handlers.onDelta(`jawaban untuk ${input}`);
@@ -364,9 +382,15 @@ describe('Fase 2c — Antrian Chat per Agen (Route Level)', () => {
       releaseActive = resolve;
     });
 
+    // Fix flake: sinyal nyata bahwa request pertama sudah benar-benar aktif.
+    const firstStarted = new Promise<void>((resolve) => {
+      queueFirstStarted = resolve;
+    });
+
     const origRunChatStream = mockClient.runChatStream;
     mockClient.runChatStream = async (_params: any, handlers: any) => {
       handlers.onRunId?.('run_blocking');
+      queueFirstStarted?.();
       await blockActive;
       handlers.onDelta('selesai');
       handlers.onDone();
@@ -381,8 +405,11 @@ describe('Fase 2c — Antrian Chat per Agen (Route Level)', () => {
         payload: { client_message_id: 'msg_block_active', messages: [{ role: 'user', content: 'blocking_run' }] },
       });
 
-      // Tunggu hingga request pertama aktif
-      await new Promise((r) => setTimeout(r, 20));
+      // Fix flake: tunggu request pertama BENAR-BENAR aktif (sinyal dari mock
+      // gateway), bukan sekian milidetik lewat. Tanpa ini, saat event loop
+      // sibuk kelima pesan bisa masuk sebelum yang pertama mulai, dan hitungan
+      // antrian jadi salah — tes 429 gagal tanpa ada yang rusak.
+      await firstStarted;
 
       // 5 menunggu di antrian
       const pendingPs = [];
@@ -397,8 +424,17 @@ describe('Fase 2c — Antrian Chat per Agen (Route Level)', () => {
         );
       }
 
-      // Tunggu hingga kelima-limanya masuk ke antrian
-      await new Promise((r) => setTimeout(r, 20));
+      // Antrian dihitung dari pemanggil yang SUDAH terdaftar. Menunggu sinyal
+      // yang sama tidak cukup (sudah resolve), jadi pakai kondisi nyata:
+      // jumlah pesan tertunda untuk agen ini sudah 5.
+      const queueDeadline = Date.now() + 5000;
+      while (
+        agentChatQueue.getPendingCount(agentId) < 5 &&
+        Date.now() < queueDeadline
+      ) {
+        await new Promise((r) => setTimeout(r, 5));
+      }
+      expect(agentChatQueue.getPendingCount(agentId)).toBe(5);
 
       // Request ke-7 (antrian ke-6) harus ditolak 429
       const overflowRes = await app.inject({

@@ -178,11 +178,22 @@ describe('Fase 2d — Idempotensi (client_message_id)', () => {
     });
 
     let executionCount = 0;
+    // Fix flake: dulu tes menunggu 20 ms dan BERASUMSI request 1 sudah sampai
+    // di runChatStream. Saat event loop sibuk, 20 ms bisa belum cukup —
+    // request 2 lalu dijalankan sebagai giliran BARU dan executionCount jadi 2.
+    // Kini request 1 memberi sinyal NYATA lewat `runStarted`, dan tes menunggu
+    // sinyal itu sebelum mengirim request 2.
+    let runStarted: () => void;
+    const started = new Promise<void>((r) => {
+      runStarted = r;
+    });
+
     const origRunChatStream = mockClient.runChatStream;
     mockClient.runChatStream = async (_params: any, handlers: any) => {
       executionCount++;
       handlers.onRunId?.('run_concurrent_idempotent');
       handlers.onDelta('Potongan 1 ');
+      runStarted!();
       await gate;
       handlers.onDelta('Potongan 2');
       handlers.onDone();
@@ -199,8 +210,8 @@ describe('Fase 2d — Idempotensi (client_message_id)', () => {
         },
       });
 
-      // Beri jeda kecil agar request 1 memulai run
-      await new Promise((r) => setTimeout(r, 20));
+      // Tunggu run pertama BENAR-BENAR mulai, bukan sekian milidetik lewat.
+      await started;
 
       const p2 = app.inject({
         method: 'POST',
@@ -212,7 +223,6 @@ describe('Fase 2d — Idempotensi (client_message_id)', () => {
         },
       });
 
-      await new Promise((r) => setTimeout(r, 20));
       releaseRun!();
 
       const [r1, r2] = await Promise.all([p1, p2]);

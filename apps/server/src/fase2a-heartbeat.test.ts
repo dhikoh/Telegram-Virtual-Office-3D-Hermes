@@ -14,13 +14,70 @@ import BetterSqlite3 from 'better-sqlite3';
 import { buildServer } from './server.js';
 import { runMigrations } from './db/migrator.js';
 import { createTelegramInitData } from './auth.test.js';
+import { HEARTBEAT_FRAME } from './services/agent-chat/heartbeat.js';
+
+// Hitung detak yang benar-benar ditulis route, supaya gateway tiruan bisa
+// menunggu KONDISI (jumlah detak) alih-alih DURASI (milidetik). Interval
+// setInterval tidak dijamin mendapat N tick dalam waktu tetap saat event loop
+// sibuk — itu akar flake-nya.
+vi.mock('./services/agent-chat/heartbeat.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./services/agent-chat/heartbeat.js')>();
+  return {
+    ...actual,
+    startHeartbeat: (intervalMs: number, write: (frame: string) => void) => {
+      if (!Number.isFinite(intervalMs) || intervalMs <= 0) return () => {};
+      const timer = setInterval(() => {
+        noteBeat();
+        write(HEARTBEAT_FRAME);
+      }, intervalMs);
+      timer.unref?.();
+      let stopped = false;
+      return () => {
+        if (stopped) return;
+        stopped = true;
+        clearInterval(timer);
+      };
+    },
+  };
+});
 
 const gateway = vi.hoisted(() => ({
   /** Berapa lama "gateway" berdiam diri sebelum menjawab (ms). */
   delayMs: 0,
+  /**
+   * Fix flake: gateway menunggu sampai SEJUMLAH detak terlihat, bukan sampai
+   * sekian milidetik lewat. Interval `setInterval` tidak dijamin mendapat N
+   * tick dalam durasi tetap — saat event loop sibuk (suite penuh berjalan),
+   * 110 ms bisa hanya menghasilkan 0 tick, dan tes ">= 3 detak" gagal tanpa
+   * ada yang rusak. Dengan menunggu kondisi, tes menguji apa yang memang
+   * dijaga: detak benar-benar mengalir selama gateway diam.
+   */
+  waitForBeats: 0,
+  beatsSeen: 0,
   sessionSystem: [] as (string | undefined)[],
   makeSession: true,
 }));
+
+/** Tunggu sampai gateway melihat `n` detak (dipanggil dari route lewat writeEvent). */
+function noteBeat(): void {
+  gateway.beatsSeen += 1;
+}
+
+/**
+ * Gateway "diam" sampai detak yang diminta terlihat.
+ *
+ * `waitForBeats = 0` berarti tidak menunggu sama sekali (jalur cepat). Batas
+ * atas 5 detik mencegah tes menggantung selamanya bila detak berhenti mengalir
+ * — kegagalan harus muncul sebagai assertion, bukan timeout bisu.
+ */
+async function waitForBeats(): Promise<void> {
+  const target = gateway.waitForBeats;
+  if (target <= 0) return;
+  const deadline = Date.now() + 5000;
+  while (gateway.beatsSeen < target && Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 5));
+  }
+}
 
 vi.mock('./services/hermes/index.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./services/hermes/index.js')>();
@@ -39,7 +96,7 @@ vi.mock('./services/hermes/index.js', async (importOriginal) => {
     streamEvents: async () => () => {},
     chatStream: async () => {
       // Jalur stateless juga harus membuktikan detaknya: stub ikut menunda.
-      if (gateway.delayMs > 0) await new Promise((r) => setTimeout(r, gateway.delayMs));
+      await waitForBeats();
     },
     listModels: async () => ['hermes-agent'],
     createSession: async () => (gateway.makeSession ? 'sess_hb' : null),
@@ -52,7 +109,7 @@ vi.mock('./services/hermes/index.js', async (importOriginal) => {
       systemPrompt?: string
     ) => {
       gateway.sessionSystem.push(systemPrompt);
-      if (gateway.delayMs > 0) await new Promise((r) => setTimeout(r, gateway.delayMs));
+      await waitForBeats();
       onDelta('jawaban');
     },
     listSkills: async () => [],
@@ -91,6 +148,8 @@ describe('Fase 2a — detak stream chat', () => {
 
   beforeEach(() => {
     gateway.delayMs = 0;
+    gateway.waitForBeats = 0;
+    gateway.beatsSeen = 0;
     gateway.sessionSystem = [];
     gateway.makeSession = true;
     db.prepare('DELETE FROM agent_sessions WHERE agent_id = ?').run(AGENT_ID);
@@ -117,7 +176,10 @@ describe('Fase 2a — detak stream chat', () => {
     });
 
   it('menunggu tool yang lama tetap mengirim detak, lalu menutup dengan bersih', async () => {
-    gateway.delayMs = 110; // > 4 interval
+    // Fix flake: gateway menunggu 3 DETAK NYATA, bukan 110 ms. Saat event loop
+    // sibuk, 110 ms bisa hanya menghasilkan 0 tick dan tes ini gagal tanpa ada
+    // yang rusak. Yang dijaga: detak mengalir selama gateway diam.
+    gateway.waitForBeats = 3;
     const res = await chat();
     expect(res.statusCode).toBe(200);
 
@@ -134,20 +196,21 @@ describe('Fase 2a — detak stream chat', () => {
   });
 
   it('jumlah detak tiap stream dibatasi oleh durasi streamnya sendiri', async () => {
-    gateway.delayMs = 60; // ~2-3 detak pada interval 25 ms
+    // Fix flake: dulu tes ini menunggu 60 ms dan mengizinkan 1..5 detak. Saat
+    // event loop sibuk, 60 ms bisa 0 detak (gagal batas bawah) — dan bila
+    // interval bocor, jumlahnya tumbuh tanpa batas. Kini gateway menunggu 2
+    // detak, lalu yang diperiksa adalah TIDAK ADA AKUMULASI: stream pendek
+    // tidak boleh mewarisi detak dari stream sebelumnya.
+    gateway.waitForBeats = 2;
     const res = await chat();
     const beats = res.body.split(': hb').length - 1;
-    // Bila interval bocor antar-permintaan, angka ini akan tumbuh tanpa batas.
-    // Batas atasnya sengaja longgar: yang dijaga bukan presisi timing, tapi
-    // ketiadaan akumulasi. Pembersihan timer sendiri diuji di unit test
-    // heartbeat.test.ts (stop() melepaskan interval).
-    expect(beats).toBeGreaterThanOrEqual(1);
+    expect(beats).toBeGreaterThanOrEqual(2);
     expect(beats).toBeLessThanOrEqual(5);
   });
 
   it('jalur stateless juga hidup — heartbeat bukan milik jalur sesi saja', async () => {
     gateway.makeSession = false;
-    gateway.delayMs = 110;
+    gateway.waitForBeats = 3;
     const res = await chat();
     expect(res.statusCode).toBe(200);
     expect(res.body.split(': hb').length - 1).toBeGreaterThanOrEqual(3);

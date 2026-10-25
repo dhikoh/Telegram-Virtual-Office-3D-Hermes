@@ -439,11 +439,23 @@ describe('Adversarial & State Matrix Tests (Rule C5 & C9)', () => {
     // Agent entered working/thinking
     expect(['thinking', 'working']).toContain(dispatcher.getAgentStatus(dropAgentId).status);
 
-    // Wait for stream to drop, retry, and status recovery to execute
-    await new Promise((resolve) => setTimeout(resolve, 1200));
+    // Fix flake: dulu tes menunggu 1200 ms TETAP lalu berharap pemulihan sudah
+    // selesai. Pemulihan butuh 5 kali retry ber-backoff
+    // (10+20+40+80+200 = 350 ms) plus satu poll status — saat event loop sibuk
+    // (suite penuh), 1200 ms bisa habis sebelum rantai selesai, dan agen masih
+    // 'working'. Kini tes MENUNGGU KONDISI: status agen benar-benar keluar dari
+    // working/thinking, dengan batas waktu supaya kegagalan tetap assertion.
+    const deadline = Date.now() + 10000;
+    let finalStatus = dispatcher.getAgentStatus(dropAgentId).status;
+    while (
+      (finalStatus === 'working' || finalStatus === 'thinking') &&
+      Date.now() < deadline
+    ) {
+      await new Promise((r) => setTimeout(r, 25));
+      finalStatus = dispatcher.getAgentStatus(dropAgentId).status;
+    }
 
     // Agent must NOT stay stuck in 'working' or 'thinking'
-    const finalStatus = dispatcher.getAgentStatus(dropAgentId).status;
     expect(finalStatus).not.toBe('working');
     expect(finalStatus).not.toBe('thinking');
     expect(['idle', 'error', 'offline']).toContain(finalStatus);

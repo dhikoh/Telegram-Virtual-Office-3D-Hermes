@@ -575,8 +575,20 @@ describe('Artefak otomatis dari stream run', () => {
       });
       expect(run.statusCode).toBe(200);
 
-      // Event stream memicu handleRunEvent pada microtask berikutnya.
-      await new Promise((resolve) => setTimeout(resolve, 30));
+      // Fix flake: menunggu 30 ms TETAP lalu berharap handleRunEvent sudah
+      // jalan. Saat event loop sibuk, 30 ms bisa belum cukup dan task masih
+      // 'running'. Kini tes menunggu KONDISI: task mencapai status terminal.
+      const deadline = Date.now() + 10000;
+      let settled: { id: string; status: string } | undefined;
+      while (Date.now() < deadline) {
+        const list = await app.inject({ method: 'GET', url: '/api/tasks', headers: authHeader });
+        expect(list.statusCode).toBe(200);
+        const tasks = JSON.parse(list.body) as { id: string; status: string }[];
+        settled = tasks.find((t) => t.id === 'task_e2e');
+        if (settled && (settled.status === 'done' || settled.status === 'failed')) break;
+        await new Promise((resolve) => setTimeout(resolve, 25));
+      }
+      expect(settled?.status).toBe('done');
 
       const list = await app.inject({ method: 'GET', url: '/api/tasks', headers: authHeader });
       expect(list.statusCode).toBe(200);

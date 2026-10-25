@@ -232,42 +232,63 @@ describe('Server Core, Routes & Lifecycle (Phase 2 & 5)', () => {
       const { run_id } = JSON.parse(runRes.body);
       expect(run_id).toBeDefined();
 
-      // Allow event stream to process and generate approval request
-      await new Promise((r) => setTimeout(r, 800));
-
-      const approvalsRes = await app.inject({
-        method: 'GET',
-        url: '/api/approvals',
-        headers: authHeader,
-      });
-      expect(approvalsRes.statusCode).toBe(200);
-      const approvals = JSON.parse(approvalsRes.body);
-      expect(approvals.length).toBeGreaterThan(0);
-
-      const pendingApproval = approvals.find((a: { run_id: string; id: string }) => a.run_id === run_id);
+      // Fix flake: menunggu 800 ms TETAP lalu berharap approval sudah terbentuk.
+      // Saat event loop sibuk (suite penuh), stream bisa belum sempat memproses
+      // dan daftar approval masih kosong. Kini tes menunggu KONDISI: approval
+      // untuk run ini benar-benar ada. Daftar kosong bukan kegagalan — itu
+      // alasan loop terus mencoba sampai batas waktu.
+      const approvalDeadline = Date.now() + 10000;
+      let pendingApproval: { run_id: string; id: string } | undefined;
+      while (Date.now() < approvalDeadline) {
+        const approvalsRes = await app.inject({
+          method: 'GET',
+          url: '/api/approvals',
+          headers: authHeader,
+        });
+        expect(approvalsRes.statusCode).toBe(200);
+        const approvals = JSON.parse(approvalsRes.body) as { run_id: string; id: string }[];
+        pendingApproval = approvals.find((a) => a.run_id === run_id);
+        if (pendingApproval) break;
+        await new Promise((r) => setTimeout(r, 25));
+      }
       expect(pendingApproval).toBeDefined();
 
       // Resolve approval
       const resolveRes = await app.inject({
         method: 'POST',
-        url: `/api/approvals/${pendingApproval.id}/resolve`,
+        url: `/api/approvals/${pendingApproval!.id}/resolve`,
         headers: jsonHeaders,
         body: JSON.stringify({ decision: 'approve' }),
       });
       expect(resolveRes.statusCode).toBe(200);
 
-      // Wait for task completion
-      await new Promise((r) => setTimeout(r, 600));
-
-      const updatedTaskRes = await app.inject({
-        method: 'GET',
-        url: '/api/tasks',
-        headers: authHeader,
-      });
-      const tasks = JSON.parse(updatedTaskRes.body);
-      const finishedTask = tasks.find((t: { id: string; status: string; result_md: string }) => t.id === task.id);
-      expect(finishedTask.status).toBe('done');
-      expect(finishedTask.result_md).toBeDefined();
+      // Fix flake: menunggu 600 ms TETAP lalu berharap task sudah selesai.
+      // Kini tes menunggu KONDISI: task benar-benar mencapai status terminal.
+      // Catatan: 'needs_approval' BUKAN terminal — task bisa masuk ke sana
+      // setelah approval di-resolve, jadi loop harus terus menunggu sampai
+      // 'done'/'failed' benar-benar tercapai.
+      const taskDeadline = Date.now() + 10000;
+      let finishedTask: { id: string; status: string; result_md: string } | undefined;
+      while (Date.now() < taskDeadline) {
+        const updatedTaskRes = await app.inject({
+          method: 'GET',
+          url: '/api/tasks',
+          headers: authHeader,
+        });
+        expect(updatedTaskRes.statusCode).toBe(200);
+        const tasks = JSON.parse(updatedTaskRes.body) as {
+          id: string;
+          status: string;
+          result_md: string;
+        }[];
+        finishedTask = tasks.find((t) => t.id === task.id);
+        if (finishedTask && (finishedTask.status === 'done' || finishedTask.status === 'failed')) {
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 25));
+      }
+      expect(finishedTask?.status).toBe('done');
+      expect(finishedTask?.result_md).toBeDefined();
     });
 
     it('creates and retrieves KPIs and audit log entries', async () => {
