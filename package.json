@@ -16,6 +16,8 @@
     "gap-check": "node --experimental-strip-types scripts/gap-check.ts",
     "mock:hermes": "node --experimental-strip-types tools/mock-hermes/src/index.ts",
     "provision:backfill": "node --experimental-strip-types scripts/provision-backfill.ts",
+    "runs:reap": "node --experimental-strip-types scripts/runs-reap.ts",
+    "backfill:runs": "node --experimental-strip-types scripts/backfill-runs.ts",
     "skills:sync": "node --experimental-strip-types scripts/skills-sync.ts"
   },
   "devDependencies": {
