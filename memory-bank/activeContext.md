@@ -58,8 +58,15 @@
 ---
 
 ## 2. Fokus & Prioritas Kerja Aktif
-- **Tahap 20 (Endpoint Mode & Auto-Detect Model) telah selesai 100%** — `tsc --build` 0, `vitest run` 1124/106 hijau, `gap-check` 8/8 (Phase 20). Isinya: `stripApiSuffix()` (bug `/v1/v1`), endpoint read-only `GET /api/agents/:id/models`, `api.listAgentModels()`, toggle `Ikuti Server`/`Custom`, panel model A-Z, dan prioritas model berurutan + rantai fallback per agen (tanpa migrasi, DEC-051..056, REQ-120..126).
-- Menunggu arahan pengguna: perubahan Tahap 20 sudah di-commit dan di-push; langkah berikutnya menunggu arahan (mis. verifikasi di Telegram/VPS atau penyesuaian UI).
+- **Fix Identitas Agen & Keandalan Run (branch `fix/agent-identity-and-run-reliability`) — T1 s/d T4 selesai, 5 commit, belum di-push.**
+  Akar masalah terbukti dari bukti produksi (25 Okt 2026): relay `api.trustisgold.web.id` menyuntikkan system prompt 34k token berisi larangan menyebut nama, dan Hermes menaruh `ephemeral_system_prompt` di BELAKANG system prompt utama — jadi identitas yang dikirim sebagai `system_message` kalah. Agen "Bagas" menjawab "Siapa namamu" dengan "Saya asisten dari Trust Is Gold".
+  - T1 `identity-scope.ts`: blok identitas ditempel DI DEPAN pesan user (satu-satunya teks yang tidak bisa ditimpa relay), idempoten, dibersihkan saat riwayat dibaca. Lapisan `system_message` lama TIDAK dihapus.
+  - T2 `stale-run-reaper.ts` + migrasi `013`: run 'running' yang mati ditutup menjadi 'interrupted' (startup, socket 'close', dan turn tanpa event terminal).
+  - T3 `task-materializer.ts`: setiap run yang menyelesaikan giliran → tepat satu task (sebelumnya hanya turn ber-tool).
+  - T4 `scripts/backfill-runs.ts`: backfill run/task/pesan lama; sesi tanpa run dilaporkan sebagai OPEN QUESTION, tidak ditebak.
+- **Sisa (BUKAN milik repo ini — dikerjakan pemilik di VPS):** V1 s.d V4 — daftarkan provider OpenRouter di config Hermes, simpan `OPENROUTER_API_KEY` di `/root/.hermes/.env`, `/restart` lalu `/model or --global`, verifikasi jawaban tidak lagi "Trust Is Gold" dan log menunjukkan `deepseek/deepseek-v4.1-flash`. Kriteria selesai #1 hanya bisa diverifikasi nyata setelah provider diganti.
+- **Gate terakhir branch ini:** `tsc --build` 0, `vitest run` hijau (kecuali `tahap11.test.ts > membuat tugas hapus` yang sudah gagal di commit dasar `fe6015b` — race `['running','done']` vs `'queued'`, bukan regresi), `gap-check` 8/8 (Phase 20).
+- Menunggu arahan pengguna: push branch dan/atau eksekusi bagian VPS.
 
 ---
 
