@@ -17,7 +17,8 @@
  *    supaya riwayat kerja agen terlihat penuh, bukan cuma yang memakai tool.
  *  - turn yang gagal SEBELUM tool pertama → tidak ada task (tidak ada yang
  *    bisa dilaporkan sebagai pekerjaan).
- * Idempoten lewat UNIQUE(run_id) (migrasi 013) + `getByRunId` sebelum insert.
+ * Idempoten lewat `getByRunId` sebelum insert + indeks UNIQUE partial
+ * `idx_tasks_run_id_chat_unique` (migrasi 013, HANYA source='chat').
  */
 import type Database from 'better-sqlite3';
 import { TaskRepository } from '../../db/repositories/tasks.js';
@@ -46,8 +47,10 @@ export class ChatTaskMaterializer {
    *
    * Satu pintu untuk kedua jalur (tool pertama maupun turn obrolan biasa)
    * supaya aturan "satu run = satu task" hanya ditulis sekali. Idempoten:
-   * `getByRunId` diperiksa lebih dulu, dan migrasi 013 memasang
-   * UNIQUE(run_id) sebagai jaring pengaman tingkat database.
+   * `getByRunId` diperiksa lebih dulu, dan migrasi 013 memasang indeks UNIQUE
+   * partial `idx_tasks_run_id_chat_unique` (run_id NOT NULL AND
+   * source='chat') sebagai jaring pengaman tingkat database — dibatasi ke
+   * source 'chat' karena task orkestrator/cron boleh berbagi run_id gateway.
    */
   private ensureTask(
     runId: string,

@@ -5,8 +5,9 @@
  * berjalan (bukan cuma ada berkasnya), dan indeksnya terbentuk seperti yang
  * dijanjikan:
  *  - `idx_agent_runs_status_started` — query reaper tidak jadi table scan.
- *  - `idx_tasks_run_id_unique` (partial, WHERE run_id IS NOT NULL) — jaring
- *    pengaman tingkat database untuk "satu run = satu task".
+ *  - `idx_tasks_run_id_chat_unique` (partial: run_id NOT NULL AND
+ *    source='chat') — jaring pengaman "satu run = satu task" HANYA untuk
+ *    task yang dimaterialkan dari giliran chat.
  *
  * Migrasi lama (001..012) harus tetap terpasang: 013 tidak boleh menggeser
  * atau menggantikan apa pun yang sudah ada.
@@ -59,7 +60,7 @@ describe('Migrasi 013 — indeks run nyangkut & task per run', () => {
     }
   });
 
-  it('idx_tasks_run_id_unique terbentuk dan benar-benar UNIQUE', () => {
+  it('idx_tasks_run_id_chat_unique terbentuk dan benar-benar UNIQUE', () => {
     const db = new BetterSqlite3(':memory:');
     db.pragma('foreign_keys = ON');
     try {
@@ -86,6 +87,42 @@ describe('Migrasi 013 — indeks run nyangkut & task per run', () => {
       insert.run('task_mig_c', null, now, now);
       insert.run('task_mig_d', null, now, now);
       const count = db.prepare('SELECT COUNT(*) AS c FROM tasks').get() as { c: number };
+      expect(count.c).toBe(3);
+    } finally {
+      db.close();
+    }
+  });
+
+  // Regresi: indeks UNIQUE atas run_id SAJA membuat task orkestrator (skill
+  // install/uninstall, cron) gagal total saat gateway memulangkan run_id yang
+  // sama — runTask melempar, task tertinggal 'queued' selamanya. Karena itu
+  // indeksnya dibatasi ke source='chat'.
+  it('task NON-chat dengan run_id sama TIDAK ditolak (regresi orkestrator)', () => {
+    const db = new BetterSqlite3(':memory:');
+    db.pragma('foreign_keys = ON');
+    try {
+      runMigrations(db);
+      const now = Date.now();
+      db.prepare(
+        `INSERT INTO agents (id, name, role, department, avatar, avatar_style, soul_summary,
+           hermes_profile, active, hired_at, created_at)
+         VALUES ('agent_mig013b', 'Orion', 'Orkestrator', 'command', 'bot', '{}', 'asisten',
+                 'default', 1, ?, ?)`
+      ).run(now, now);
+
+      const insert = db.prepare(
+        `INSERT INTO tasks (id, title, description, agent_id, priority, status, run_id, result_md,
+           due_at, created_by, created_at, updated_at, source, tool_calls_count)
+         VALUES (?, 't', '', 'agent_mig013b', 'normal', 'running', ?, NULL, NULL, 1, ?, ?, ?, 0)`
+      );
+      // Dua task orkestrator (source 'manual') berbagi run_id gateway yang sama.
+      insert.run('task_orc_a', 'run_skill_mock', now, now, 'manual');
+      insert.run('task_orc_b', 'run_skill_mock', now, now, 'manual');
+      insert.run('task_orc_c', 'run_skill_mock', now, now, 'cron');
+
+      const count = db
+        .prepare("SELECT COUNT(*) AS c FROM tasks WHERE run_id = 'run_skill_mock'")
+        .get() as { c: number };
       expect(count.c).toBe(3);
     } finally {
       db.close();

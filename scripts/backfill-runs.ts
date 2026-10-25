@@ -10,7 +10,8 @@
  *  1. Tutup run 'running' yang sudah mati menjadi 'interrupted' (T2).
  *  2. Untuk setiap run yang sudah selesai TAPI belum punya task, buat tepat
  *     satu task dari run_events (judul dari pesan user, isi dari delta
- *     assistant). Idempoten: UNIQUE(run_id) + getByRunId.
+ *     assistant). Idempoten: `getByRunId` + indeks UNIQUE partial
+ *     `idx_tasks_run_id_chat_unique` (migrasi 013, hanya source='chat').
  *  3. agent_messages yang hilang untuk sesi lama diisi dari run_events
  *     (pesan user dari event 'run.started' bila ada client_message_id, dan
  *     jawaban assistant dari gabungan delta).
@@ -232,8 +233,12 @@ export function runBackfillRuns(options: BackfillRunsOptions = {}): BackfillRuns
         (run.status === 'failed' ? 'Run lama gagal sebelum menghasilkan jawaban.' : 'Backfill run lama.');
 
       if (!dryRun) {
+        // INSERT OR IGNORE: jaring pengaman lapis dua. getByRunId sudah
+        // diperiksa di atas, dan indeks UNIQUE partial migrasi 013 menolak
+        // duplikat untuk source 'chat' — OR IGNORE membuat backfill yang
+        // terpicu dua kali tidak melempar, hanya melewati baris yang ada.
         db.prepare(
-          `INSERT INTO tasks (id, title, description, agent_id, priority, status, run_id,
+          `INSERT OR IGNORE INTO tasks (id, title, description, agent_id, priority, status, run_id,
              result_md, due_at, created_by, created_at, updated_at, source, tool_calls_count)
            VALUES (?, ?, '', ?, 'normal', ?, ?, ?, NULL, 1, ?, ?, 'chat', 0)`
         ).run(taskId, title, run.agent_id, status, run.id, resultMd, now, now);

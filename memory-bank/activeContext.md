@@ -65,7 +65,8 @@
   - T3 `task-materializer.ts`: setiap run yang menyelesaikan giliran → tepat satu task (sebelumnya hanya turn ber-tool).
   - T4 `scripts/backfill-runs.ts`: backfill run/task/pesan lama; sesi tanpa run dilaporkan sebagai OPEN QUESTION, tidak ditebak.
 - **Sisa (BUKAN milik repo ini — dikerjakan pemilik di VPS):** V1 s.d V4 — daftarkan provider OpenRouter di config Hermes, simpan `OPENROUTER_API_KEY` di `/root/.hermes/.env`, `/restart` lalu `/model or --global`, verifikasi jawaban tidak lagi "Trust Is Gold" dan log menunjukkan `deepseek/deepseek-v4.1-flash`. Kriteria selesai #1 hanya bisa diverifikasi nyata setelah provider diganti.
-- **Gate terakhir branch ini:** `tsc --build` 0, `vitest run` hijau (kecuali `tahap11.test.ts > membuat tugas hapus` yang sudah gagal di commit dasar `fe6015b` — race `['running','done']` vs `'queued'`, bukan regresi), `gap-check` 8/8 (Phase 20).
+- **KOREKSI DIAGNOSIS 2026-10-25:** kegagalan `tahap11.test.ts > membuat tugas hapus` BUKAN flake/pre-existing — itu regresi migrasi 013 branch ini. `UNIQUE INDEX ON tasks(run_id)` tanpa filter source membuat task orkestrator kedua (run_id gateway sama) gagal INSERT → `runTask` melempar → task nyangkut `'queued'`. Sudah diperbaiki: indeks dibatasi ke `source='chat'` (`idx_tasks_run_id_chat_unique`), backfill memakai `INSERT OR IGNORE`, plus tes regresi khusus.
+- **Gate terakhir branch ini:** `tsc --build` 0, `vitest run` hijau, `gap-check` 8/8 (Phase 20).
 - Menunggu arahan pengguna: push branch dan/atau eksekusi bagian VPS.
 
 ---

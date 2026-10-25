@@ -9,9 +9,18 @@
 CREATE INDEX IF NOT EXISTS idx_agent_runs_status_started
   ON agent_runs(status, started_at);
 
--- Satu task per run: jaring pengaman tingkat database untuk materialisasi task
--- (T3). Tanpa ini, backfill atau reattach yang terpicu dua kali bisa
--- menggandakan task untuk run yang sama.
-CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_run_id_unique
+-- Satu task per run untuk jalur CHAT: jaring pengaman tingkat database untuk
+-- materialisasi task (T3), supaya backfill atau reattach yang terpicu dua kali
+-- tidak menggandakan task untuk run yang sama.
+--
+-- PENTING — dibatasi ke source='chat'. Indeks UNIQUE atas run_id saja TIDAK
+-- bisa dipakai: task orkestrator (skill install/uninstall, cron) berbagi
+-- run_id gateway yang sama saat gateway memulangkan id duplikat, dan UNIQUE
+-- global membuat INSERT task kedua GAGAL total — runTask melempar, task
+-- tertinggal 'queued' selamanya. Yang dijamin benar-benar satu per run hanyalah
+-- task yang DIMATERIALKAN dari sebuah giliran chat, dan itu punya source 'chat'.
+--
+-- run_id NULL (task manual) tidak pernah masuk indeks partial ini.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_run_id_chat_unique
   ON tasks(run_id)
-  WHERE run_id IS NOT NULL;
+  WHERE run_id IS NOT NULL AND source = 'chat';
