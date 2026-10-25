@@ -7,10 +7,22 @@
  *     (status 'running', source 'chat', run_id, tool_calls_count).
  *  2. Begitu run selesai, status task diperbarui menjadi 'done' atau 'failed'.
  *  3. Obrolan biasa (casual chat) tanpa pemanggilan tool TIDAK PERNAH dibuatkan task.
+ *
+ * Fix materialisasi (25 Okt 2026): bukti produksi menunjukkan 10 run hanya
+ * menghasilkan 1 task — karena hanya turn yang memanggil tool yang dibuatkan
+ * task, sementara turn obrolan biasa (mayoritas) tidak menghasilkan apa pun.
+ * Sekarang SETIAP run yang menyelesaikan giliran menghasilkan tepat satu task:
+ *  - turn dengan tool  → task dibuat saat tool pertama (source 'chat').
+ *  - turn obrolan biasa → task dibuat saat run selesai (source 'chat'),
+ *    supaya riwayat kerja agen terlihat penuh, bukan cuma yang memakai tool.
+ *  - turn yang gagal SEBELUM tool pertama → tidak ada task (tidak ada yang
+ *    bisa dilaporkan sebagai pekerjaan).
+ * Idempoten lewat UNIQUE(run_id) (migrasi 013) + `getByRunId` sebelum insert.
  */
 import type Database from 'better-sqlite3';
 import { TaskRepository } from '../../db/repositories/tasks.js';
 import type { Task } from '@hermes-office/shared';
+import { stripIdentity } from '../hermes/identity-scope.js';
 import { streamManager } from '../stream.js';
 
 export interface MaterializeToolCallOptions {
@@ -27,6 +39,78 @@ export class ChatTaskMaterializer {
 
   constructor(private db: Database.Database) {
     this.taskRepo = new TaskRepository(db);
+  }
+
+  /**
+   * Pastikan ADA tepat satu task untuk `runId` — buat bila belum ada.
+   *
+   * Satu pintu untuk kedua jalur (tool pertama maupun turn obrolan biasa)
+   * supaya aturan "satu run = satu task" hanya ditulis sekali. Idempoten:
+   * `getByRunId` diperiksa lebih dulu, dan migrasi 013 memasang
+   * UNIQUE(run_id) sebagai jaring pengaman tingkat database.
+   */
+  private ensureTask(
+    runId: string,
+    agentId: string,
+    userInput?: string,
+    createdBy?: number,
+    toolName?: string
+  ): Task | null {
+    const existing = this.taskRepo.getByRunId(runId);
+    if (existing) return existing;
+
+    const now = Date.now();
+    const taskId = `task_chat_${now}_${Math.random().toString(36).substring(2, 6)}`;
+
+    // Judul ringkas dan informatif: pesan pemilik dulu, nama tool sebagai cadangan.
+    // Pesan keluar bisa berprefiks blok identitas (fix identitas) — blok itu
+    // milik aplikasi, bukan milik pemilik, jadi tidak boleh muncul sebagai
+    // judul task yang ia lihat.
+    let title = 'Tugas Obrolan';
+    const cleanInput = stripIdentity(userInput?.trim().replace(/\s+/g, ' ') ?? '');
+    if (cleanInput) {
+      title = cleanInput.length > 80 ? `${cleanInput.slice(0, 77)}...` : cleanInput;
+    } else if (toolName) {
+      title = `Eksekusi Tool: ${toolName}`;
+    }
+
+    const description = toolName
+      ? `Tugas otomatis dibuat dari pemanggilan tool '${toolName}' dalam percakapan.`
+      : 'Tugas otomatis dibuat dari giliran obrolan dengan agen.';
+
+    const newTask: Task = {
+      id: taskId,
+      title,
+      description,
+      agent_id: agentId,
+      priority: 'normal',
+      status: 'running',
+      run_id: runId,
+      result_md: null,
+      due_at: null,
+      created_by: createdBy ?? 1,
+      created_at: now,
+      updated_at: now,
+      source: 'chat',
+      tool_calls_count: toolName ? 1 : 0,
+    };
+
+    this.taskRepo.create(newTask);
+
+    streamManager.broadcast({
+      type: 'task_update',
+      agent_id: agentId,
+      task: {
+        id: newTask.id,
+        status: newTask.status,
+        title: newTask.title,
+        agent_id: agentId,
+        updated_at: now,
+      },
+      timestamp: now,
+    });
+
+    return newTask;
   }
 
   /**
@@ -54,63 +138,52 @@ export class ChatTaskMaterializer {
       return updated;
     }
 
-    const now = Date.now();
-    const taskId = `task_chat_${now}_${Math.random().toString(36).substring(2, 6)}`;
-
-    // Tentukan judul task yang ringkas dan informatif
-    let title = 'Tugas Obrolan';
-    if (options.userInput && options.userInput.trim()) {
-      const cleanInput = options.userInput.trim().replace(/\s+/g, ' ');
-      title = cleanInput.length > 80 ? `${cleanInput.slice(0, 77)}...` : cleanInput;
-    } else if (options.toolName) {
-      title = `Eksekusi Tool: ${options.toolName}`;
+    // Tool pertama untuk run ini — task dibuat lewat satu pintu yang sama
+    // dengan jalur obrolan biasa supaya aturan "satu run = satu task" hanya
+    // ditulis sekali.
+    const created = this.ensureTask(
+      options.runId,
+      options.agentId,
+      options.userInput,
+      options.createdBy,
+      options.toolName
+    );
+    if (!created) {
+      // ensureTask hanya mengembalikan null bila task sudah ada — sudah
+      // diperiksa di atas, jadi cabang ini tidak terjangkau. Dibuang ke
+      // penanganan eksplisit alih-alih assertion supaya tipe tetap jujur.
+      throw new Error(`ensureTask gagal membuat task untuk run ${options.runId}`);
     }
-
-    const description = options.toolName
-      ? `Tugas otomatis dibuat dari pemanggilan tool '${options.toolName}' dalam percakapan.`
-      : 'Tugas otomatis dibuat dari eksekusi tool dalam percakapan.';
-
-    const newTask: Task = {
-      id: taskId,
-      title,
-      description,
-      agent_id: options.agentId,
-      priority: 'normal',
-      status: 'running',
-      run_id: options.runId,
-      result_md: null,
-      due_at: null,
-      created_by: options.createdBy ?? 1,
-      created_at: now,
-      updated_at: now,
-      source: 'chat',
-      tool_calls_count: 1,
-    };
-
-    this.taskRepo.create(newTask);
-
-    streamManager.broadcast({
-      type: 'task_update',
-      agent_id: options.agentId,
-      task: {
-        id: newTask.id,
-        status: newTask.status,
-        title: newTask.title,
-        agent_id: options.agentId,
-        updated_at: newTask.updated_at,
-      },
-      timestamp: now,
-    });
-
-    return newTask;
+    return created;
   }
 
   /**
    * Dipanggil saat run selesai (`run.completed` / `onDone`).
-   * Jika ada task untuk `runId` ini, perbarui status menjadi 'done'.
+   *
+   * Fix materialisasi: bila run selesai TANPA satu pun pemanggilan tool
+   * (turn obrolan biasa), task dibuat di sini — supaya setiap run yang
+   * menyelesaikan giliran punya tepat satu task. Turn yang sudah punya task
+   * (karena memanggil tool) hanya diperbarui statusnya.
+   *
+   * @param userInput  pesan pemilik untuk giliran ini (judul task)
+   * @param agentId    agen pemilik run (dibutuhkan bila task belum ada)
+   * @param createdBy  id pemilik (opsional)
    */
-  public completeTask(runId: string, resultMd?: string): Task | null {
-    const task = this.taskRepo.getByRunId(runId);
+  public completeTask(
+    runId: string,
+    resultMd?: string,
+    options: { userInput?: string; agentId?: string; createdBy?: number } = {}
+  ): Task | null {
+    let task = this.taskRepo.getByRunId(runId);
+
+    // Turn obrolan biasa: belum ada task untuk run ini → buat sekarang.
+    // Tanpa agentId tidak ada agen yang bisa disebut sebagai pemilik task,
+    // jadi dipanggil tanpa agentId task TIDAK dikarang (jaga perilaku lama
+    // untuk pemanggil yang tidak memberi konteks).
+    if (!task && options.agentId) {
+      task = this.ensureTask(runId, options.agentId, options.userInput, options.createdBy);
+    }
+
     if (!task) return null;
 
     const now = Date.now();

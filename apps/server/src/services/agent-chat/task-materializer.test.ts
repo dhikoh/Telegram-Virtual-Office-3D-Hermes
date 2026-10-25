@@ -41,15 +41,67 @@ describe('ChatTaskMaterializer (Fase 4b — Task Visibility & Materialization)',
     db.close();
   });
 
-  it('casual chat without tool calls leaves tasks table empty', () => {
-    // Obrolan tanpa pemanggilan tool
-    const initialTasks = taskRepo.getAll();
-    expect(initialTasks.length).toBe(0);
-
-    // Saat run selesai tanpa tool, completeTask mengembalikan null
+  // Fix materialisasi (25 Okt 2026): aturan lama "obrolan biasa tidak pernah
+  // dibuatkan task" adalah penyebab 10 run hanya menghasilkan 1 task. Sekarang
+  // setiap run yang MENYELESAIKAN giliran menghasilkan tepat satu task.
+  // completeTask tanpa konteks agen (pemanggil lama) tetap tidak mengarang task.
+  it('casual chat yang selesai TANPA konteks agen tidak membuat task (perilaku lama)', () => {
     const res = materializer.completeTask('run_casual_123', 'Halo juga! Ada yang bisa dibantu?');
     expect(res).toBeNull();
+    expect(taskRepo.getAll().length).toBe(0);
+  });
 
+  it('casual chat yang selesai DENGAN konteks agen membuat tepat satu task', () => {
+    const res = materializer.completeTask('run_casual_ctx', 'Halo juga!', {
+      userInput: 'Siapa namamu, perkenalkan dirimu',
+      agentId: AGENT_ID,
+      createdBy: 7,
+    });
+
+    expect(res).toBeDefined();
+    expect(res?.run_id).toBe('run_casual_ctx');
+    expect(res?.agent_id).toBe(AGENT_ID);
+    expect(res?.source).toBe('chat');
+    expect(res?.status).toBe('done');
+    expect(res?.title).toBe('Siapa namamu, perkenalkan dirimu');
+    expect(res?.result_md).toBe('Halo juga!');
+    expect(res?.created_by).toBe(7);
+    expect(res?.tool_calls_count).toBe(0);
+
+    // Tepat satu task, bukan dua.
+    expect(taskRepo.getAll().length).toBe(1);
+  });
+
+  it('run yang sudah punya task (lewat tool) tidak digandakan saat selesai', () => {
+    const runId = 'run_tool_then_done';
+    const fromTool = materializer.recordToolCall({
+      runId,
+      agentId: AGENT_ID,
+      userInput: 'Cari prospek',
+      toolName: 'search_prospects',
+    });
+    expect(fromTool.tool_calls_count).toBe(1);
+
+    const completed = materializer.completeTask(runId, 'Ditemukan 12 prospek.', {
+      userInput: 'Cari prospek',
+      agentId: AGENT_ID,
+    });
+
+    expect(completed?.id).toBe(fromTool.id);
+    expect(completed?.status).toBe('done');
+    expect(taskRepo.getAll().length).toBe(1);
+  });
+
+  it('completeTask dua kali untuk run yang sama tidak membuat task kedua', () => {
+    const runId = 'run_double_complete';
+    materializer.completeTask(runId, 'jawaban', { userInput: 'halo', agentId: AGENT_ID });
+    materializer.completeTask(runId, 'jawaban lagi', { userInput: 'halo', agentId: AGENT_ID });
+    expect(taskRepo.getAll().length).toBe(1);
+  });
+
+  it('turn yang gagal sebelum tool pertama tidak membuat task', () => {
+    const failed = materializer.failTask('run_fail_before_tool', 'gateway mati');
+    expect(failed).toBeNull();
     expect(taskRepo.getAll().length).toBe(0);
   });
 

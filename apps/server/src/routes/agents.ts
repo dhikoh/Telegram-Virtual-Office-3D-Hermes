@@ -1213,7 +1213,15 @@ export const agentRoutes: FastifyPluginAsync<AgentRoutesOptions> = async (fastif
                       onDone: () => {
                         stallDetector.stop();
                         if (activeRunId) {
-                          taskMaterializer.completeTask(activeRunId, assembledContent);
+                          // Fix materialisasi: turn obrolan biasa (tanpa tool)
+                          // juga jadi satu task — setiap run yang menyelesaikan
+                          // giliran punya tepat satu task. Idempoten: run yang
+                          // sudah punya task hanya diperbarui statusnya.
+                          taskMaterializer.completeTask(activeRunId, assembledContent, {
+                            userInput: input,
+                            agentId: agent.id,
+                            createdBy: request.user?.id,
+                          });
                           chatRunHub.append(activeRunId, 'run.completed', {});
                           chatRunHub.finish(activeRunId);
                           try {
