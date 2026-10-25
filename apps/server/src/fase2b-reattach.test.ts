@@ -302,7 +302,10 @@ describe('Fase 2c — Antrian Chat per Agen (Route Level)', () => {
     const origRunChatStream = mockClient.runChatStream;
 
     mockClient.runChatStream = async (params: any, handlers: any) => {
-      const input = params.input;
+      // Fix identitas: pesan keluar kini berprefiks blok identitas, jadi yang
+      // dibandingkan adalah pesan pemilik di BELAKANG blok — bukan seluruh
+      // string. Yang diuji di sini tetap urutan FIFO, bukan isi blok.
+      const input = String(params.input).replace(/^\[IDENTITAS AGEN:[^\]]*\]\s*/, '');
       executedOrder.push(`start:${input}`);
       await new Promise((r) => setTimeout(r, 20));
       handlers.onRunId?.(`run_${input}`);

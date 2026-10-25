@@ -331,7 +331,11 @@ describe('Tahap 11 (bagian 2) — cakupan skill per agen', () => {
     expect(chat.statusCode).toBe(200);
     expect(gateway.history).toHaveLength(1);
     const sent = gateway.history[0];
-    expect(sent.startsWith('[CAKUPAN SKILL AGEN:')).toBe(true);
+    // Fix identitas: identitas menempel PALING DEPAN, cakupan skill di
+    // bawahnya. Keduanya milik aplikasi dan keduanya dibuang saat riwayat
+    // dibaca (stripIdentity → stripSkillScope).
+    expect(sent.startsWith('[IDENTITAS AGEN:')).toBe(true);
+    expect(sent).toContain('[CAKUPAN SKILL AGEN:');
     // Daftar skill AKTIF yang dikirim, dan skill yang dimatikan tidak ikut.
     expect(sent).toContain('pdf-tools');
     expect(sent).not.toContain('invoice-parser');
@@ -363,7 +367,12 @@ describe('Tahap 11 (bagian 2) — cakupan skill per agen', () => {
     expect(identity.content).toContain('Agen agent_aria_skill');
     expect(scope.role).toBe('system');
     expect(scope.content).toContain('pdf-tools');
-    expect(rest).toEqual([{ role: 'user', content: 'Buat ringkasan' }]);
+    // Fix identitas: lapisan kedua — blok identitas menempel di pesan user
+    // supaya tidak bisa ditimpa system prompt relay.
+    expect(rest).toHaveLength(1);
+    expect(rest[0].role).toBe('user');
+    expect(rest[0].content.startsWith('[IDENTITAS AGEN:')).toBe(true);
+    expect(rest[0].content).toContain('Buat ringkasan');
 
     // Bawaan (tanpa baris): cakupan skill tidak dikirim, hanya identitas Fase 1.
     await patch(`/api/agents/${AGENT_ID}/skills`, { skills: CATALOG });
@@ -374,10 +383,12 @@ describe('Tahap 11 (bagian 2) — cakupan skill per agen', () => {
       body: JSON.stringify({ client_message_id: 'msg_tahap11_3', messages: [{ role: 'user', content: 'Halo lagi' }] }),
     });
     expect(plain.statusCode).toBe(200);
-    expect(gateway.chatCalls[1]).toEqual([
-      { role: 'system', content: expect.stringContaining('Agen agent_aria_skill') },
-      { role: 'user', content: 'Halo lagi' },
-    ]);
+    expect(gateway.chatCalls[1]).toHaveLength(2);
+    expect(gateway.chatCalls[1][0].role).toBe('system');
+    expect(gateway.chatCalls[1][0].content).toContain('Agen agent_aria_skill');
+    expect(gateway.chatCalls[1][1].role).toBe('user');
+    expect(gateway.chatCalls[1][1].content.startsWith('[IDENTITAS AGEN:')).toBe(true);
+    expect(gateway.chatCalls[1][1].content).toContain('Halo lagi');
     expect(gateway.chatCalls[1][0].content).not.toContain('[CAKUPAN SKILL AGEN:');
   });
 

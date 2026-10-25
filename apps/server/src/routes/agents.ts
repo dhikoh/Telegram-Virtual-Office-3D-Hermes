@@ -17,6 +17,11 @@ import {
   buildSkillScopeDirective,
   stripSkillScope,
 } from '../services/hermes/skill-scope.js';
+import {
+  applyIdentity,
+  buildIdentityDirective,
+  stripIdentity,
+} from '../services/hermes/identity-scope.js';
 import { buildAgentIdentity } from '../services/hermes/identity.js';
 import { provisionAgentProfile } from '../services/hermes/provisioner.js';
 import { startHeartbeat } from '../services/agent-chat/heartbeat.js';
@@ -962,10 +967,13 @@ export const agentRoutes: FastifyPluginAsync<AgentRoutesOptions> = async (fastif
       const scopeDirective = await readSkillScopeDirective(agentSkillRepo, agent);
       // Fase 1 — jembatan identitas: nama, peran, dan ruang kerja agen ikut
       // dalam giliran ini, supaya gateway tidak pernah menebak siapa yang
-      // sedang menjawab. Hanya identitas yang lewat `system_message`: instruksi
-      // cakupan skill tetap menempel di pesan sesi seperti Tahap 11, karena
-      // stripSkillScope membersihkannya dari riwayat yang dibaca kembali.
+      // sedang menjawab. Dua lapisan, keduanya wajib:
+      //  1. `identityPrompt` → system_message / `instructions` (lapisan lama).
+      //  2. `identityDirective` → ditempel di DEPAN pesan user. Relay
+      //     menaruh system prompt sendiri di BELAKANG instruksi aplikasi,
+      //     jadi hanya teks di dalam pesan yang benar-benar menang.
       const identityPrompt = buildAgentIdentity(agent) || undefined;
+      const identityDirective = buildIdentityDirective(agent);
       try {
         if (isReattach) {
           await attachToLiveRun(db, agent.id, requestedRun as string, reply, writeEvent, 0);
@@ -1000,7 +1008,18 @@ export const agentRoutes: FastifyPluginAsync<AgentRoutesOptions> = async (fastif
                 ).run(id, sessionId, Date.now());
               }
 
-              const input = applyScopeToContent(lastUser?.content || JSON.stringify(messages), scopeDirective);
+              // Fix identitas: identitas ditempel DI DEPAN pesan user, di atas
+              // cakupan skill. Relay menyuntikkan system prompt 34k token yang
+              // melarang menyebut nama; satu-satunya teks yang tidak bisa
+              // ditimpa relay adalah pesan yang dikirim aplikasi ini sendiri.
+              // `instructions` (identityPrompt) tetap dikirim sebagai lapisan
+              // kedua — jangan dihapus.
+              const rawUser =
+                typeof lastUser?.content === 'string'
+                  ? lastUser.content
+                  : JSON.stringify(messages);
+              const scoped = applyScopeToContent(rawUser, scopeDirective);
+              const input = applyIdentity(scoped, buildIdentityDirective(agent));
               let activeRunId: string | null = null;
               let currentModel = agent.model || undefined;
               let retried = false;
@@ -1294,13 +1313,21 @@ export const agentRoutes: FastifyPluginAsync<AgentRoutesOptions> = async (fastif
                 identityPrompt,
                 scopeDirective,
               ].filter((part): part is string => Boolean(part && part.trim()));
+              // Fix identitas: pesan user terakhir juga dibungkus blok identitas.
+              // Relay bisa meng-override model dan menyuntikkan persona sendiri;
+              // blok di depan pesan user tidak bisa ditimpa relay.
+              const statelessMessages = messages.map((m, i) =>
+                i === messages.length - 1 && m.role === 'user'
+                  ? { ...m, content: applyIdentity(m.content, identityDirective) }
+                  : m
+              );
               await client.chatStream(
                 statelessSystem.length
                   ? [
                       ...statelessSystem.map((content) => ({ role: 'system' as const, content })),
-                      ...messages,
+                      ...statelessMessages,
                     ]
-                  : messages,
+                  : statelessMessages,
                 (chunk) => {
                   assembledContent += chunk;
                   if (asstMsgId) {
@@ -1439,7 +1466,9 @@ export const agentRoutes: FastifyPluginAsync<AgentRoutesOptions> = async (fastif
           messages: local.map((m) => ({
             id: m.id,
             role: m.role,
-            content: stripSkillScope(m.content),
+            // Fix identitas — garis identitas & cakupan skill yang ditempel
+            // aplikasi sendiri dibuang; teks milik pemilik kembali utuh.
+            content: stripIdentity(stripSkillScope(m.content)),
             status: m.status,
             timestamp: m.created_at,
           })),
@@ -1457,8 +1486,9 @@ export const agentRoutes: FastifyPluginAsync<AgentRoutesOptions> = async (fastif
           role: m.role,
           // Tahap 11 — garis cakupan skill yang ditambahkan aplikasi ikut
           // terkirim ke gateway; saat riwayat dibaca, pesan milik pemilik
-          // dikembalikan persis seperti yang ia ketik.
-          content: stripSkillScope(m.content),
+          // dikembalikan persis seperti yang ia ketik. Fix identitas: blok
+          // identitas di depan pesan user ikut dibuang (stripIdentity).
+          content: stripIdentity(stripSkillScope(m.content)),
           timestamp: m.timestamp,
         }));
 
@@ -1499,7 +1529,9 @@ export const agentRoutes: FastifyPluginAsync<AgentRoutesOptions> = async (fastif
             messages: local.map((m) => ({
               id: m.id,
               role: m.role,
-              content: stripSkillScope(m.content),
+              // Fix identitas — sama seperti jalur di atas: riwayat yang
+              // ditampilkan ke pemilik bebas dari garis milik aplikasi.
+              content: stripIdentity(stripSkillScope(m.content)),
               status: m.status,
               timestamp: m.created_at,
             })),

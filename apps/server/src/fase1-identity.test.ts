@@ -17,6 +17,7 @@ import BetterSqlite3 from 'better-sqlite3';
 import { buildServer } from './server.js';
 import { runMigrations } from './db/migrator.js';
 import { createTelegramInitData } from './auth.test.js';
+import { IDENTITY_MARKER } from './services/hermes/identity-scope.js';
 
 const gateway = vi.hoisted(() => ({
   history: [] as string[],
@@ -136,7 +137,7 @@ describe('Fase 1 — jembatan identitas', () => {
     seedAgent();
   });
 
-  it('jalur sesi: identitas dikirim sebagai system_message, pesan tetap bersih', async () => {
+  it('jalur sesi: identitas dikirim sebagai system_message DAN di depan pesan user', async () => {
     const res = await chat('siapa kamu?');
     expect(res.statusCode).toBe(200);
 
@@ -147,12 +148,16 @@ describe('Fase 1 — jembatan identitas', () => {
     expect(identity).toContain('marketing');
     expect(identity).toContain('Menjual zeolit ke pabrik semen.');
 
-    // Pesan keluar tidak dicemari identitas — stripSkillScope tidak punya
-    // apa-apa untuk dibersihkan, dan riwayat tetap milik pemilik.
-    expect(gateway.history).toEqual(['siapa kamu?']);
+    // Fix identitas: relay menaruh system prompt sendiri di BELAKANG instruksi
+    // aplikasi, jadi lapisan kedua — blok identitas di depan pesan user — wajib
+    // ada. Pesan pemilik tetap utuh di belakang blok, dan stripIdentity
+    // mengembalikannya saat riwayat dibaca.
+    expect(gateway.history).toHaveLength(1);
+    expect(gateway.history[0].startsWith(IDENTITY_MARKER)).toBe(true);
+    expect(gateway.history[0]).toContain('siapa kamu?');
   });
 
-  it('jalur tanpa sesi: identitas menjadi pesan system pertama', async () => {
+  it('jalur tanpa sesi: identitas menjadi pesan system pertama DAN menempel di pesan user', async () => {
     gateway.makeSession = false;
     const res = await chat('siapa kamu?');
     expect(res.statusCode).toBe(200);
@@ -161,7 +166,10 @@ describe('Fase 1 — jembatan identitas', () => {
     const first = gateway.chatCalls[0][0];
     expect(first.role).toBe('system');
     expect(first.content).toContain('Bagas');
-    expect(gateway.chatCalls[0][1]).toEqual({ role: 'user', content: 'siapa kamu?' });
+    // Lapisan kedua: blok identitas di depan pesan user (tidak bisa ditimpa relay).
+    expect(gateway.chatCalls[0][1].role).toBe('user');
+    expect(gateway.chatCalls[0][1].content.startsWith(IDENTITY_MARKER)).toBe(true);
+    expect(gateway.chatCalls[0][1].content).toContain('siapa kamu?');
   });
 
   it('identitas giliran berikutnya ikut terkirim (bukan hanya percakapan pertama)', async () => {
