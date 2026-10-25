@@ -35,6 +35,10 @@ import { agentChatQueue, QueueFullError } from '../services/agent-chat/queue.js'
 import type { RecordedRunEvent } from '../services/agent-chat/types.js';
 import { runEventToChatFrame } from '../services/agent-chat/run-events.js';
 import { ChatTaskMaterializer } from '../services/agent-chat/task-materializer.js';
+import {
+  closeRunIfRunning,
+  interruptAgentRuns,
+} from '../services/agent-chat/stale-run-reaper.js';
 import { departmentExists } from '../db/repositories/departments.js';
 import { SettingRepository } from '../db/repositories/settings.js';
 import {
@@ -951,6 +955,32 @@ export const agentRoutes: FastifyPluginAsync<AgentRoutesOptions> = async (fastif
         Connection: 'keep-alive',
       });
 
+      // Fix run nyangkut — socket ditutup pemilik (tab ditutup, koneksi putus)
+      // berarti tidak ada lagi yang menunggu aliran ini. Run milik agen yang
+      // masih 'running' ditutup menjadi 'interrupted', BUKAN ditinggalkan
+      // 'running' tanpa finished_at — gejala produksi: UI nempel
+      // "sedang mengetik..." selamanya dan sambung-ulang menunggu aliran mati.
+      //
+      // Dipasang di 'close' socket (bukan hanya di `finally` handler) karena
+      // giliran yang menggantung tidak pernah mencapai `finally`: gateway bisa
+      // membuka run lalu diam selamanya, dan tanpa hook ini barisnya nyangkut.
+      // `interruptedOnClose` menjaga penutupan hanya terjadi sekali.
+      let interruptedOnClose = false;
+      // Run aktif giliran ini — dilihat hook 'close' untuk TIDAK menutup run
+      // yang sedang disambung-ulang lewat permintaan lain. Dideklarasikan di
+      // sini (bukan di dalam antrian) supaya hook bisa membacanya kapan pun.
+      let activeRunId: string | null = null;
+      const closeRunsOnSocketClose = () => {
+        if (interruptedOnClose) return;
+        interruptedOnClose = true;
+        try {
+          interruptAgentRuns(db, agent.id, { excludeRunId: activeRunId });
+        } catch {
+          /* penutupan run gagal — jangan ganggu pemilik */
+        }
+      };
+      reply.raw.on?.('close', closeRunsOnSocketClose);
+
       const client = getHermesClientForAgent(agent, db);
       // Tahap 19 — klien sudah tidak diam pada stream kosong, dan socket ini
       // pun dicek sebelum menulis agar koneksi mati tidak membuat handler meledak.
@@ -1020,7 +1050,6 @@ export const agentRoutes: FastifyPluginAsync<AgentRoutesOptions> = async (fastif
                   : JSON.stringify(messages);
               const scoped = applyScopeToContent(rawUser, scopeDirective);
               const input = applyIdentity(scoped, buildIdentityDirective(agent));
-              let activeRunId: string | null = null;
               let currentModel = agent.model || undefined;
               let retried = false;
               let currentAbortController = new AbortController();
@@ -1363,6 +1392,21 @@ export const agentRoutes: FastifyPluginAsync<AgentRoutesOptions> = async (fastif
         // Fase 2a — detak WAJIB berhenti di sini: tanpa blok ini interval
         // tertinggal hidup dan menulis ke socket yang sudah ditutup.
         stopHeartbeat();
+
+        // Fix run nyangkut — giliran berakhir tanpa event terminal (gateway
+        // melempar, koneksi putus). Run yang dibuka giliran ini ditutup menjadi
+        // 'interrupted', bukan ditinggalkan 'running' tanpa finished_at —
+        // gejala produksi: UI nempel "sedang mengetik..." selamanya.
+        // Idempoten: run yang sudah 'completed'/'failed' tidak tersentuh.
+        try {
+          closeRunIfRunning(
+            db,
+            activeRunId,
+            'Aliran chat berakhir sebelum run selesai.'
+          );
+        } catch {
+          /* penutupan run gagal — stream sudah berakhir, jangan ganggu pemilik */
+        }
       }
 
       reply.raw.end();

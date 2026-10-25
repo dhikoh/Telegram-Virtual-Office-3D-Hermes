@@ -27,6 +27,7 @@ import { projectRoutes } from './routes/projects.js';
 import { cronRoutes } from './routes/cron.js';
 import { config } from './config.js';
 import { startMediaSweepTimer, stopMediaSweepTimer, sweepRetention } from './services/media.js';
+import { reapStaleRuns } from './services/agent-chat/stale-run-reaper.js';
 
 export interface BuildServerOptions {
   db: Database.Database;
@@ -159,6 +160,23 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
       app.log?.error?.({ err }, 'startup media sweep failed');
     }
     startMediaSweepTimer(options.db);
+  }
+
+  // Fix run nyangkut — tutup sisa run 'running' dari restart/crash SEBELUM
+  // server menerima permintaan. Tanpa ini, UI menampilkan "sedang mengetik..."
+  // untuk run yang stream-nya sudah mati sejak server sebelumnya.
+  // Kegagalan reaper TIDAK boleh menghentikan startup: server yang bisa
+  // menjawab tetap lebih berguna daripada server yang mati karena bersih.
+  try {
+    const reaped = reapStaleRuns(options.db);
+    if (reaped.closed.length > 0) {
+      app.log?.warn?.(
+        { closed: reaped.closed.length, run_ids: reaped.closed.map((r) => r.id) },
+        'startup: closed stale running runs'
+      );
+    }
+  } catch (err) {
+    app.log?.error?.({ err }, 'startup stale-run reap failed');
   }
 
   app.addHook('onClose', async () => {
