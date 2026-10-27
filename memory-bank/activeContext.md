@@ -1,8 +1,8 @@
 # Active Context: Hermes Virtual Office
 
 ## 1. Status Saat Ini
-- **Branch Aktif:** `fix/agent-identity-and-run-reliability` (T1-T5 selesai, siap merge ke `master`).
-- **Fase Terakhir Diselesaikan:** **Integrasi Hermes ↔ Mini App (Fase 1 s/d 6) + Tahap 20 + Fix Identitas & Run Reliability TUNTAS 100%**.
+- **Branch Aktif:** `master` (Fix Identitas & Run Reliability T1-T5 + Test Hygiene berhasil di-merge ke `master`).
+- **Fase Terakhir Diselesaikan:** **Integrasi Hermes ↔ Mini App (Fase 1 s/d 6) + Tahap 20 + Fix Identitas & Run Reliability TUNTAS 100% di Master**.
 - **Kondisi Kesehatan Sistem:**
   * `npm run typecheck`: **PASS (100%)** — 0 errors di seluruh workspace monorepo.
   * `npm run gap-check`: **PASS (8/8 Checks)** — Phase 20 meets all 8 completeness criteria (C3a - C3h).
