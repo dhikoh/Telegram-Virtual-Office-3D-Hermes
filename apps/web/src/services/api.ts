@@ -20,6 +20,9 @@ import type {
   ProjectTask,
   SkillSyncStatus,
   SkillSyncResult,
+  NotificationPreferences,
+  NotificationPreferencesPatch,
+  TestNotificationResult,
 } from '@hermes-office/shared';
 
 const API_BASE = '/api';
@@ -487,5 +490,16 @@ export const api = {
     request<SkillSyncResult>('/skills/sync', {
       method: 'POST',
       body: JSON.stringify({ force }),
+    }),
+  /** Telegram Proactive Notifications (Task 5.0) */
+  getNotificationPreferences: () => request<NotificationPreferences>('/settings/notifications'),
+  updateNotificationPreferences: (patch: NotificationPreferencesPatch) =>
+    request<NotificationPreferences>('/settings/notifications', {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    }),
+  sendTestNotification: () =>
+    request<TestNotificationResult>('/settings/notifications/test', {
+      method: 'POST',
     }),
 };

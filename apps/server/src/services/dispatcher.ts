@@ -141,10 +141,16 @@ export class OfficeDispatcher {
       run_id = res.run_id;
     } catch (err: unknown) {
       this.setAgentStatus(agent.id, 'offline');
+      const errMsg = `Hermes connection error: ${(err as Error)?.message || err}`;
       this.updateTask(taskId, {
         status: 'failed',
-        result_md: `Hermes connection error: ${(err as Error)?.message || err}`,
+        result_md: errMsg,
       });
+      telegramNotifications.notifyRunFailed(
+        { id: taskId, title: task.title },
+        agent.name,
+        errMsg
+      ).catch(() => {});
       throw err;
     }
 
@@ -439,14 +445,26 @@ export class OfficeDispatcher {
         break;
       }
 
-      case 'run.completed':
+      case 'run.completed': {
+        const resultMd = data.output || 'Tugas selesai dengan sukses.';
         this.updateTask(taskId, {
           status: 'done',
-          result_md: data.output || 'Tugas selesai dengan sukses.',
+          result_md: resultMd,
         });
         this.setAgentStatus(agent.id, 'idle');
         this.activeStreams.delete(runId);
+        const task = this.taskRepo.getById(taskId);
+        telegramNotifications.notifyTaskCompleted(
+          {
+            id: taskId,
+            title: task?.title || 'Tugas',
+            department: agent.department,
+          },
+          agent.name,
+          resultMd
+        ).catch(() => {});
         break;
+      }
 
       case 'run.failed': {
         const task = this.taskRepo.getById(taskId);

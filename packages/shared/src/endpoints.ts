@@ -379,4 +379,26 @@ export const ENDPOINTS: readonly EndpointDefinition[] = [
     requiresAuth: true,
     description: 'Start the project chain: auto-run every subtask whose dependencies are already done (409 when none is ready)',
   },
+  {
+    method: 'GET',
+    path: '/api/settings/notifications',
+    phase: 20,
+    requiresAuth: true,
+    description: 'Retrieve current Telegram proactive notification preferences',
+  },
+  {
+    method: 'PATCH',
+    path: '/api/settings/notifications',
+    phase: 20,
+    requiresAuth: true,
+    description: 'Update Telegram proactive notification preferences',
+  },
+  {
+    method: 'POST',
+    path: '/api/settings/notifications/test',
+    phase: 20,
+    requiresAuth: true,
+    description: 'Send a sample test notification to registered owner Telegram chat IDs',
+  },
 ] as const;
+

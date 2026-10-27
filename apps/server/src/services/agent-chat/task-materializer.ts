@@ -25,6 +25,7 @@ import { TaskRepository } from '../../db/repositories/tasks.js';
 import type { Task } from '@hermes-office/shared';
 import { stripIdentity } from '../hermes/identity-scope.js';
 import { streamManager } from '../stream.js';
+import { telegramNotifications } from '../notifications.js';
 
 export interface MaterializeToolCallOptions {
   runId: string;
@@ -210,6 +211,19 @@ export class ChatTaskMaterializer {
       timestamp: now,
     });
 
+    try {
+      const agentRow = this.db.prepare('SELECT name, department FROM agents WHERE id = ?').get(task.agent_id) as
+        | { name: string; department?: string }
+        | undefined;
+      telegramNotifications.notifyTaskCompleted(
+        { id: updated.id, title: updated.title, department: agentRow?.department },
+        agentRow?.name || 'Agen Virtual',
+        updated.result_md || undefined
+      ).catch(() => {});
+    } catch {
+      // Abaikan kegagalan pengiriman notifikasi agar tidak merusak alur chat
+    }
+
     return updated;
   }
 
@@ -241,6 +255,19 @@ export class ChatTaskMaterializer {
       },
       timestamp: now,
     });
+
+    try {
+      const agentRow = this.db.prepare('SELECT name FROM agents WHERE id = ?').get(task.agent_id) as
+        | { name: string }
+        | undefined;
+      telegramNotifications.notifyRunFailed(
+        { id: updated.id, title: updated.title },
+        agentRow?.name || 'Agen Virtual',
+        updated.result_md || 'Eksekusi tugas gagal.'
+      ).catch(() => {});
+    } catch {
+      // Abaikan kegagalan pengiriman notifikasi agar tidak merusak alur chat
+    }
 
     return updated;
   }

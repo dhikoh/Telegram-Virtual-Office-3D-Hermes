@@ -4,6 +4,7 @@ import { runMigrations } from '../../db/migrator.js';
 import { AgentRepository } from '../../db/repositories/agents.js';
 import { TaskRepository } from '../../db/repositories/tasks.js';
 import { ChatTaskMaterializer } from './task-materializer.js';
+import { telegramNotifications } from '../notifications.js';
 
 describe('ChatTaskMaterializer (Fase 4b — Task Visibility & Materialization)', () => {
   let db: BetterSqlite3.Database;
@@ -14,6 +15,7 @@ describe('ChatTaskMaterializer (Fase 4b — Task Visibility & Materialization)',
   const AGENT_ID = 'agent_orion';
 
   beforeEach(() => {
+    telegramNotifications.clearSentNotificationsForTest();
     db = new BetterSqlite3(':memory:');
     runMigrations(db);
     agentRepo = new AgentRepository(db);
@@ -186,6 +188,11 @@ describe('ChatTaskMaterializer (Fase 4b — Task Visibility & Materialization)',
     const fromDb = taskRepo.getByRunId(runId);
     expect(fromDb?.status).toBe('done');
     expect(fromDb?.result_md).toBe('CPU 20%, Memory 45%, Normal.');
+
+    const sent = telegramNotifications.getSentNotifications();
+    expect(sent.length).toBeGreaterThan(0);
+    expect(sent[0].text).toContain('Tugas Selesai');
+    expect(sent[0].text).toContain('Orion Boss');
   });
 
   it('failTask transitions task status to failed and records error message', () => {
@@ -205,5 +212,10 @@ describe('ChatTaskMaterializer (Fase 4b — Task Visibility & Materialization)',
     const fromDb = taskRepo.getByRunId(runId);
     expect(fromDb?.status).toBe('failed');
     expect(fromDb?.result_md).toBe('Koneksi timeout ke cluster host.');
+
+    const sent = telegramNotifications.getSentNotifications();
+    expect(sent.length).toBeGreaterThan(0);
+    expect(sent[0].text).toContain('Tugas Gagal');
+    expect(sent[0].text).toContain('Koneksi timeout ke cluster host.');
   });
 });

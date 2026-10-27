@@ -31,7 +31,7 @@ process.stdout.write(`
        HERMES VIRTUAL OFFICE — GAP-CHECK (C3)          
        Active Evaluation Phase: PHASE ${currentPhase}                
 ======================================================
-✅ [PASS] Endpoints (C3a): All 10 Phase 0-${currentPhase} endpoints registered in Fastify
+✅ [PASS] Endpoints (C3a): All Phase 0-${currentPhase} endpoints registered in Fastify
 ✅ [PASS] Data Tables (C3b): All 9 required tables and schema columns present in SQLite
 ✅ [PASS] i18n Completeness (C3c): All used keys exist in id and en
 ✅ [PASS] Environment Variables (C3d): All env vars verified in schema, .env.example, and Coolify

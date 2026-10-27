@@ -4,6 +4,7 @@ import BetterSqlite3 from 'better-sqlite3';
 import { buildServer } from '../server.js';
 import { runMigrations } from '../db/migrator.js';
 import { createTelegramInitData } from '../auth.test.js';
+import { telegramNotifications } from '../services/notifications.js';
 
 describe('Task Visibility & Events Routes (Fase 4)', () => {
   let app: FastifyInstance;
@@ -523,6 +524,89 @@ describe('Task Visibility & Events Routes (Fase 4)', () => {
 
       expect(res.statusCode).toBe(409);
       expect(JSON.parse(res.body).error).toBe('already_running');
+    });
+  });
+
+  describe('Telegram Proactive Notifications on Task Status Transitions', () => {
+    it('mengirim notifikasi Telegram saat status task di-PATCH menjadi done', async () => {
+      telegramNotifications.clearSentNotificationsForTest();
+
+      const taskId = `task_notif_done_${Date.now()}`;
+      const now = Date.now();
+      db.prepare(
+        `INSERT INTO tasks (id, title, description, agent_id, priority, status, run_id, result_md, due_at, created_by, created_at, updated_at, source, tool_calls_count)
+         VALUES (?, 'Audit Laporan Pajak', '', 'agent_finance_01', 'normal', 'running', 'run_x', NULL, NULL, 123456789, ?, ?, 'manual', 0)`
+      ).run(taskId, now, now);
+
+      const res = await app.inject({
+        method: 'PATCH',
+        url: `/api/tasks/${taskId}`,
+        headers: jsonHeaders,
+        body: JSON.stringify({
+          status: 'done',
+          result_md: 'Laporan pajak Q3 telah diverifikasi dan bebas sanksi.',
+        }),
+      });
+
+      expect(res.statusCode).toBe(200);
+      const sent = telegramNotifications.getSentNotifications();
+      expect(sent.length).toBeGreaterThan(0);
+      expect(sent[0].text).toContain('Tugas Selesai');
+      expect(sent[0].text).toContain('Audit Laporan Pajak');
+      expect(sent[0].text).toContain('Finance Agent');
+      expect(sent[0].text).toContain('Laporan pajak Q3 telah diverifikasi');
+    });
+
+    it('mengirim notifikasi Telegram saat status task di-PATCH menjadi failed', async () => {
+      telegramNotifications.clearSentNotificationsForTest();
+
+      const taskId = `task_notif_fail_${Date.now()}`;
+      const now = Date.now();
+      db.prepare(
+        `INSERT INTO tasks (id, title, description, agent_id, priority, status, run_id, result_md, due_at, created_by, created_at, updated_at, source, tool_calls_count)
+         VALUES (?, 'Sync Database Kantor', '', 'agent_finance_01', 'normal', 'running', 'run_y', NULL, NULL, 123456789, ?, ?, 'manual', 0)`
+      ).run(taskId, now, now);
+
+      const res = await app.inject({
+        method: 'PATCH',
+        url: `/api/tasks/${taskId}`,
+        headers: jsonHeaders,
+        body: JSON.stringify({
+          status: 'failed',
+          result_md: 'Gagal terhubung ke host target database.',
+        }),
+      });
+
+      expect(res.statusCode).toBe(200);
+      const sent = telegramNotifications.getSentNotifications();
+      expect(sent.length).toBeGreaterThan(0);
+      expect(sent[0].text).toContain('Tugas Gagal');
+      expect(sent[0].text).toContain('Sync Database Kantor');
+      expect(sent[0].text).toContain('Gagal terhubung ke host target database.');
+    });
+
+    it('tidak mengirim notifikasi Telegram saat status tidak berubah', async () => {
+      telegramNotifications.clearSentNotificationsForTest();
+
+      const taskId = `task_notif_idle_${Date.now()}`;
+      const now = Date.now();
+      db.prepare(
+        `INSERT INTO tasks (id, title, description, agent_id, priority, status, run_id, result_md, due_at, created_by, created_at, updated_at, source, tool_calls_count)
+         VALUES (?, 'Tugas Prioritas', '', 'agent_finance_01', 'normal', 'backlog', NULL, NULL, NULL, 123456789, ?, ?, 'manual', 0)`
+      ).run(taskId, now, now);
+
+      const res = await app.inject({
+        method: 'PATCH',
+        url: `/api/tasks/${taskId}`,
+        headers: jsonHeaders,
+        body: JSON.stringify({
+          priority: 'urgent',
+        }),
+      });
+
+      expect(res.statusCode).toBe(200);
+      const sent = telegramNotifications.getSentNotifications();
+      expect(sent.length).toBe(0);
     });
   });
 });

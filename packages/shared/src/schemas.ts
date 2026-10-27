@@ -371,3 +371,29 @@ export const SkillSyncResultSchema = z.object({
 });
 export type SkillSyncResult = z.infer<typeof SkillSyncResultSchema>;
 
+/**
+ * Preferensi Notifikasi Telegram (Telegram Proactive Notifications & Daily Executive Briefing).
+ */
+export const NotificationPreferencesSchema = z.object({
+  notify_task_completed: z.boolean().default(true),
+  notify_task_failed: z.boolean().default(true),
+  notify_approval_pending: z.boolean().default(true),
+  daily_briefing_enabled: z.boolean().default(true),
+});
+export type NotificationPreferences = z.infer<typeof NotificationPreferencesSchema>;
+
+export const NotificationPreferencesPatchSchema = NotificationPreferencesSchema.partial();
+export type NotificationPreferencesPatch = z.infer<typeof NotificationPreferencesPatchSchema>;
+
+/**
+ * Hasil Pengujian Kirim Notifikasi Telegram.
+ */
+export const TestNotificationResultSchema = z.object({
+  ok: z.boolean(),
+  sent_count: z.number(),
+  target_chat_ids: z.array(z.number()),
+  message: z.string(),
+  timestamp: z.number(),
+});
+export type TestNotificationResult = z.infer<typeof TestNotificationResultSchema>;
+

@@ -25,9 +25,13 @@ import { departmentRoutes } from './routes/departments.js';
 import { mediaRoutes } from './routes/media.js';
 import { projectRoutes } from './routes/projects.js';
 import { cronRoutes } from './routes/cron.js';
+import { settingsRoutes, readNotificationPreferences } from './routes/settings.js';
+import { SettingRepository } from './db/repositories/settings.js';
+import { telegramNotifications } from './services/notifications.js';
 import { config } from './config.js';
 import { startMediaSweepTimer, stopMediaSweepTimer, sweepRetention } from './services/media.js';
 import { reapStaleRuns } from './services/agent-chat/stale-run-reaper.js';
+import { ExecutiveBriefingService } from './services/briefing-scheduler.js';
 
 export interface BuildServerOptions {
   db: Database.Database;
@@ -69,9 +73,15 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
     void projectService.handleSettled(taskId).catch(() => undefined);
   };
 
+  const settingRepo = new SettingRepository(options.db);
+  telegramNotifications.setPreferencesProvider(() => readNotificationPreferences(settingRepo));
+
+  const briefingScheduler = new ExecutiveBriefingService(options.db);
+
   app.decorate('db', options.db);
   app.decorate('dispatcher', dispatcher);
   app.decorate('projectService', projectService);
+  app.decorate('briefingScheduler', briefingScheduler);
   // Fase 2a — detak stream chat. Test memasang angka kecil lewat opsi ini.
   app.decorate('chatHeartbeatMs', options.chatHeartbeatMs ?? config.CHAT_HEARTBEAT_MS);
   // Fase 2d — batas deteksi stall stream chat dan model fallback.
@@ -149,6 +159,7 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
   app.register(mediaRoutes);
   app.register(projectRoutes);
   app.register(cronRoutes);
+  app.register(settingsRoutes);
 
   // Tahap 12 — retensi media: sekali saat startup + interval berkala.
   // NODE_ENV=test sengaja dilewati supaya unit test tidak mewarisi timer aktif
@@ -179,9 +190,14 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
     app.log?.error?.({ err }, 'startup stale-run reap failed');
   }
 
+  if (config.NODE_ENV !== 'test') {
+    briefingScheduler.start();
+  }
+
   app.addHook('onClose', async () => {
     dispatcher.destroy();
     stopMediaSweepTimer();
+    briefingScheduler.stop();
   });
 
   // Serve compiled web build when available (Section 2: ONE container office)
