@@ -1,8 +1,8 @@
 # Active Context: Hermes Virtual Office
 
 ## 1. Status Saat Ini
-- **Branch Aktif:** `feature/telegram-proactive-notifications` (Branch fitur baru dari `master`).
-- **Fitur Sedang Dikerjakan:** **Telegram Proactive Notifications & Daily Executive Briefing**.
+- **Branch Aktif:** `master` (Fitur `feature/telegram-proactive-notifications` telah berhasil di-merge ke `master`).
+- **Fitur Baru (Selesai & Merged):** **Telegram Proactive Notifications & Daily Executive Briefing**.
 - **Status Sub-Task:**
   * [x] **Task 0.0**: Checkout branch `feature/telegram-proactive-notifications` & inisialisasi PRD serta task list.
   * [x] **Task 1.0**: Definisi shared schemas Zod (`NotificationPreferencesSchema`, `NotificationPreferencesPatchSchema`, `TestNotificationResultSchema`) di `packages/shared/src/schemas.ts`, registrasi endpoint di `packages/shared/src/endpoints.ts`, dan unit test di `packages/shared/src/index.test.ts` (PASS 6/6).
