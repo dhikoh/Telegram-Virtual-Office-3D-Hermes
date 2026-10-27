@@ -7,10 +7,12 @@
   * [x] **Task 0.0**: Checkout branch `feature/telegram-proactive-notifications` & inisialisasi PRD serta task list.
   * [x] **Task 1.0**: Definisi shared schemas Zod (`NotificationPreferencesSchema`, `NotificationPreferencesPatchSchema`, `TestNotificationResultSchema`) di `packages/shared/src/schemas.ts`, registrasi endpoint di `packages/shared/src/endpoints.ts`, dan unit test di `packages/shared/src/index.test.ts` (PASS 6/6).
   * [x] **Task 2.0**: Enhanced Telegram Notification Service (`TelegramNotificationService` di `apps/server/src/services/notifications.ts` dengan `notifyTaskCompleted`, `notifyRunFailed`, `notifyApprovalPending`, `sendDailyBriefing`, `sendTestNotification`, filter preferensi, escaping Markdown V1, dan 13 unit tests di `notifications.test.ts` PASS 100%).
+  * [x] **Task 3.0**: Event-Driven Notification Hooking (Hook `notifyTaskCompleted` dan `notifyRunFailed` di `apps/server/src/services/dispatcher.ts`, `apps/server/src/routes/tasks.ts`, dan `apps/server/src/services/agent-chat/task-materializer.ts`; hook `notifyApprovalPending` di `dispatcher.ts`; unit & integration test komprehensif di `tasks.test.ts`, `approvals.test.ts`, dan `task-materializer.test.ts` PASS 100%).
+  * [ ] **Task 4.0**: Executive Daily Briefing Scheduler (`apps/server/src/services/briefing-scheduler.ts` yang mengagregasi metrik faktual harian dari SQLite dan trigger harian jam 18:00 WIB / UTC+7 dengan idempotency lock).
 - **Kondisi Kesehatan Sistem:**
   * `npm run typecheck`: **PASS (100%)** — 0 errors di seluruh workspace monorepo.
   * `npm run gap-check`: **PASS (8/8 Checks)** — Phase 20 meets all 8 completeness criteria (C3a - C3h).
-  * `npm test`: Suite pengujian aktif, stabil & bersih (**1264 tests passed across 117 test files, 0 warnings**).
+  * `npm test`: Suite pengujian aktif, stabil & bersih (**1285 tests passed across 118 test files, 0 warnings**).
 - **Pembersihan Test Hygiene (2026-10-27)**:
   * Mengeliminasi React `act(...)` warning di `apps/web/src/components/agent-sheet/__tests__/tahap20-endpoint.test.tsx` menggunakan helper `renderProfile` yang meng-await resolusi efek asynchronous initial render (`listAgentModels` dan `getAgentModelPriority`). Seluruh 117 file test kini berjalan tanpa warning console.
 - **Perbaikan Terbaru — Hotfix GET /api/cron (2026-10-20)**:

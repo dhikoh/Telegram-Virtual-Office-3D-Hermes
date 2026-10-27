@@ -69,6 +69,10 @@ export class TelegramNotificationService {
     this.sentNotifications = [];
   }
 
+  public clearSentNotificationsForTest(): void {
+    this.clearSentNotifications();
+  }
+
   public async sendMessage(text: string, buttonText = 'Buka Virtual Office'): Promise<boolean> {
     if (!this.ownerIds.length) {
       return false;

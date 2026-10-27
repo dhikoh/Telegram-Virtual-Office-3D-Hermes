@@ -5,6 +5,7 @@ import { TaskRepository } from '../db/repositories/tasks.js';
 import { AuditRepository } from '../db/repositories/audit.js';
 import { streamManager } from '../services/stream.js';
 import { listTaskArtifacts } from '../services/artifacts.js';
+import { telegramNotifications } from '../services/notifications.js';
 import type { Task } from '@hermes-office/shared';
 
 /** Kolom turunan yang boleh ikut di badan PATCH tapi tidak pernah disimpan. */
@@ -205,7 +206,29 @@ export const taskRoutes: FastifyPluginAsync = async (fastify) => {
 
     auditRepo.logAction(request.user!.id, 'task.update', id, JSON.stringify(updates));
     const updatedTask = taskRepo.getById(id);
-    if (updatedTask) broadcastTask(updatedTask);
+    if (updatedTask) {
+      broadcastTask(updatedTask);
+
+      if (updates.status === 'done' && existing.status !== 'done') {
+        const agentRow = db.prepare('SELECT name, department FROM agents WHERE id = ?').get(updatedTask.agent_id) as
+          | { name: string; department?: string }
+          | undefined;
+        telegramNotifications.notifyTaskCompleted(
+          { id: updatedTask.id, title: updatedTask.title, department: agentRow?.department },
+          agentRow?.name || 'Agen Virtual',
+          updatedTask.result_md || undefined
+        ).catch(() => {});
+      } else if (updates.status === 'failed' && existing.status !== 'failed') {
+        const agentRow = db.prepare('SELECT name FROM agents WHERE id = ?').get(updatedTask.agent_id) as
+          | { name: string }
+          | undefined;
+        telegramNotifications.notifyRunFailed(
+          { id: updatedTask.id, title: updatedTask.title },
+          agentRow?.name || 'Agen Virtual',
+          updatedTask.result_md || 'Status diubah ke gagal'
+        ).catch(() => {});
+      }
+    }
 
     return updatedTask;
   });

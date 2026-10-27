@@ -47,11 +47,11 @@ Execute strictly **ONE SUB-TASK AT A TIME**. After each sub-task, run tests, upd
   - [x] 2.1 Implement `notifyTaskCompleted`, `notifyRunFailed`, `notifyApprovalPending`, `sendDailyBriefing`, and `sendTestNotification` in `apps/server/src/services/notifications.ts`
   - [x] 2.2 Add preference checking, Markdown V1 formatting, 5s timeout, and mock/test isolation
   - [x] 2.3 Write comprehensive unit tests in `apps/server/src/services/notifications.test.ts`
-- [ ] 3.0 Event-Driven Notification Hooking
-  - [ ] 3.1 Hook task completion and failure triggers in `apps/server/src/services/dispatcher.ts` and `apps/server/src/routes/tasks.ts`
-  - [ ] 3.2 Hook approval pending notification in `apps/server/src/routes/approvals.ts`
-  - [ ] 3.3 Hook task materializer completion in `apps/server/src/services/agent-chat/task-materializer.ts`
-  - [ ] 3.4 Integration tests in `apps/server/src/routes/tasks.test.ts` and `apps/server/src/routes/approvals.test.ts`
+- [x] 3.0 Event-Driven Notification Hooking
+  - [x] 3.1 Hook task completion and failure triggers in `apps/server/src/services/dispatcher.ts` and `apps/server/src/routes/tasks.ts`
+  - [x] 3.2 Hook approval pending notification in `apps/server/src/routes/approvals.ts` and `apps/server/src/services/dispatcher.ts`
+  - [x] 3.3 Hook task materializer completion in `apps/server/src/services/agent-chat/task-materializer.ts`
+  - [x] 3.4 Integration tests in `apps/server/src/routes/tasks.test.ts` and `apps/server/src/routes/approvals.test.ts`
 - [ ] 4.0 Executive Daily Briefing Scheduler
   - [ ] 4.1 Implement `ExecutiveBriefingService` in `apps/server/src/services/briefing-scheduler.ts` for SQLite metric aggregation
   - [ ] 4.2 Implement 18:00 WIB daily timer with idempotency lock
