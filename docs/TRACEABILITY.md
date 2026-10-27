@@ -135,12 +135,16 @@
 | **REQ-124** | Tahap 20 / ST-5: Panel daftar model auto-detect urut A-Z dengan filter, model aktif di baris pertama, cap render 60, tanpa kolom ketik nama model | 20 | apps/web/src/components/agent-sheet/AgentSheetProfile.tsx | VERIFIED | `tahap20-modellist.test.tsx` membuktikan urutan abjad, dedupe, penanda model aktif, pesan jumlah tersembunyi, dan nol elemen `input` untuk mengetik nama |
 | **REQ-125** | Tahap 20 / ST-6: Prioritas model berurutan per agen (maks 5) disimpan tanpa migrasi baru, divalidasi ulang di jalur baca, dan tiap langkah fallback dicatat ke audit | 20 | packages/shared/src/model-priority.ts, apps/server/src/services/agent-chat/model-priority.ts | VERIFIED | `routes/model-priority.test.ts` (17 tes) menutup CRUD + normalisasi data rusak + panjang lemah; kunci `settings` `agent_model_priority:<id>`, nol migrasi |
 | **REQ-126** | Tahap 20 / ST-6: Rantai fallback kirim model berikutnya hanya pada penolakan eksplisit, berhenti pada run terbuka/stream parsial/timeout, dan gagal jujur ketika habis | 20 | apps/server/src/services/agent-chat/priority-client.ts | VERIFIED | `priority-client.test.ts` (15 tes) & `routes/model-priority-chat.test.ts` (13 tes): 401/400/500 tak mengulang, `ModelPriorityExhaustedError` sampai ke rute, `agent_runs.model` berisi model yang benar-benar dipakai |
+| **REQ-127** | Notifikasi Proaktif Status Tugas: Pemicu otomatis pesan Telegram saat tugas selesai (`done`) atau gagal (`failed`) via outbound sendMessage | 20 | apps/server/src/services/notifications.ts, dispatcher.ts, routes/tasks.ts | VERIFIED | Unit & integration tests di `notifications.test.ts` (13 tests) dan `tasks.test.ts` (32 tests) memvalidasi pengiriman pesan, escaping Markdown V1, dan non-blocking safety |
+| **REQ-128** | Notifikasi Otorisasi Approval: Alert pesan Telegram proaktif saat tercipta persetujuan tindakan berisiko (human-in-the-loop) | 20 | apps/server/src/services/notifications.ts, routes/approvals.ts | VERIFIED | 16 tests di `routes/approvals.test.ts` memverifikasi alert pesan approval terkirim ke owner chat ID lengkap dengan deep-link tombol TMA |
+| **REQ-129** | Executive Daily Briefing Scheduler: Rekap metrik eksekutif harian (tugas selesai, gagal, success rate %, approval pending) jam 18:00 WIB dengan idempotency lock | 20 | apps/server/src/services/briefing-scheduler.ts | VERIFIED | 10 tests di `briefing-scheduler.test.ts` memverifikasi agregasi SQLite, idempotensi kalender `YYYY-MM-DD`, dan eksekusi periodik |
+| **REQ-130** | Pengaturan Preferensi Notifikasi & Test Notification: Switch toggle preferensi per tipe pesan dan tombol uji kirim di UI Settings | 20 | apps/server/src/routes/settings.ts, apps/web/src/components/more/TelegramNotificationsCard.tsx | VERIFIED | 16 tests di `routes/settings.test.ts` dan 5 tests di `TelegramNotificationsCard.test.tsx` memverifikasi pembacaan/penyimpanan di `settings` serta audit log |
 
 ---
 
 ### Ledger Summary Counts (Post-Audit Remediation)
-- **Total Requirements**: 126
-- **VERIFIED**: 125 (100% of automatable requirements)
+- **Total Requirements**: 130
+- **VERIFIED**: 129 (100% of automatable requirements)
 - **BLOCKED (needs owner)**: 1 (REQ-119: physical smartphone manual testing)
 - **IMPLEMENTED-UNTESTED**: 0
 - **TODO**: 0

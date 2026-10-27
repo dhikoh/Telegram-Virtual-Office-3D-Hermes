@@ -1,4 +1,46 @@
 # Hermes Virtual Office — Release & Patch Notes
+
+## 📢 Rilis 28 Oktober 2026: Telegram Proactive Notifications & Daily Executive Briefing
+**Tanggal Rilis:** 28 Oktober 2026  
+**Cakupan:** Notifikasi Outbound Proaktif Telegram, Executive Daily Briefing 18:00 WIB, Settings Preferences, Model Priority Fallback Chain & Stale Run Reaper  
+**Status Kualitas:** 1.316 Tests Passed (121 Test Files) · Gap-Check 8/8 PASS · TypeScript 0 Error · 3D Chunk 228.81 KB gzip  
+
+---
+
+### 🚀 Ringkasan Rilis (28 Oktober 2026)
+Rilis ini membawa kapabilitas komunikasi proaktif searah (**Outbound Proactive Notifications**, Rule REQ-011) dari Virtual Office langsung ke chat pribadi Telegram Owner:
+1. **Notifikasi Otomatis Status Tugas:** Owner langsung menerima alert real-time ketika suatu tugas selesai dikerjakan agen (`done`) dengan ringkasan output dan durasi, atau ketika run gagal (`failed`) dengan detail pesan kendala.
+2. **Alert Permintaan Persetujuan (Human-in-the-Loop):** Saat agen membutuhkan otorisasi untuk tindakan berisiko (misal eksekusi order, deployment, atau pengeluaran dana), bot langsung mengirimkan pesan ringkasan otorisasi dengan deep-link tombol langsung ke Virtual Office.
+3. **Executive Daily Briefing (18:00 WIB):** Rekap metrik eksekutif harian otomatis yang ditarik dari basis data faktual SQLite (jumlah tugas tuntas, gagal, success rate %, approval tertunda, dan rincian kerja departemen) tepat setiap jam 6 sore WIB dengan idempotensi kalender aman.
+4. **Kontrol Preferensi & Uji Kirim:** Kartu pengaturan baru di menu *Settings* dengan 4 switch toggle independen dan tombol "Uji Kirim Pesan" untuk memastikan koneksi bot Telegram aktif.
+5. **Kepatuhan Mutlak Rule REQ-011:** Panggilan API bot strictly `sendMessage` HTTP POST, **tanpa** `getUpdates` atau `setWebhook`, menjaga webhook bot utama tetap aman tanpa konflik.
+
+---
+
+### 📦 Rincian Fitur & Pembaruan
+
+#### 1. Outbound Telegram Notification Service
+- Service inti di `apps/server/src/services/notifications.ts` dengan perlindungan timeout 5 detik, sanitasi karakter format Markdown V1, penanganan error non-blocking, serta isolasi mock pengujian.
+- Filter preferensi dinamis yang mengecek konfigurasi pengguna sebelum mengirim pesan.
+
+#### 2. Event-Driven Notification Hooking
+- Terhubung secara otomatis pada lifecycle dispatcher (`dispatcher.ts`), rute tugas (`routes/tasks.ts`), dan materializer chat (`task-materializer.ts`).
+- Notifikasi terkirim tepat saat transisi status tugas terjadi di server.
+
+#### 3. Executive Daily Briefing Scheduler
+- Modul `briefing-scheduler.ts` dengan agregasi metrik faktual harian dari SQLite.
+- Pengecekan periodic jam 18:00 WIB (UTC+7) dengan penguncian kunci `last_daily_briefing_date` (`YYYY-MM-DD`) di tabel `settings` untuk mencegah notifikasi ganda saat restart server.
+
+#### 4. Settings UI & Test Notification
+- Endpoint Fastify:
+  * `GET /api/settings/notifications` — Membaca preferensi notifikasi.
+  * `PATCH /api/settings/notifications` — Menyimpan pembaruan preferensi switch toggle.
+  * `POST /api/settings/notifications/test` — Mengirimkan contoh pesan uji ke ID Telegram Owner.
+- Komponen antarmuka `TelegramNotificationsCard.tsx` dengan switch toggle ber-touch target $\ge 44\text{px}$, dialog feedback interaktif, dan lokalisasi dwibahasa (ID/EN).
+
+---
+
+## 📢 Rilis 20 Oktober 2026: Integrasi Hermes Gateway ↔ Telegram Mini App (Fase 1 s/d 6)
 **Tanggal Rilis:** 20 Oktober 2026  
 **Cakupan:** Rilis Akbar Integrasi Hermes Gateway ↔ Telegram Mini App (Fase 1 s/d 6)  
 **Status Kualitas:** 989 Tests Passed (95 Test Files) · Gap-Check 8/8 PASS · TypeScript 0 Error  

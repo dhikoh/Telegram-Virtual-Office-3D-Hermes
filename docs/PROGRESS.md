@@ -1,3 +1,26 @@
+## 0. Telegram Proactive Notifications & Daily Executive Briefing (2026-10-28) — selesai
+
+- **Status Rilis (2026-10-28)**: Fitur notifikasi outbound proaktif searah (Rule REQ-011: `sendMessage` only) ke Telegram Owner dan rekap eksekutif harian jam 18:00 WIB selesai 100% dan terverifikasi di master.
+  1. **Outbound Notification Service (`notifications.ts`)**:
+     * `notifyTaskCompleted`: Pesan sukses saat tugas selesai (`done`) disertai nama agen, judul, ringkasan output, dan durasi pengerjaan.
+     * `notifyRunFailed`: Pesan peringatan saat tugas gagal (`failed`) disertai nama agen, judul, dan detail pesan error.
+     * `notifyApprovalPending`: Pesan permintaan otorisasi tindakan berisiko dengan deep-link tombol langsung ke Virtual Office.
+     * `sendTestNotification`: Pengiriman pesan uji koneksi ke seluruh chat ID Owner yang terdaftar.
+     * Escaping karakter format Markdown V1 (`_ * [ `), batas timeout 5 detik, dan filter preferensi dinamis pengguna.
+  2. **Event-Driven Lifecycle Hooking**:
+     * Terhubung ke `apps/server/src/services/dispatcher.ts` pada terminal events `run.completed` dan `run.failed`.
+     * Terhubung ke `apps/server/src/routes/tasks.ts` pada transisi status PATCH tasks ke `done` atau `failed`.
+     * Terhubung ke `apps/server/src/services/agent-chat/task-materializer.ts` pada auto-task completion/failure.
+  3. **Executive Daily Briefing Scheduler (`briefing-scheduler.ts`)**:
+     * Mengagregasi metrik riil SQLite setiap hari (total selesai, gagal, success rate %, approval pending, dan sebaran tugas per departemen).
+     * Pemicu otomatis jam 18:00 WIB (UTC+7) dengan penguncian idempotensi kalender `YYYY-MM-DD` pada tabel `settings` (`last_daily_briefing_date`).
+     * Background timer lifecycle terintegrasi aman di Fastify server instance (`fastify.briefingScheduler`).
+  4. **Settings UI & Test Notification**:
+     * Endpoint `GET/PATCH /api/settings/notifications` dan `POST /api/settings/notifications/test`.
+     * Komponen UI `TelegramNotificationsCard.tsx` di layar Settings dengan 4 sakelar toggle (Task Selesai, Task Gagal, Butuh Persetujuan, Rekap Harian) ber-touch target $\ge 44\text{px}$ dan feedback uji kirim.
+     * Lokalisasi i18n dwibahasa (ID/EN) lengkap.
+  **Verifikasi mandiri**: `tsc --build` exit 0; `vitest run` **1316 test / 121 file hijau** (0 warning); `gap-check` 8/8 (Phase 20); build 3D chunk 228.81 KB gzip ($\le 700\text{ KB}$).
+
 ## 1. Audit Stop Task, CRUD Tugas & Tombol FAB (2026-10-21) — selesai
 
 - **Status audit & perbaikan (2026-10-21)**: laporan pemilik (stop task tidak berhenti, CRUD bocor, papan Task kehilangan kolom, FAB tertimpa) dibuktikan dulu dengan tes reproduksi terhadap server berjalan, lalu ditutup semuanya dalam satu putaran.
