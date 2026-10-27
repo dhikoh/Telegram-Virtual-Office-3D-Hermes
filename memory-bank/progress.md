@@ -5,13 +5,14 @@
 - **Status Gap-Check:** ✅ 8/8 Kriteria Lolos (C3a sampai C3h, Phase 20)
 - **Status Typecheck:** ✅ Lolos (TypeScript 5.7) — 0 Error
 - **Status Test Suite:** ✅ 1316 tests passed across 121 test files (0 warnings)
-- **Fitur Baru (Sedang Berjalan):** Telegram Proactive Notifications & Daily Executive Briefing
+- **Fitur Baru (Selesai & Terverifikasi Penuh):** Telegram Proactive Notifications & Daily Executive Briefing
   * [x] **Task 0.0**: Checkout branch `feature/telegram-proactive-notifications` & penyusunan PRD/Tasks
   * [x] **Task 1.0**: Shared Schemas & Endpoints Definition (`NotificationPreferencesSchema`, endpoints terdaftar)
   * [x] **Task 2.0**: Enhanced Telegram Notification Service (Core methods, preference filtering, Markdown V1 escaping, 13 unit tests PASS)
   * [x] **Task 3.0**: Event-Driven Notification Hooking (Hook `dispatcher.ts`, `routes/tasks.ts`, and `task-materializer.ts` to `telegramNotifications`; 70 tests passed in notification/task suites)
   * [x] **Task 4.0**: Executive Daily Briefing Scheduler (`ExecutiveBriefingService` in `briefing-scheduler.ts` for SQLite metric aggregation & 18:00 WIB daily timer; 10 unit tests PASS)
   * [x] **Task 5.0**: Settings UI & Test Notification Integration (Repository & endpoints `GET/PATCH /api/settings/notifications` and `POST /api/settings/notifications/test`, API client, `TelegramNotificationsCard.tsx` with toggle switches & test button, i18n, and 21 tests PASS)
+  * [x] **Task 6.0**: Comprehensive Verification & Gate Compliance (Fixtures `scripts/gap-check.ts` updated, `npm run build` production OK with 3D chunk 228 KB gzip <= 700 KB, `npm run typecheck` 0 error, `npm test` 1316/1316 PASS across 121 files, `npm run gap-check` 8/8 PASS)
 - **Penyempurnaan Terkini (2026-10-27):**
   * [x] **Audit Total & Zero-Gap Check**: Audit menyeluruh seluruh 44 endpoint, 13 migrasi DB, 14 repository, klien gateway Hermes, dan UI layers.
   * [x] **Test Hygiene (Zero Act Warnings)**: Eliminasi seluruh React `act(...)` warnings di `apps/web/src/components/agent-sheet/__tests__/tahap20-endpoint.test.tsx` dengan helper `renderProfile` yang meng-await lifecycle efek async.

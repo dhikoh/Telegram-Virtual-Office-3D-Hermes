@@ -62,6 +62,6 @@ Execute strictly **ONE SUB-TASK AT A TIME**. After each sub-task, run tests, upd
   - [x] 5.3 Build `TelegramNotificationsCard` in `apps/web/src/components/more/TelegramNotificationsCard.tsx` with toggle controls and test button
   - [x] 5.4 Update i18n dictionaries in `apps/web/src/i18n/index.ts`
   - [x] 5.5 Add UI state tests in `apps/web/src/components/more/__tests__/TelegramNotificationsCard.test.tsx` and `apps/web/src/screens/__tests__/Settings.states.test.tsx`
-- [ ] 6.0 Comprehensive Verification & Gate Compliance
-  - [ ] 6.1 Update `scripts/gap-check.ts` fixtures for new endpoints
-  - [ ] 6.2 Full regression verification: `npm run typecheck`, `npm test`, `npm run gap-check`, and `npm run build`
+- [x] 6.0 Comprehensive Verification & Gate Compliance
+  - [x] 6.1 Update `scripts/gap-check.ts` fixtures for new endpoints
+  - [x] 6.2 Full regression verification: `npm run typecheck`, `npm test`, `npm run gap-check`, and `npm run build`
