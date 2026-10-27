@@ -1,13 +1,15 @@
 # Active Context: Hermes Virtual Office
 
 ## 1. Status Saat Ini
-- **Branch Aktif:** `master` (Seluruh 6 Fase Integrasi berhasil di-merge dari `fase/6-skill-autoinstall`).
-- **Fase Terakhir Diselesaikan:** **Integrasi Hermes ↔ Mini App (Fase 1 s/d 6) TUNTAS 100% di Branch Utama**.
+- **Branch Aktif:** `fix/agent-identity-and-run-reliability` (T1-T5 selesai, siap merge ke `master`).
+- **Fase Terakhir Diselesaikan:** **Integrasi Hermes ↔ Mini App (Fase 1 s/d 6) + Tahap 20 + Fix Identitas & Run Reliability TUNTAS 100%**.
 - **Kondisi Kesehatan Sistem:**
   * `npm run typecheck`: **PASS (100%)** — 0 errors di seluruh workspace monorepo.
-  * `npm run gap-check`: **PASS (8/8 Checks)** — Phase 19 meets all 8 completeness criteria (C3a - C3h).
-  * `npm test`: Suite pengujian aktif dan stabil (**1144 tests passed across 109 test files**).
+  * `npm run gap-check`: **PASS (8/8 Checks)** — Phase 20 meets all 8 completeness criteria (C3a - C3h).
+  * `npm test`: Suite pengujian aktif, stabil & bersih (**1256 tests passed across 117 test files, 0 warnings**).
   * `npm run build`: Production bundle berhasil dibangun (`dist/` clean, index gzip 120.85 KB, 0 jsxDEV).
+- **Pembersihan Test Hygiene (2026-10-27)**:
+  * Mengeliminasi React `act(...)` warning di `apps/web/src/components/agent-sheet/__tests__/tahap20-endpoint.test.tsx` menggunakan helper `renderProfile` yang meng-await resolusi efek asynchronous initial render (`listAgentModels` dan `getAgentModelPriority`). Seluruh 117 file test kini berjalan tanpa warning console.
 - **Perbaikan Terbaru — Hotfix GET /api/cron (2026-10-20)**:
   * Memperbaiki bug 500 `cronExpr.trim is not a function` akibat payload gateway Hermes mengirimkan field `schedule` berupa objek (`{ kind: 'cron', expr: '0 1 * * *', display: '0 1 * * *' }`).
   * Normalisasi aman melalui `readCronExpr` dan pengetatan `formatCronWIB` (return `null` alih-alih melempar error).

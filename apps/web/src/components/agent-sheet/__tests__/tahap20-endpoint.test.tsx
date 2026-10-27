@@ -87,25 +87,32 @@ beforeEach(() => {
   });
 });
 
+const renderProfile = async (agent: OfficeAgent) => {
+  const view = render(<AgentSheetProfile agent={agent} />);
+  await waitFor(() => {
+    expect(apiMock.listAgentModels).toHaveBeenCalled();
+    expect(screen.queryByText('Memuat prioritas model...')).toBeNull();
+  });
+  return view;
+};
+
 describe('sumber endpoint per agen', () => {
-  it('menekan tombol yang sesuai keadaan server', () => {
-    render(<AgentSheetProfile agent={makeAgent({ endpoint_configured: false })} />);
+  it('menekan tombol yang sesuai keadaan server', async () => {
+    const { unmount } = await renderProfile(makeAgent({ endpoint_configured: false }));
     expect(screen.getByTestId('endpoint-source-server').getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByTestId('endpoint-source-agent').getAttribute('aria-pressed')).toBe('false');
 
-    render(<AgentSheetProfile agent={makeAgent({ endpoint_configured: true })} />);
-    expect(screen.getAllByTestId('endpoint-source-server')[1].getAttribute('aria-pressed')).toBe(
-      'false'
-    );
-    expect(screen.getAllByTestId('endpoint-source-agent')[1].getAttribute('aria-pressed')).toBe(
-      'true'
-    );
+    unmount();
+
+    await renderProfile(makeAgent({ endpoint_configured: true }));
+    expect(screen.getByTestId('endpoint-source-server').getAttribute('aria-pressed')).toBe('false');
+    expect(screen.getByTestId('endpoint-source-agent').getAttribute('aria-pressed')).toBe('true');
   });
 
   it('mengirim string kosong eksplisit saat kembali ke endpoint server', async () => {
     apiMock.resetAgentEndpoint.mockResolvedValue(makeAgent({ endpoint_configured: false }));
 
-    render(<AgentSheetProfile agent={makeAgent({ endpoint_configured: true })} />);
+    await renderProfile(makeAgent({ endpoint_configured: true }));
     fireEvent.click(screen.getByTestId('endpoint-source-server'));
 
     await waitFor(() => expect(apiMock.resetAgentEndpoint).toHaveBeenCalledWith('agent_raka'));
@@ -116,7 +123,7 @@ describe('sumber endpoint per agen', () => {
   });
 
   it('menolak memasang endpoint kustom ketika Base URL masih kosong', async () => {
-    render(<AgentSheetProfile agent={makeAgent({ endpoint_configured: false })} />);
+    await renderProfile(makeAgent({ endpoint_configured: false }));
     fireEvent.click(screen.getByTestId('endpoint-source-agent'));
 
     await screen.findByText('Isi Base URL Gateway dulu, baru pilih Kustom.');
@@ -128,7 +135,7 @@ describe('sumber endpoint per agen', () => {
   it('menyimpan Base URL yang diketik ketika memilih Kustom', async () => {
     apiMock.saveAgentEndpoint.mockResolvedValue(makeAgent({ endpoint_configured: true }));
 
-    render(<AgentSheetProfile agent={makeAgent({ endpoint_configured: false })} />);
+    await renderProfile(makeAgent({ endpoint_configured: false }));
     fireEvent.change(screen.getByLabelText(/Base URL Gateway/), {
       target: { value: ' https://openrouter.ai/api/v1 ' },
     });
@@ -149,7 +156,7 @@ describe('sumber endpoint per agen', () => {
       new Error('Alamat loopback hanya boleh dipakai oleh server (Rule S5).')
     );
 
-    render(<AgentSheetProfile agent={makeAgent({ endpoint_configured: false })} />);
+    await renderProfile(makeAgent({ endpoint_configured: false }));
     fireEvent.change(screen.getByLabelText(/Base URL Gateway/), {
       target: { value: 'http://127.0.0.1:8642' },
     });

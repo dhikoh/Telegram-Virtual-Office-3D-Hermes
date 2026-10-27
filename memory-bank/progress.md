@@ -1,14 +1,14 @@
 # Progress: Hermes Virtual Office
 
 ## 1. Status Ringkasan
-- **Fase Aktif Saat Ini:** Phase 19 (Tahap 19) — Selesai & Terverifikasi
-- **Status Gap-Check:** ✅ 8/8 Kriteria Lolos (C3a sampai C3h)
+- **Fase Aktif Saat Ini:** Phase 20 (Tahap 20) — Selesai & Terverifikasi
+- **Status Gap-Check:** ✅ 8/8 Kriteria Lolos (C3a sampai C3h, Phase 20)
 - **Status Typecheck:** ✅ Lolos (TypeScript 5.7) — 0 Error
-- **Status Test Suite:** ✅ 1144 tests passed across 109 test files
-- **Penyempurnaan Terkini (2026-10-21):**
-  * [x] **Sub-Task 1 (Selesai)**: Pembersihan label nama karakter 3D dari atas kepala agen di `Agent3D.tsx`, komponen `AvatarSymbolPicker.tsx` dengan 18 simbol terkurasi di `Step2SpecForm.tsx` & `AgentSheetProfile.tsx`, dan penambahan penggeser zoom kamera dinamis beserta tombol `+` / `−` di `Office3D.tsx` terhubung ke `CameraController.tsx`.
-  * [x] **Sub-Task 2 (Selesai)**: Integrasi aset mobil Kenney Car Kit (`sedan.glb`, `suv.glb`, `delivery.glb`) di `Backdrop.tsx` menggantikan balok primitif di jalan raya tanpa tumpang tindih; integrasi lantai modular Kenney Mini Market (`floor.glb`) di area Central Lounge pada `Furniture.tsx` dan `GLTFFloor.tsx`; penghapusan silinder primitif meja kopi lama agar tidak bertumpuk dengan `sideTable` Kenney; pemeliharaan sekat kaca antar ruangan tetap transparan; dokumentasi CC0 di `docs/ASSETS.md`; 12 unit tests di `vehicles-and-floor-3d.test.ts`.
-  * [x] **Sub-Task 3 (Selesai)**: Penghapusan seluruh border kawat `wireframe` neon yang melayang di sekeliling ruangan departemen, approval gate, dan lounge pada `Furniture.tsx`; digantikan dengan bantalan karpet ruangan eksekutif (*plush room carpet pad*) dan lis tepi karpet halus (*soft textile rug border trim*) bermaterial matte non-emissive yang hangat, bersih, dan serasi dengan model 3D Kenney. Total 1144 unit tests passing.
+- **Status Test Suite:** ✅ 1256 tests passed across 117 test files (0 warnings)
+- **Penyempurnaan Terkini (2026-10-27):**
+  * [x] **Audit Total & Zero-Gap Check**: Audit menyeluruh seluruh 44 endpoint, 13 migrasi DB, 14 repository, klien gateway Hermes, dan UI layers.
+  * [x] **Test Hygiene (Zero Act Warnings)**: Eliminasi seluruh React `act(...)` warnings di `apps/web/src/components/agent-sheet/__tests__/tahap20-endpoint.test.tsx` dengan helper `renderProfile` yang meng-await lifecycle efek async.
+  * [x] **Fix Identitas & Run Reliability (T1-T5)**: Scope identitas agen di depan prompt user, reaper run stale, materializer task 1-per-run, dan backfill script.
 - **Hotfix Terkini:** ✅ Hotfix GET /api/cron (Payload gateway schedule object handled gracefully, formatCronWIB safe, Zod boundary validation)
 
 ---
