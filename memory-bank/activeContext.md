@@ -1,13 +1,15 @@
 # Active Context: Hermes Virtual Office
 
 ## 1. Status Saat Ini
-- **Branch Aktif:** `master` (Fix Identitas & Run Reliability T1-T5 + Test Hygiene berhasil di-merge ke `master`).
-- **Fase Terakhir Diselesaikan:** **Integrasi Hermes ↔ Mini App (Fase 1 s/d 6) + Tahap 20 + Fix Identitas & Run Reliability TUNTAS 100% di Master**.
+- **Branch Aktif:** `feature/telegram-proactive-notifications` (Branch fitur baru dari `master`).
+- **Fitur Sedang Dikerjakan:** **Telegram Proactive Notifications & Daily Executive Briefing**.
+- **Status Sub-Task:**
+  * [x] **Task 0.0**: Checkout branch `feature/telegram-proactive-notifications` & inisialisasi PRD serta task list.
+  * [x] **Task 1.0**: Definisi shared schemas Zod (`NotificationPreferencesSchema`, `NotificationPreferencesPatchSchema`, `TestNotificationResultSchema`) di `packages/shared/src/schemas.ts`, registrasi endpoint di `packages/shared/src/endpoints.ts`, dan unit test di `packages/shared/src/index.test.ts` (PASS 6/6).
 - **Kondisi Kesehatan Sistem:**
   * `npm run typecheck`: **PASS (100%)** — 0 errors di seluruh workspace monorepo.
   * `npm run gap-check`: **PASS (8/8 Checks)** — Phase 20 meets all 8 completeness criteria (C3a - C3h).
-  * `npm test`: Suite pengujian aktif, stabil & bersih (**1256 tests passed across 117 test files, 0 warnings**).
-  * `npm run build`: Production bundle berhasil dibangun (`dist/` clean, index gzip 120.85 KB, 0 jsxDEV).
+  * `npm test`: Suite pengujian aktif, stabil & bersih (**1257 tests passed across 117 test files, 0 warnings**).
 - **Pembersihan Test Hygiene (2026-10-27)**:
   * Mengeliminasi React `act(...)` warning di `apps/web/src/components/agent-sheet/__tests__/tahap20-endpoint.test.tsx` menggunakan helper `renderProfile` yang meng-await resolusi efek asynchronous initial render (`listAgentModels` dan `getAgentModelPriority`). Seluruh 117 file test kini berjalan tanpa warning console.
 - **Perbaikan Terbaru — Hotfix GET /api/cron (2026-10-20)**:
