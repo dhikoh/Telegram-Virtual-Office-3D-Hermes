@@ -56,12 +56,12 @@ Execute strictly **ONE SUB-TASK AT A TIME**. After each sub-task, run tests, upd
   - [x] 4.1 Implement `ExecutiveBriefingService` in `apps/server/src/services/briefing-scheduler.ts` for SQLite metric aggregation
   - [x] 4.2 Implement 18:00 WIB daily timer with idempotency lock
   - [x] 4.3 Add unit tests in `apps/server/src/services/briefing-scheduler.test.ts`
-- [ ] 5.0 Settings UI & Test Notification Integration
-  - [ ] 5.1 Implement notification settings repository & endpoints in `apps/server/src/routes/settings.ts`
-  - [ ] 5.2 Add frontend API client methods in `apps/web/src/services/api.ts`
-  - [ ] 5.3 Build `TelegramNotificationsCard` in `apps/web/src/screens/Settings.tsx` with toggle controls and test button
-  - [ ] 5.4 Update i18n dictionaries in `apps/web/src/i18n/index.ts`
-  - [ ] 5.5 Add UI state tests in `apps/web/src/screens/__tests__/Settings.states.test.tsx`
+- [x] 5.0 Settings UI & Test Notification Integration
+  - [x] 5.1 Implement notification settings repository & endpoints in `apps/server/src/routes/settings.ts`
+  - [x] 5.2 Add frontend API client methods in `apps/web/src/services/api.ts`
+  - [x] 5.3 Build `TelegramNotificationsCard` in `apps/web/src/components/more/TelegramNotificationsCard.tsx` with toggle controls and test button
+  - [x] 5.4 Update i18n dictionaries in `apps/web/src/i18n/index.ts`
+  - [x] 5.5 Add UI state tests in `apps/web/src/components/more/__tests__/TelegramNotificationsCard.test.tsx` and `apps/web/src/screens/__tests__/Settings.states.test.tsx`
 - [ ] 6.0 Comprehensive Verification & Gate Compliance
   - [ ] 6.1 Update `scripts/gap-check.ts` fixtures for new endpoints
   - [ ] 6.2 Full regression verification: `npm run typecheck`, `npm test`, `npm run gap-check`, and `npm run build`

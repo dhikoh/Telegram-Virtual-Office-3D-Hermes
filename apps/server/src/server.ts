@@ -25,6 +25,9 @@ import { departmentRoutes } from './routes/departments.js';
 import { mediaRoutes } from './routes/media.js';
 import { projectRoutes } from './routes/projects.js';
 import { cronRoutes } from './routes/cron.js';
+import { settingsRoutes, readNotificationPreferences } from './routes/settings.js';
+import { SettingRepository } from './db/repositories/settings.js';
+import { telegramNotifications } from './services/notifications.js';
 import { config } from './config.js';
 import { startMediaSweepTimer, stopMediaSweepTimer, sweepRetention } from './services/media.js';
 import { reapStaleRuns } from './services/agent-chat/stale-run-reaper.js';
@@ -69,6 +72,9 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
   dispatcher.onTaskSettled = (taskId) => {
     void projectService.handleSettled(taskId).catch(() => undefined);
   };
+
+  const settingRepo = new SettingRepository(options.db);
+  telegramNotifications.setPreferencesProvider(() => readNotificationPreferences(settingRepo));
 
   const briefingScheduler = new ExecutiveBriefingService(options.db);
 
@@ -153,6 +159,7 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
   app.register(mediaRoutes);
   app.register(projectRoutes);
   app.register(cronRoutes);
+  app.register(settingsRoutes);
 
   // Tahap 12 — retensi media: sekali saat startup + interval berkala.
   // NODE_ENV=test sengaja dilewati supaya unit test tidak mewarisi timer aktif
