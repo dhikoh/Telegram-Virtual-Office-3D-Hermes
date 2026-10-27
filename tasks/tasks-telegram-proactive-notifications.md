@@ -52,10 +52,10 @@ Execute strictly **ONE SUB-TASK AT A TIME**. After each sub-task, run tests, upd
   - [x] 3.2 Hook approval pending notification in `apps/server/src/routes/approvals.ts` and `apps/server/src/services/dispatcher.ts`
   - [x] 3.3 Hook task materializer completion in `apps/server/src/services/agent-chat/task-materializer.ts`
   - [x] 3.4 Integration tests in `apps/server/src/routes/tasks.test.ts` and `apps/server/src/routes/approvals.test.ts`
-- [ ] 4.0 Executive Daily Briefing Scheduler
-  - [ ] 4.1 Implement `ExecutiveBriefingService` in `apps/server/src/services/briefing-scheduler.ts` for SQLite metric aggregation
-  - [ ] 4.2 Implement 18:00 WIB daily timer with idempotency lock
-  - [ ] 4.3 Add unit tests in `apps/server/src/services/briefing-scheduler.test.ts`
+- [x] 4.0 Executive Daily Briefing Scheduler
+  - [x] 4.1 Implement `ExecutiveBriefingService` in `apps/server/src/services/briefing-scheduler.ts` for SQLite metric aggregation
+  - [x] 4.2 Implement 18:00 WIB daily timer with idempotency lock
+  - [x] 4.3 Add unit tests in `apps/server/src/services/briefing-scheduler.test.ts`
 - [ ] 5.0 Settings UI & Test Notification Integration
   - [ ] 5.1 Implement notification settings repository & endpoints in `apps/server/src/routes/settings.ts`
   - [ ] 5.2 Add frontend API client methods in `apps/web/src/services/api.ts`
