@@ -39,10 +39,10 @@ Execute strictly **ONE SUB-TASK AT A TIME**. After each sub-task, run tests, upd
 
 - [x] 0.0 Create feature branch
   - [x] 0.1 Create and checkout feature branch `feature/telegram-proactive-notifications`
-- [ ] 1.0 Shared Schemas & Endpoints Definition
-  - [ ] 1.1 Define `NotificationPreferencesSchema`, `NotificationPreferencesPatchSchema`, and `TestNotificationResultSchema` in `packages/shared/src/schemas.ts`
-  - [ ] 1.2 Register notification preferences & test endpoints in `packages/shared/src/endpoints.ts`
-  - [ ] 1.3 Add unit tests in `packages/shared/src/index.test.ts`
+- [x] 1.0 Shared Schemas & Endpoints Definition
+  - [x] 1.1 Define `NotificationPreferencesSchema`, `NotificationPreferencesPatchSchema`, and `TestNotificationResultSchema` in `packages/shared/src/schemas.ts`
+  - [x] 1.2 Register notification preferences & test endpoints in `packages/shared/src/endpoints.ts`
+  - [x] 1.3 Add unit tests in `packages/shared/src/index.test.ts`
 - [ ] 2.0 Enhanced Telegram Notification Service
   - [ ] 2.1 Implement `notifyTaskCompleted`, `notifyRunFailed`, `notifyApprovalPending`, `sendDailyBriefing`, and `sendTestNotification` in `apps/server/src/services/notifications.ts`
   - [ ] 2.2 Add preference checking, Markdown V1 formatting, 5s timeout, and mock/test isolation

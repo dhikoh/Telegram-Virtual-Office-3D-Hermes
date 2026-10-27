@@ -77,4 +77,31 @@ describe('Shared Package Schema & Contracts', () => {
     expect(ResolveApprovalRequestSchema.safeParse({ decision: 'deny' }).success).toBe(true);
     expect(ResolveApprovalRequestSchema.safeParse({ decision: 'unknown' }).success).toBe(false);
   });
+
+  it('validates NotificationPreferencesSchema with sensible defaults', async () => {
+    const { NotificationPreferencesSchema, NotificationPreferencesPatchSchema, TestNotificationResultSchema } = await import('./schemas.js');
+    
+    // Default parsing
+    const defaultPrefs = NotificationPreferencesSchema.parse({});
+    expect(defaultPrefs.notify_task_completed).toBe(true);
+    expect(defaultPrefs.notify_task_failed).toBe(true);
+    expect(defaultPrefs.notify_approval_pending).toBe(true);
+    expect(defaultPrefs.daily_briefing_enabled).toBe(true);
+
+    // Partial patch
+    const patch = NotificationPreferencesPatchSchema.parse({ notify_task_completed: false });
+    expect(patch.notify_task_completed).toBe(false);
+    expect(patch.notify_task_failed).toBeUndefined();
+
+    // Test result schema
+    const testResult = TestNotificationResultSchema.safeParse({
+      ok: true,
+      sent_count: 1,
+      target_chat_ids: [123456],
+      message: 'Notifikasi uji berhasil',
+      timestamp: Date.now(),
+    });
+    expect(testResult.success).toBe(true);
+  });
 });
+
